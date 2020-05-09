@@ -84,7 +84,7 @@ namespace SDL
             const int& getPassAlgo() const;
             CUDA_HOSTDEV const Hit& getLowerShiftedHit() const;
             CUDA_HOSTDEV const Hit& getUpperShiftedHit() const;
-            __device__ __host__ const float& getDz() const;
+            CUDA_HOSTDEV const float& getDz() const;
             CUDA_HOSTDEV const float& getShiftedDz() const;
             CUDA_HOSTDEV const float& getDeltaPhi() const;
             CUDA_HOSTDEV const float& getDeltaPhiChange() const;
@@ -94,15 +94,15 @@ namespace SDL
 
 
             void setAnchorHit();
-            __device__ __host__ void setLowerShiftedHit(float, float, float, int=-1);
-            __device__ __host__ void setUpperShiftedHit(float, float, float, int=-1);
-            __device__ __host__ void setDz(float);
-            __device__ __host__ void setShiftedDz(float);
-            __device__ __host__ void setDeltaPhi(float);
-            __device__ __host__ void setDeltaPhiChange(float);
-            __device__ __host__ void setDeltaPhiNoShift(float);
-            __device__ __host__ void setDeltaPhiChangeNoShift(float);
-            __device__ __host__ void setMiniCut(float);
+            CUDA_HOSTDEV void setLowerShiftedHit(float, float, float, int=-1);
+            CUDA_HOSTDEV void setUpperShiftedHit(float, float, float, int=-1);
+            CUDA_HOSTDEV void setDz(float);
+            CUDA_HOSTDEV void setShiftedDz(float);
+            CUDA_HOSTDEV void setDeltaPhi(float);
+            CUDA_HOSTDEV void setDeltaPhiChange(float);
+            CUDA_HOSTDEV void setDeltaPhiNoShift(float);
+            CUDA_HOSTDEV void setDeltaPhiChangeNoShift(float);
+            CUDA_HOSTDEV void setMiniCut(float);
 
             // return whether it passed the algorithm
             bool passesMiniDoubletAlgo(MDAlgo algo) const;
@@ -129,7 +129,7 @@ namespace SDL
             // The main idea is to be consistent with 1 GeV minimum pt
             // Some residual effects such as tilt, multiple scattering, beam spots are considered
             //static float dPhiThreshold(const Hit&, const Module&);
-            __device__ __host__ float dPhiThreshold(const Hit& lowerHit, const Module& module, const float dPhi = 0, const float dz = 1);
+            CUDA_HOSTDEV float dPhiThreshold(const Hit& lowerHit, const Module& module, const float dPhi = 0, const float dz = 1);
 
             // The math for shifting the pixel hit up or down along the PS module orientation (deprecated)
             static float fabsdPhiPixelShift(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, SDL::LogLevel logLevel=SDL::Log_Nothing);
@@ -137,7 +137,7 @@ namespace SDL
             // The math for shifting the strip hit up or down along the PS module orientation (deprecated)
             static float fabsdPhiStripShift(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
-            // The math for shifting the strip hit up or dow__device__ __host__ n along the PS module orientation, returns new x, y and z position
+            // The math for shifting the strip hit up or dowCUDA_HOSTDEV n along the PS module orientation, returns new x, y and z position
             CUDA_HOSTDEV void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
             // The function to actually determine whether a pair of hits is a reco-ed mini doublet or not
@@ -150,25 +150,17 @@ namespace SDL
             static bool isNormalTiltedModules(const Module& lowerModule);
 
             // The function to determine transition region for inner most tilted layer (same as isNormalTiltedModules)
-            __device__ __host__ static bool isTighterTiltedModules(const Module& lowerModule);
+            CUDA_HOSTDEV static bool isTighterTiltedModules(const Module& lowerModule);
 
             // The function to determine gap
-            __device__ __host__ static float moduleGapSize(const Module& lowerModule);
+            CUDA_HOSTDEV static float moduleGapSize(const Module& lowerModule);
 
             //Function to set drdz so that we don't transport the tilted module map every time into the GPU, also
             //GPUs don't have STL yet, so we can't transport the map even if we wanted
-            __device__ __host__ void setDrDz(float);
+            CUDA_HOSTDEV void setDrDz(float);
 
-            __device__ __host__ void setLowerModuleSlope(float);
+            CUDA_HOSTDEV void setLowerModuleSlope(float);
 
-
-            inline void* operator new [](std::size_t len)
-            {
-                void *ptr;
-                cudaMallocManaged(&ptr,len);
-                cudaDeviceSynchronize();
-                return ptr;
-            }
 
             
     };

@@ -39,23 +39,23 @@ namespace SDL
             Hit* hit_high_edge_;
             Hit* hit_low_edge_;
 
-            __device__ __host__ void setDerivedQuantities();
+            CUDA_HOSTDEV void setDerivedQuantities();
 
         public:
 
             // cnstr/destr
             Hit();
-            __device__ __host__ Hit(float x, float y, float z, int idx=-1);
-            __device__ __host__ Hit(const Hit&);
-            __device__ __host__ ~Hit();
+            CUDA_HOSTDEV Hit(float x, float y, float z, int idx=-1);
+            CUDA_HOSTDEV Hit(const Hit&);
+            CUDA_HOSTDEV ~Hit();
 
             // modifying class content
-            __device__ __host__ void setX(float x);
-            __device__ __host__ void setY(float y);
-            __device__ __host__ void setZ(float z);
-            __device__ __host__ void setXYZ(float x, float y, float z);
-            __device__ __host__ void setIdx(int idx);
-            __device__ __host__ void setModule(const Module*);
+            CUDA_HOSTDEV void setX(float x);
+            CUDA_HOSTDEV void setY(float y);
+            CUDA_HOSTDEV void setZ(float z);
+            CUDA_HOSTDEV void setXYZ(float x, float y, float z);
+            CUDA_HOSTDEV void setIdx(int idx);
+            CUDA_HOSTDEV void setModule(const Module*);
 
             // Set the boundary hits where the hits are shifted
             void setHitHighEdgePtr(Hit* hit);

@@ -2,6 +2,7 @@
 
 #define SDL_INF 123456789
 
+
 SDL::MiniDoublet::MiniDoublet()
 {
 }
