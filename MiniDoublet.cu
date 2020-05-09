@@ -208,7 +208,7 @@ bool SDL::MiniDoublet::passesMiniDoubletAlgo(SDL::MDAlgo algo) const
     return passAlgo_ & (1 << algo);
 }
 
-__device__ __host__ void SDL::MiniDoublet::runMiniDoubletAlgo(SDL::MDAlgo algo, SDL::LogLevel logLevel)
+void SDL::MiniDoublet::runMiniDoubletAlgo(SDL::MDAlgo algo, SDL::LogLevel logLevel)
 {
     if (algo == SDL::AllComb_MDAlgo)
     {
@@ -225,12 +225,12 @@ __device__ __host__ void SDL::MiniDoublet::runMiniDoubletAlgo(SDL::MDAlgo algo, 
     }
 }
 
-__device__ __host__ void SDL::MiniDoublet::runMiniDoubletAllCombAlgo()
+void SDL::MiniDoublet::runMiniDoubletAllCombAlgo()
 {
     passAlgo_ |= (1 << SDL::AllComb_MDAlgo);
 }
 
-__device__ __host__ void SDL::MiniDoublet::runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel)
+void SDL::MiniDoublet::runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel)
 {
     // Retreived the lower module object
     const SDL::Module& lowerModule = lowerHitPtr_->getModule();
@@ -245,7 +245,7 @@ __device__ __host__ void SDL::MiniDoublet::runMiniDoubletDefaultAlgo(SDL::LogLev
     }
 }
 
-__device__ __host__ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
+void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
 {
     // First get the object that the pointer points to
     const SDL::Hit& lowerHit = (*lowerHitPtr_);

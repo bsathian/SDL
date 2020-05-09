@@ -1,6 +1,12 @@
 #ifndef Hit_h
 #define Hit_h
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -56,33 +62,33 @@ namespace SDL
             void setHitLowEdgePtr(Hit* hit);
 
             // accessor functions
-            __host__ __device__ const float& x() const;
-            __host__ __device__ const float& y() const;
-            __host__ __device__ const float& z() const;
-            __host__ __device__ const float& rt() const;
-            __host__ __device__ const float& r3() const;
-            __host__ __device__ const float& phi() const;
-            __host__ __device__ const float& eta() const;
-            __host__ __device__ const int& idx() const;
-            __host__ __device__ const Module& getModule() const;
+            CUDA_HOSTDEV const float& x() const;
+            CUDA_HOSTDEV const float& y() const;
+            CUDA_HOSTDEV const float& z() const;
+            CUDA_HOSTDEV const float& rt() const;
+            CUDA_HOSTDEV const float& r3() const;
+            CUDA_HOSTDEV const float& phi() const;
+            CUDA_HOSTDEV const float& eta() const;
+            CUDA_HOSTDEV const int& idx() const;
+            CUDA_HOSTDEV const Module& getModule() const;
 
             // Set the boundary hits where the hits are shifted
             const Hit* getHitHighEdgePtr() const;
             const Hit* getHitLowEdgePtr() const;
 
             // variable computation between two hits
-            __host__ __device__ float deltaPhi(const Hit&) const;
-            __host__ __device__ float deltaPhiChange(const Hit&) const;
+            CUDA_HOSTDEV float deltaPhi(const Hit&) const;
+            CUDA_HOSTDEV float deltaPhiChange(const Hit&) const;
             bool isIdxMatched(const Hit&) const;
 
             // operator overloading
             bool operator !=(const Hit&) const;
             bool operator ==(const Hit&) const;
-            __host__ __device__ Hit  operator - (const Hit&) const;
-            __host__ __device__ Hit& operator = (const Hit&);
-            __host__ __device__ Hit& operator -=(const Hit&);
-            __host__ __device__ Hit& operator +=(const Hit&);
-            __host__ __device__ Hit& operator /=(const float&);
+            CUDA_HOSTDEV Hit  operator - (const Hit&) const;
+            CUDA_HOSTDEV Hit& operator = (const Hit&);
+            CUDA_HOSTDEV Hit& operator -=(const Hit&);
+            CUDA_HOSTDEV Hit& operator +=(const Hit&);
+            CUDA_HOSTDEV Hit& operator /=(const float&);
 
             // cout printing
             friend std::ostream& operator<<(std::ostream& out, const Hit& hit);

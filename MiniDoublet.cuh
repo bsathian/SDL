@@ -1,6 +1,12 @@
 #ifndef MiniDoublet_h
 #define MiniDoublet_h
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
 #include <array>
 #include <tuple>
 #include <math.h>
@@ -76,15 +82,15 @@ namespace SDL
             Hit* upperHitPtr() const;
             Hit* anchorHitPtr() const;
             const int& getPassAlgo() const;
-            __host__ __device__ const Hit& getLowerShiftedHit() const;
-            __host__ __device__ const Hit& getUpperShiftedHit() const;
+            CUDA_HOSTDEV const Hit& getLowerShiftedHit() const;
+            CUDA_HOSTDEV const Hit& getUpperShiftedHit() const;
             __device__ __host__ const float& getDz() const;
-            __host__ __device__ const float& getShiftedDz() const;
-            __host__ __device__ const float& getDeltaPhi() const;
-            __host__ __device__ const float& getDeltaPhiChange() const;
-            __host__ __device__ const float& getDeltaPhiNoShift() const;
-            __host__ __device__ const float& getDeltaPhiChangeNoShift() const;
-            __host__ __device__ const float& getMiniCut() const;
+            CUDA_HOSTDEV const float& getShiftedDz() const;
+            CUDA_HOSTDEV const float& getDeltaPhi() const;
+            CUDA_HOSTDEV const float& getDeltaPhiChange() const;
+            CUDA_HOSTDEV const float& getDeltaPhiNoShift() const;
+            CUDA_HOSTDEV const float& getDeltaPhiChangeNoShift() const;
+            CUDA_HOSTDEV const float& getMiniCut() const;
 
 
             void setAnchorHit();
@@ -102,15 +108,15 @@ namespace SDL
             bool passesMiniDoubletAlgo(MDAlgo algo) const;
 
             // The function to run mini-doublet algorithm on a mini-doublet candidate
-            __host__ __device__ void runMiniDoubletAlgo(MDAlgo algo, SDL::LogLevel logLevel=SDL::Log_Nothing);
+            CUDA_HOSTDEV void runMiniDoubletAlgo(MDAlgo algo, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
             // The following algorithm does nothing and accepts the mini-doublet
-            __host__ __device__ void runMiniDoubletAllCombAlgo();
+            CUDA_HOSTDEV void runMiniDoubletAllCombAlgo();
 
             // The default algorithms;
-            __host__ __device__ void runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel);
-            __host__ __device__ void runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel);
-            __host__ __device__ void runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel);
+            CUDA_HOSTDEV void runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel);
+            CUDA_HOSTDEV void runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel);
+            CUDA_HOSTDEV void runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel);
 
             bool isIdxMatched(const MiniDoublet&) const;
             bool isAnchorHitIdxMatched(const MiniDoublet&) const;
@@ -132,7 +138,7 @@ namespace SDL
             static float fabsdPhiStripShift(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
             // The math for shifting the strip hit up or dow__device__ __host__ n along the PS module orientation, returns new x, y and z position
-             __host__ __device__ void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
+            CUDA_HOSTDEV void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
             // The function to actually determine whether a pair of hits is a reco-ed mini doublet or not
             static bool isHitPairAMiniDoublet(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, MDAlgo algo, SDL::LogLevel logLevel=SDL::Log_Nothing);

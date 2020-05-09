@@ -1,6 +1,13 @@
 #ifndef Module_h
 #define Module_h
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
+
 #include <vector>
 #include <iostream>
 
@@ -258,18 +265,18 @@ namespace SDL
             ~Module();
 
             // accessor functions
-            __host__ __device__ const unsigned int& detId() const;
-            __host__ __device__ const unsigned int& partnerDetId() const;
-            __host__ __device__ const unsigned short& subdet() const;
-            __host__ __device__ const unsigned short& side() const;
-            __host__ __device__ const unsigned short& layer() const;
-            __host__ __device__ const unsigned short& rod() const;
-            __host__ __device__ const unsigned short& ring() const;
-            __host__ __device__ const unsigned short& module() const;
-            __host__ __device__ const unsigned short& isLower() const;
-            __host__ __device__ const bool& isInverted() const;
-            __host__ __device__ const ModuleType& moduleType() const;
-            __host__ __device__ const ModuleLayerType& moduleLayerType() const;
+            CUDA_HOSTDEV const unsigned int& detId() const;
+            CUDA_HOSTDEV const unsigned int& partnerDetId() const;
+            CUDA_HOSTDEV const unsigned short& subdet() const;
+            CUDA_HOSTDEV const unsigned short& side() const;
+            CUDA_HOSTDEV const unsigned short& layer() const;
+            CUDA_HOSTDEV const unsigned short& rod() const;
+            CUDA_HOSTDEV const unsigned short& ring() const;
+            CUDA_HOSTDEV const unsigned short& module() const;
+            CUDA_HOSTDEV const unsigned short& isLower() const;
+            CUDA_HOSTDEV const bool& isInverted() const;
+            CUDA_HOSTDEV const ModuleType& moduleType() const;
+            CUDA_HOSTDEV const ModuleLayerType& moduleLayerType() const;
             const std::vector<Hit*>& getHitPtrs() const;
             const std::vector<MiniDoublet*>& getMiniDoubletPtrs() const;
             const std::vector<Segment*>& getSegmentPtrs() const;
