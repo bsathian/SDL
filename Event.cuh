@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cmath>
+#include <cuda_runtime.h>
 
 #include "Module.cuh"
 #include "Hit.cuh"
@@ -26,7 +27,7 @@ namespace SDL
         private:
 
             // map of modules (this holds the actual instances)
-            std::map<unsigned int, Module> modulesMapByDetId_;
+            std::map<unsigned int, Module*> modulesMapByDetId_;
 
             // map of barrel layers (this holds the actual instances)
             std::map<int, Layer> barrelLayers_;
@@ -194,7 +195,7 @@ namespace SDL
 
             // Module related functions
             bool hasModule(unsigned int detId);
-            Module& getModule(unsigned int detId);
+            Module* getModule(unsigned int detId);
             const std::vector<Module*> getModulePtrs() const;
             const std::vector<Module*> getLowerModulePtrs() const;
 

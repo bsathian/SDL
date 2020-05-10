@@ -64,10 +64,10 @@ void SDL::Event::setLogLevel(SDL::LogLevel logLevel)
     logLevel_ = logLevel;
 }
 
-SDL::Module& SDL::Event::getModule(unsigned int detId)
+SDL::Module* SDL::Event::getModule(unsigned int detId)
 {
     // using std::map::emplace
-    std::pair<std::map<unsigned int, Module>::iterator, bool> emplace_result = modulesMapByDetId_.emplace(detId, detId);
+    std::pair<std::map<unsigned int, Module*>::iterator, bool> emplace_result = modulesMapByDetId_.emplace(detId,nullptr);
 
     // Retreive the module
     auto& inserted_or_existing = (*(emplace_result.first)).second;
@@ -77,11 +77,14 @@ SDL::Module& SDL::Event::getModule(unsigned int detId)
     {
 
         // The pointer to be added
-        Module* module_ptr = &((*(emplace_result.first)).second);
+        cudaMallocManaged(&((*(emplace_result.first)).second),sizeof(Module));
+        cudaDeviceSynchronize();
 
+        *inserted_or_existing =SDL:: Module(detId);
+         Module* module_ptr = ((*(emplace_result.first)).second);
+        
         // Add the module pointer to the list of modules
         modulePtrs_.push_back(module_ptr);
-
         // If the module is lower module then add to list of lower modules
         if (module_ptr->isLower())
             lowerModulePtrs_.push_back(module_ptr);
@@ -133,21 +136,43 @@ const std::vector<SDL::Layer*> SDL::Event::getLayerPtrs() const
 void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
 {
     // Add to global list of hits, where it will hold the object's instance
-    hits_.push_back(hit);
+    static int count = 0;
+    SDL::Hit *hitForGPU;
+    cudaMallocManaged(&hitForGPU,sizeof(SDL::Hit));
+    cudaDeviceSynchronize();
 
-    // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addHit(&(hits_.back()));
+//    hits_.push_back(*hitForGPU);
+       // And get the module (if not exists, then create), and add the address to Module.hits_
+    //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
+    *hitForGPU = hit;
+    hitForGPU->setModule(getModule(detId));
+    SDL::cout<<count<<std::endl;
+    count++;
+    getModule(detId)->addHit(hitForGPU);
+    hits_.push_back(*hitForGPU);
 
     // Count number of hits in the event
-    incrementNumberOfHits(getModule(detId));
+    incrementNumberOfHits(*getModule(detId));
 
     // If the hit is 2S in the endcap then the hit boundary needs to be set
-    if (getModule(detId).subdet() == SDL::Module::Endcap and getModule(detId).moduleType() == SDL::Module::TwoS)
+    if (getModule(detId)->subdet() == SDL::Module::Endcap and getModule(detId)->moduleType() == SDL::Module::TwoS)
     {
-        hits_2s_edges_.push_back(GeometryUtil::stripHighEdgeHit(hits_.back()));
-        hits_.back().setHitHighEdgePtr(&(hits_2s_edges_.back()));
-        hits_2s_edges_.push_back(GeometryUtil::stripLowEdgeHit(hits_.back()));
-        hits_.back().setHitLowEdgePtr(&(hits_2s_edges_.back()));
+        SDL::Hit *hit_2s_high_edge;
+        SDL::Hit *hit_2s_low_edge;
+        cudaMallocManaged(&hit_2s_high_edge,sizeof(SDL::Hit));
+        cudaMallocManaged(&hit_2s_low_edge,sizeof(SDL::Hit));
+        cudaDeviceSynchronize();
+        
+        *hit_2s_high_edge = GeometryUtil::stripHighEdgeHit(*hitForGPU);
+        *hit_2s_low_edge = GeometryUtil::stripLowEdgeHit(*hitForGPU);
+//        hits_2s_edges_.push_back(GeometryUtil::stripHighEdgeHit(&hits_.back()));
+//        hits_.back().setHitHighEdgePtr(&(hits_2s_edges_.back()));
+//        hits_2s_edges_.push_back(GeometryUtil::stripLowEdgeHit(*hitForGPU));
+//        hits_.back().setHitLowEdgePtr(&(hits_2s_edges_.back()));
+        hits_2s_edges_.push_back(*hit_2s_high_edge);
+        hitForGPU->setHitHighEdgePtr(hit_2s_high_edge);
+        hits_2s_edges_.push_back(*hit_2s_low_edge);
+        hitForGPU->setHitLowEdgePtr(hit_2s_low_edge);
     }
 }
 
@@ -157,7 +182,12 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, 
     miniDoublets_.push_back(md);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addMiniDoublet(&(miniDoublets_.back()));
+    //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
+    SDL::MiniDoublet *mdForGPU;
+    cudaMallocManaged(&mdForGPU,sizeof(SDL::MiniDoublet));
+    cudaDeviceSynchronize();
+    *mdForGPU = md;
+    getModule(detId)->addMiniDoublet(mdForGPU);
 
     // And get the layer
     getLayer(layerIdx, subdet).addMiniDoublet(&(miniDoublets_.back()));
@@ -170,7 +200,7 @@ void SDL::Event::addMiniDoubletToLowerModule(SDL::MiniDoublet md, unsigned int d
     miniDoublets_.push_back(md);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addMiniDoublet(&(miniDoublets_.back()));
+    getModule(detId)->addMiniDoublet(&(miniDoublets_.back()));
 }
 
 void SDL::Event::addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
@@ -179,7 +209,7 @@ void SDL::Event::addSegmentToEvent(SDL::Segment sg, unsigned int detId, int laye
     segments_.push_back(sg);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addSegment(&(segments_.back()));
+    getModule(detId)->addSegment(&(segments_.back()));
 
     // And get the layer andd the segment to it
     getLayer(layerIdx, subdet).addSegment(&(segments_.back()));
@@ -195,7 +225,7 @@ void SDL::Event::addTrackletToEvent(SDL::Tracklet tl, unsigned int detId, int la
     tracklets_.push_back(tl);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addTracklet(&(tracklets_.back()));
+    getModule(detId)->addTracklet(&(tracklets_.back()));
 
     // And get the layer andd the segment to it
     getLayer(layerIdx, subdet).addTracklet(&(tracklets_.back()));
@@ -211,7 +241,7 @@ void SDL::Event::addTripletToEvent(SDL::Triplet tp, unsigned int detId, int laye
     triplets_.push_back(tp);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addTriplet(&(triplets_.back()));
+    getModule(detId)->addTriplet(&(triplets_.back()));
 
     // And get the layer andd the triplet to it
     getLayer(layerIdx, subdet).addTriplet(&(triplets_.back()));
@@ -224,7 +254,7 @@ void SDL::Event::addSegmentToLowerModule(SDL::Segment sg, unsigned int detId)
     segments_.push_back(sg);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId).addSegment(&(segments_.back()));
+    getModule(detId)->addSegment(&(segments_.back()));
 }
 
 [[deprecated("SDL:: addSegmentToLowerLayer() is deprecated. Use addSegmentToEvent")]]
@@ -271,10 +301,10 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
 void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, SDL::MDAlgo algo)
 {
     // Get reference to the lower Module
-    Module& lowerModule = getModule(detId);
+    Module& lowerModule = *getModule(detId);
 
     // Get reference to the upper Module
-    Module& upperModule = getModule(lowerModule.partnerDetId());
+    Module& upperModule = *getModule(lowerModule.partnerDetId());
     // Double nested loops
     // Loop over lower module hits
     //Number hardcoded from occupancy plots
@@ -354,7 +384,7 @@ void SDL::Event::createPseudoMiniDoubletsFromAnchorModule(SDL::MDAlgo algo)
         unsigned int detId = lowerModulePtr->detId();
 
         // Get reference to the lower Module
-        Module& lowerModule = getModule(detId);
+        Module& lowerModule = *getModule(detId);
 
         // Assign anchor hit pointers based on their hit type
         bool loopLower = true;
@@ -375,7 +405,7 @@ void SDL::Event::createPseudoMiniDoubletsFromAnchorModule(SDL::MDAlgo algo)
         }
 
         // Get reference to the upper Module
-        Module& upperModule = getModule(lowerModule.partnerDetId());
+        Module& upperModule = *getModule(lowerModule.partnerDetId());
 
         if (loopLower)
         {
@@ -505,7 +535,7 @@ void SDL::Event::createSegmentsFromInnerLowerModule(unsigned int detId, SDL::SGA
     // -------y-------- <--- inner lower module
 
     // Get reference to the inner lower Module
-    Module& innerLowerModule = getModule(detId);
+    Module& innerLowerModule = *getModule(detId);
 
     // Triple nested loops
     // Loop over inner lower module mini-doublets
@@ -526,7 +556,7 @@ void SDL::Event::createSegmentsFromInnerLowerModule(unsigned int detId, SDL::SGA
                 continue;
 
             // Get reference to the outer lower module
-            Module& outerLowerModule = getModule(outerLowerModuleDetId);
+            Module& outerLowerModule = *getModule(outerLowerModuleDetId);
 
             // Loop over outer lower module mini-doublets
             for (auto& outerMiniDoubletPtr : outerLowerModule.getMiniDoubletPtrs())
@@ -580,7 +610,7 @@ void SDL::Event::createTripletsFromInnerLowerModule(unsigned int detId, SDL::TPA
 {
 
     // Get reference to the inner lower Module
-    Module& innerLowerModule = getModule(detId);
+    Module& innerLowerModule = *getModule(detId);
 
     // Triple nested loops
     // Loop over inner lower module for segments
@@ -601,7 +631,7 @@ void SDL::Event::createTripletsFromInnerLowerModule(unsigned int detId, SDL::TPA
                 continue;
 
             // Get reference to the outer lower module
-            Module& outerLowerModule = getModule(outerLowerModuleDetId);
+            Module& outerLowerModule = *getModule(outerLowerModuleDetId);
 
             // Loop over outer lower module mini-doublets
             for (auto& outerSegmentPtr : outerLowerModule.getSegmentPtrs())
@@ -668,7 +698,7 @@ void SDL::Event::createTrackletsFromInnerLowerModule(unsigned int detId, SDL::TL
 {
 
     // Get reference to the inner lower Module
-    Module& innerLowerModule = getModule(detId);
+    Module& innerLowerModule = *getModule(detId);
 
     // Triple nested loops
     // Loop over inner lower module for segments
@@ -694,7 +724,7 @@ void SDL::Event::createTrackletsFromInnerLowerModule(unsigned int detId, SDL::TL
                 continue;
 
             // Get reference to the outer lower module
-            Module& outerLowerModule = getModule(outerLowerModuleDetId);
+            Module& outerLowerModule = *getModule(outerLowerModuleDetId);
 
             // Loop over outer lower module mini-doublets
             for (auto& outerSegmentPtr : outerLowerModule.getSegmentPtrs())
@@ -740,7 +770,7 @@ void SDL::Event::createTrackletsViaNavigation(SDL::TLAlgo algo)
     {
 
         // Get reference to the inner lower Module
-        Module& innerLowerModule = getModule(lowerModulePtr->detId());
+        Module& innerLowerModule = *getModule(lowerModulePtr->detId());
 
         // Triple nested loops
         // Loop over inner lower module for segments
@@ -930,7 +960,7 @@ void SDL::Event::createTrackCandidatesFromInnerModulesFromTriplets(unsigned int 
 {
 
     // Get reference to the inner lower Module
-    Module& innerLowerModule = getModule(detId);
+    Module& innerLowerModule = *getModule(detId);
 
     // Triple nested loops
     // Loop over inner lower module for segments
@@ -956,7 +986,7 @@ void SDL::Event::createTrackCandidatesFromInnerModulesFromTriplets(unsigned int 
                 continue;
 
             // Get reference to the outer lower module
-            Module& outerLowerModule = getModule(outerLowerModuleDetId);
+            Module& outerLowerModule = *getModule(outerLowerModuleDetId);
 
             // Loop over outer lower module mini-doublets
             for (auto& outerTripletPtr : outerLowerModule.getTripletPtrs())
@@ -1040,7 +1070,7 @@ void SDL::Event::createTrackCandidatesFromInnerModulesFromTracklets(unsigned int
 {
 
     // Get reference to the inner lower Module
-    Module& innerLowerModule = getModule(detId);
+    Module& innerLowerModule = *getModule(detId);
 
     // Triple nested loops
     // Loop over inner lower module for segments
@@ -1066,7 +1096,7 @@ void SDL::Event::createTrackCandidatesFromInnerModulesFromTracklets(unsigned int
                 continue;
 
             // Get reference to the outer lower module
-            Module& outerLowerModule = getModule(outerLowerModuleDetId);
+            Module& outerLowerModule = *getModule(outerLowerModuleDetId);
 
             // Loop over outer lower module mini-doublets
             for (auto& outerTrackletPtr : outerLowerModule.getTrackletPtrs())
