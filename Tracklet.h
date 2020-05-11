@@ -8,7 +8,7 @@
 #include "Algo.h"
 #include "Segment.h"
 #include "PrintUtil.h"
-#include "GeometryUtil.h"
+#include "GeometryUtil.cuh"
 #include "TrackletBase.h"
 
 namespace SDL

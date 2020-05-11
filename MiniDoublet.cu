@@ -234,7 +234,7 @@ void SDL::MiniDoublet::runMiniDoubletAllCombAlgo()
 void SDL::MiniDoublet::runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel)
 {
     // Retreived the lower module object
-    const SDL::Module& lowerModule = lowerHitPtr_->getModule();
+      const SDL::Module& lowerModule = lowerHitPtr_->getModule();
 
     if (lowerModule.subdet() == SDL::Module::Barrel)
     {
@@ -319,7 +319,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
 
     // Cut #2: dphi difference
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3085
-    float xn = 0, yn = 0; //, zn = 0;
+    float xn = 0, yn = 0 , zn = 0;
     if (lowerModule.side() != SDL::Module::Center) // If barrel and not center it is tilted
     {
         // Shift the hits and calculate new xn, yn position
@@ -327,7 +327,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
         shiftStripHits(lowerHit, upperHit, lowerModule, shiftedCoords, logLevel);
         xn = shiftedCoords[0];
         yn = shiftedCoords[1];
-//        zn = shiftCoords[2];
+        zn = shiftedCoords[2];
 
         // Lower or the upper hit needs to be modified depending on which one was actually shifted
         if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
@@ -1081,7 +1081,6 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
 
     // angleB = isEndcap ? M_PI / 2. : -std::atan(tiltedGeometry.getDrDz(detid) * (lowerModule.side() == SDL::Module::PosZ ? -1 : 1)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
     angleB = ((isEndcap) ? M_PI / 2. : atan(drdz_)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
-
     // https://iopscience.iop.org/article/10.1088/1748-0221/12/02/C02049/pdf says the PS modules have distances of 1.6mm 2.6mm or 4mm
     // The following verifies that the first layer has 0.26 spacing (the constants are from the fitted values, in order to rotate the module perfectly so that the distance can be read from the Scan output directly)
     // tree->Scan("(ph2_y*cos(-1.39626596)-ph2_x*sin(-1.39626596))*cos(-0.820378147)-sin(-0.820378147)*ph2_z:ph2_z*cos(-0.820378147)+sin(-0.820378147)*(ph2_y*cos(-1.39626596)-ph2_x*sin(-1.39626596))","ph2_order==0&&ph2_side==2&&ph2_rod==1&&ph2_layer==1&&ph2_module==1")

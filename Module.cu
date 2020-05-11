@@ -130,8 +130,8 @@ void SDL::Module::addHit(SDL::Hit* hit)
     // Set the information on the module for where this hit resides
     // So we can swim backwards to find which module this hit resides
     // for any meta-object that contains this hit
-    hit->setModule(this);
-
+//    hit->setModule(this);
+    
     // Then add to the module
     hits_.push_back(hit);
 }

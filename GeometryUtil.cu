@@ -1,11 +1,11 @@
-#include "GeometryUtil.h"
+#include "GeometryUtil.cuh"
 
 SDL::Hit SDL::GeometryUtil::stripEdgeHit(const SDL::Hit& recohit, bool isup)
 {
     const SDL::Module& module = recohit.getModule();
-
-    if (module.moduleLayerType() != SDL::Module::Strip)
-        SDL::cout << "Warning: stripEdgeHit() is asked on a hit that is not strip hit" << std::endl;
+    
+    if(module.moduleLayerType() != SDL::Module::Strip)
+    SDL::cout << "Warning: stripEdgeHit() is asked on a hit that is not strip hit" << std::endl;
 
     const unsigned int& detid = module.detId();
 
