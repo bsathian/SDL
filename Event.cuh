@@ -187,6 +187,12 @@ namespace SDL
             // Multiplicity of track candidate formed in this event
             void incrementNumberOfTrackCandidates(SDL::Module& module);
 
+            //CUDA stuff
+            MiniDoublet* mdCandsGPU;
+            int mdGPUCounter;
+            void miniDoubletGPUWrapper(SDL::MDAlgo algo);
+
+
         public:
 
             // cnstr/destr
