@@ -195,7 +195,7 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, 
 
 
     // And get the layer
-    getLayer(layerIdx, subdet).addMiniDoublet(&(miniDoublets_.back()));
+    getLayer(layerIdx, subdet).addMiniDoublet(*mdForGPU);
 }
 
 [[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]
