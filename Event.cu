@@ -133,19 +133,27 @@ const std::vector<SDL::Layer*> SDL::Event::getLayerPtrs() const
     return layerPtrs_;
 }
 
+void SDL::Event::initHitsInGPU()
+{
+    const int HIT_MAX = 1000000;
+    cudaMallocManaged(&hitsInGPU,HIT_MAX * sizeof(SDL::Hit));
+    const int HIT_2S_MAX = 100000;
+    cudaMallocManaged(&hits2sEdgeInGPU,HIT_2S_MAX * sizeof(SDL::Hit));
+    cudaDeviceSynchronize();
+}
+
 void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
 {
     // Add to global list of hits, where it will hold the object's instance
-    SDL::Hit *hitForGPU;
-    cudaMallocManaged(&hitForGPU,sizeof(SDL::Hit));
-    cudaDeviceSynchronize();
-
+    static int counter = 0;
+    static int counter2SEdge = 0;
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
-    *hitForGPU = hit;
-    hitForGPU->setModule(getModule(detId));
-    getModule(detId)->addHit(hitForGPU);
-    hits_.push_back(*hitForGPU);
+    hitsInGPU[counter] = hit;
+    hitsInGPU[counter].setModule(getModule(detId));
+    getModule(detId)->addHit(&hitsInGPU[counter]);
+    hits_.push_back(hitsInGPU[counter]);
+
 
     // Count number of hits in the event
     incrementNumberOfHits(*getModule(detId));
@@ -153,23 +161,23 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     // If the hit is 2S in the endcap then the hit boundary needs to be set
     if (getModule(detId)->subdet() == SDL::Module::Endcap and getModule(detId)->moduleType() == SDL::Module::TwoS)
     {
-        SDL::Hit *hit_2s_high_edge;
-        SDL::Hit *hit_2s_low_edge;
-        cudaMallocManaged(&hit_2s_high_edge,sizeof(SDL::Hit));
-        cudaMallocManaged(&hit_2s_low_edge,sizeof(SDL::Hit));
-        cudaDeviceSynchronize();
-        
-        *hit_2s_high_edge = GeometryUtil::stripHighEdgeHit(*hitForGPU);
-        *hit_2s_low_edge = GeometryUtil::stripLowEdgeHit(*hitForGPU);
+         
+        hits2sEdgeInGPU[counter2SEdge] = GeometryUtil::stripHighEdgeHit(hitsInGPU[counter]);
+        hits2sEdgeInGPU[counter2SEdge+1] = GeometryUtil::stripLowEdgeHit(hitsInGPU[counter]);
 //        hits_2s_edges_.push_back(GeometryUtil::stripHighEdgeHit(&hits_.back()));
 //        hits_.back().setHitHighEdgePtr(&(hits_2s_edges_.back()));
 //        hits_2s_edges_.push_back(GeometryUtil::stripLowEdgeHit(*hitForGPU));
 //        hits_.back().setHitLowEdgePtr(&(hits_2s_edges_.back()));
-        hits_2s_edges_.push_back(*hit_2s_high_edge);
-        hitForGPU->setHitHighEdgePtr(hit_2s_high_edge);
-        hits_2s_edges_.push_back(*hit_2s_low_edge);
-        hitForGPU->setHitLowEdgePtr(hit_2s_low_edge);
+        hits_2s_edges_.push_back(hits2sEdgeInGPU[counter2SEdge]);
+        hitsInGPU[counter].setHitHighEdgePtr(&hits2sEdgeInGPU[counter2SEdge]);
+
+        hits_2s_edges_.push_back(hits2sEdgeInGPU[counter2SEdge+1]);
+        hitsInGPU[counter].setHitLowEdgePtr(&hits2sEdgeInGPU[counter2SEdge+1]);
+
+        counter2SEdge+= 2;
     }
+
+    counter++;
 }
 
 void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
