@@ -64,24 +64,31 @@ void SDL::Event::setLogLevel(SDL::LogLevel logLevel)
     logLevel_ = logLevel;
 }
 
+void SDL::Event::initModulesInGPU()
+{
+    const int MODULE_MAX=50000;
+    cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::Module));
+}
+
 SDL::Module* SDL::Event::getModule(unsigned int detId)
 {
     // using std::map::emplace
+    static int counter = 0;
+    if(counter == 0)
+    {
+        initModulesInGPU();
+    }
     std::pair<std::map<unsigned int, Module*>::iterator, bool> emplace_result = modulesMapByDetId_.emplace(detId,nullptr);
-
     // Retreive the module
-    auto& inserted_or_existing = (*(emplace_result.first)).second;
+    Module* inserted_or_existing = (*(emplace_result.first)).second;
 
     // If new was inserted, then insert to modulePtrs_ pointer list
     if (emplace_result.second) // if true, new was inserted
     {
-
-        // The pointer to be added
-        cudaMallocManaged(&((*(emplace_result.first)).second),sizeof(Module));
-        cudaDeviceSynchronize();
+        inserted_or_existing = &modulesInGPU[counter];
 
         *inserted_or_existing =SDL:: Module(detId);
-         Module* module_ptr = ((*(emplace_result.first)).second);
+        Module* module_ptr = inserted_or_existing;
         
         // Add the module pointer to the list of modules
         modulePtrs_.push_back(module_ptr);
@@ -90,6 +97,7 @@ SDL::Module* SDL::Event::getModule(unsigned int detId)
             lowerModulePtrs_.push_back(module_ptr);
     }
 
+    counter++;
     return inserted_or_existing;
 }
 
@@ -149,6 +157,10 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     static int counter2SEdge = 0;
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
+    if(counter == 0)
+    {
+        initHitsInGPU();
+    }
     hitsInGPU[counter] = hit;
     hitsInGPU[counter].setModule(getModule(detId));
     getModule(detId)->addHit(&hitsInGPU[counter]);

@@ -188,10 +188,12 @@ namespace SDL
             void incrementNumberOfTrackCandidates(SDL::Module& module);
 
             //CUDA stuff
+            Module* modulesInGPU;
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
             int mdGPUCounter;
+            void  initModulesInGPU();
             void initHitsInGPU();
             void miniDoubletGPUWrapper(SDL::MDAlgo algo);
 
