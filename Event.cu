@@ -215,10 +215,9 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, 
     mdsInGPU[counter] = md;
     getModule(detId)->addMiniDoublet(&mdsInGPU[counter]);
     miniDoublets_.push_back(mdsInGPU[counter]);
-
-
     // And get the layer
     getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[counter]);
+    counter++;
 }
 
 [[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]
@@ -316,14 +315,15 @@ void SDL::Event::addTrackCandidateToLowerLayer(SDL::TrackCandidate tc, int layer
 void SDL::Event::createMiniDoublets(MDAlgo algo)
 {
     // Loop over lower modules
-    cudaMallocManaged(&mdCandsGPU,100*100*sizeof(SDL::MiniDoublet));
+    const int MAX_MD_CAND = 5000000;
+    cudaMallocManaged(&mdCandsGPU,MAX_MD_CAND*sizeof(SDL::MiniDoublet));
     mdGPUCounter = 0;
     for (auto& lowerModulePtr : getLowerModulePtrs())
     {
         // Create mini doublets
-        createMiniDoubletsFromLowerModule(lowerModulePtr->detId(), algo);
+        createMiniDoubletsFromLowerModule(lowerModulePtr->detId(), MAX_MD_CAND,algo);
     }
-    if(mdGPUCounter < 100*100 and mdGPUCounter > 0) //incomplete dudes from the final iteration
+    if(mdGPUCounter < MAX_MD_CAND and mdGPUCounter > 0) //incomplete dudes from the final iteration
     {
         miniDoubletGPUWrapper(algo);
     }
@@ -364,7 +364,7 @@ void SDL::Event::miniDoubletGPUWrapper(SDL::MDAlgo algo)
    
 }
 
-void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, SDL::MDAlgo algo)
+void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMDCands,SDL::MDAlgo algo)
 {
     // Get reference to the lower Module
     Module& lowerModule = *getModule(detId);
@@ -424,7 +424,7 @@ void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, SDL::MDAl
                 mdCandsGPU[mdGPUCounter] = mdCand;
             mdGPUCounter++;
 
-            if(mdGPUCounter == 100*100)
+            if(mdGPUCounter == maxMDCands)
             {
                 miniDoubletGPUWrapper(algo);
             }

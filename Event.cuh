@@ -254,7 +254,7 @@ namespace SDL
             void createMiniDoublets(MDAlgo algo=Default_MDAlgo);
 
             // Create mini doublet for a module
-            void createMiniDoubletsFromLowerModule(unsigned int detId, MDAlgo algo=Default_MDAlgo);
+            void createMiniDoubletsFromLowerModule(unsigned int detId, int maxMDCands, MDAlgo algo=Default_MDAlgo);
 
             // Pseudo mini-doublet (which is really just a hit) for study purpose only
             void createPseudoMiniDoubletsFromAnchorModule(MDAlgo algo=Default_MDAlgo);
