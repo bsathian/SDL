@@ -195,21 +195,30 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     counter++;
 }
 
+void SDL::Event::initMDsInGPU()
+{
+    const int MD_MAX = 60000;
+    cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
+}
+
 void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
 {
+    static int counter = 0;
+    if(counter == 0)
+    {
+        initMDsInGPU();
+    }
     // Add to global list of mini doublets, where it will hold the object's instance
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
-    SDL::MiniDoublet *mdForGPU;
-    cudaMallocManaged(&mdForGPU,sizeof(SDL::MiniDoublet));
-    *mdForGPU = md;
-    getModule(detId)->addMiniDoublet(mdForGPU);
-    miniDoublets_.push_back(*mdForGPU);
+    mdsInGPU[counter] = md;
+    getModule(detId)->addMiniDoublet(&mdsInGPU[counter]);
+    miniDoublets_.push_back(mdsInGPU[counter]);
 
 
     // And get the layer
-    getLayer(layerIdx, subdet).addMiniDoublet(mdForGPU);
+    getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[counter]);
 }
 
 [[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]

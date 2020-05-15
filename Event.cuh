@@ -192,9 +192,11 @@ namespace SDL
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
+            MiniDoublet* mdsInGPU;
             int mdGPUCounter;
             void  initModulesInGPU();
             void initHitsInGPU();
+            void initMDsInGPU();
             void miniDoubletGPUWrapper(SDL::MDAlgo algo);
 
 
