@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cmath>
 #include <cuda_runtime.h>
+#include <omp.h>
 
 #include "Module.cuh"
 #include "Hit.cuh"
@@ -19,7 +20,7 @@
 #include "PrintUtil.h"
 #include "Algo.h"
 #include "ModuleConnectionMap.h"
-
+#include "cuda_profiler_api.h"
 namespace SDL
 {
     class Event
@@ -146,7 +147,7 @@ namespace SDL
             void incrementNumberOfHits(SDL::Module& module);
 
             // Multiplicity of mini-doublet candidates considered in this event
-            void incrementNumberOfMiniDoubletCandidates(SDL::Module& module);
+            void incrementNumberOfMiniDoubletCandidates(SDL::Module& module,int number = 1);
 
             // Multiplicity of segment candidates considered in this event
             void incrementNumberOfSegmentCandidates(SDL::Module& module);

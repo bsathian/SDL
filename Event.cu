@@ -71,7 +71,9 @@ void SDL::Event::setLogLevel(SDL::LogLevel logLevel)
 void SDL::Event::initModulesInGPU()
 {
     const int MODULE_MAX=50000;
+    cudaProfilerStart();
     cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::Module));
+    cudaProfilerStop();
 }
 
 SDL::Module* SDL::Event::getModule(unsigned int detId)
@@ -315,8 +317,10 @@ void SDL::Event::addTrackCandidateToLowerLayer(SDL::TrackCandidate tc, int layer
 void SDL::Event::createMiniDoublets(MDAlgo algo)
 {
     // Loop over lower modules
-    const int MAX_MD_CAND = 5000000;
-    cudaMallocManaged(&mdCandsGPU,MAX_MD_CAND*sizeof(SDL::MiniDoublet));
+    const int MAX_MD_CAND = 500000;
+    cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
+//    cudaMemPrefetchAsync(modulesInGPU,50000 * sizeof(Hit),0);
+//    cudaMemPrefetchAsync(hitsInGPU,1000000 * sizeof(Hit),0);
     mdGPUCounter = 0;
     for (auto& lowerModulePtr : getLowerModulePtrs())
     {
@@ -368,23 +372,27 @@ void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMD
 {
     // Get reference to the lower Module
     Module& lowerModule = *getModule(detId);
-
+    //std::cout<<"\nLower module = "<<detId<<" position in array = "<<(getModule(detId) - modulesInGPU)<<std::endl;
     // Get reference to the upper Module
     Module& upperModule = *getModule(lowerModule.partnerDetId());
+    //std::cout<<"Upper module = "<<lowerModule.partnerDetId()<<" position in array = "<<getModule(lowerModule.partnerDetId()) - modulesInGPU<<std::endl;
     // Double nested loops
     // Loop over lower module hits
-    //Number hardcoded from occupancy plots
-    for (auto& lowerHitPtr : lowerModule.getHitPtrs())
+#pragma omp parallel for default(shared) collapse(2)
+    for(size_t i =0; i<lowerModule.getHitPtrs().size();i++)
+//    for (auto& lowerHitPtr : lowerModule.getHitPtrs())
     {
         // Get reference to lower Hit
-        SDL::Hit& lowerHit = *lowerHitPtr;
+//        SDL::Hit& lowerHit = *lowerHitPtr;
 
         // Loop over upper module hits
-        for (auto& upperHitPtr : upperModule.getHitPtrs())
+        for(size_t j = 0; j<upperModule.getHitPtrs().size();j++)
+//        for (auto& upperHitPtr : upperModule.getHitPtrs())
         {
-
+            auto& lowerHitPtr = lowerModule.getHitPtrs().at(i);
+	    auto& upperHitPtr = upperModule.getHitPtrs().at(j);
             // Get reference to upper Hit
-            SDL::Hit& upperHit = *upperHitPtr;
+//            SDL::Hit& upperHit = *upperHitPtr;
 
             // Create a mini-doublet candidate
             SDL::MiniDoublet mdCand(lowerHitPtr, upperHitPtr);
@@ -421,16 +429,20 @@ void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMD
                 }
             }
 //	        memcpy(&mdCandsGPU[mdGPUCounter],&mdCand,sizeof(SDL::MiniDoublet));
-            mdCandsGPU[mdGPUCounter] = mdCand;
-            mdGPUCounter++;
+            mdCandsGPU[mdGPUCounter + i * upperModule.getHitPtrs().size() + j] = mdCand;
+//            mdGPUCounter++;
 
-            if(mdGPUCounter == maxMDCands)
-            {
-                miniDoubletGPUWrapper(algo);
-            }
-            // Count the number of mdCand considered
-            incrementNumberOfMiniDoubletCandidates(lowerModule);
+             // Count the number of mdCand considered
+    //        incrementNumberOfMiniDoubletCandidates(lowerModule);
         }
+    }
+    //Checking here
+    
+    incrementNumberOfMiniDoubletCandidates(lowerModule,upperModule.getHitPtrs().size() * lowerModule.getHitPtrs().size());
+    mdGPUCounter += lowerModule.getHitPtrs().size() * upperModule.getHitPtrs().size();
+    if(mdGPUCounter >= maxMDCands)
+    {
+        miniDoubletGPUWrapper(algo);
     }       
     // Run mini-doublet algorithm on mdCand (mini-doublet candidate)
            //after running MD algo'
@@ -1324,14 +1336,14 @@ void SDL::Event::incrementNumberOfHits(SDL::Module& module)
 }
 
 // Multiplicity of mini-doublet candidates considered in this event
-void SDL::Event::incrementNumberOfMiniDoubletCandidates(SDL::Module& module)
+void SDL::Event::incrementNumberOfMiniDoubletCandidates(SDL::Module& module,int number)
 {
     int layer = module.layer();
     int isbarrel = (module.subdet() == SDL::Module::Barrel);
     if (isbarrel)
-        n_miniDoublet_candidates_by_layer_barrel_[layer-1]++;
+        n_miniDoublet_candidates_by_layer_barrel_[layer-1]+=number;
     else
-        n_miniDoublet_candidates_by_layer_endcap_[layer-1]++;
+        n_miniDoublet_candidates_by_layer_endcap_[layer-1]+=number;
 }
 
 // Multiplicity of segment candidates considered in this event
