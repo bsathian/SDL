@@ -42,10 +42,24 @@ void SDL::TiltedGeometry::load(std::string filename)
 
 float SDL::TiltedGeometry::getDrDz(unsigned int detid)
 {
-    return drdzs_[detid];
+    if(drdzs_.find(detid) != drdzs_.end())
+    {
+        return drdzs_[detid];
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 float SDL::TiltedGeometry::getSlope(unsigned int detid)
 {
-    return slopes_[detid];
+    if(slopes_.find(detid) != slopes_.end())
+    {
+        return slopes_[detid];
+    }
+    else
+    {
+        return 0;
+    }
 }
