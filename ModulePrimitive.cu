@@ -101,4 +101,203 @@ void SDL::ModulePrimitive::setDerivedQuantities()
     moduleLayerType_ = parseModuleLayerType(detId_);
 }
 
+unsigned short SDL::ModulePrimitive::parseSubdet(unsigned int detId)
+{
+    return (detId & (7 << 25)) >> 25;
+}
 
+unsigned short SDL::ModulePrimitive::parseSide(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Endcap)
+    {
+        return (detId & (3 << 23)) >> 23;
+    }
+    else if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    {
+        return (detId & (3 << 18)) >> 18;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::ModulePrimitive::parseLayer(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Endcap)
+    {
+        return (detId & (7 << 18)) >> 18;
+    }
+    else if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    {
+        return (detId & (7 << 20)) >> 20;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::ModulePrimitive::parseRod(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Endcap)
+    {
+        return 0;
+    }
+    else if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    {
+        return (detId & (127 << 10)) >> 10;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::ModulePrimitive::parseRing(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Endcap)
+    {
+        return (detId & (15 << 12)) >> 12;
+    }
+    else if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    {
+        return 0;
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+
+unsigned short SDL::ModulePrimitive::parseModule(unsigned int detId)
+{
+    return (detId & (127 << 2)) >> 2;
+}
+
+unsigned short SDL::ModulePrimitive::parseIsLower(unsigned int detId)
+{
+    return ((parseIsInverted(detId)) ? !(detId & 1) : (detId & 1));
+}
+
+bool SDL::ModulePrimitive::parseIsInverted(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Endcap)
+    {
+        if (parseSide(detId) == SDL::ModulePrimitive::NegZ)
+        {
+            return parseModule(detId) % 2 == 1;
+        }
+        else if (parseSide(detId) == SDL::ModulePrimitive::PosZ)
+        {
+            return parseModule(detId) % 2 == 0;
+        }
+        else
+        {
+            SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+            return 0;
+        }
+    }
+    else if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    {
+        if (parseSide(detId) == SDL::ModulePrimitive::Center)
+        {
+            if (parseLayer(detId) <= 3)
+            {
+                return parseModule(detId) % 2 == 1;
+            }
+            else if (parseLayer(detId) >= 4)
+            {
+                return parseModule(detId) % 2 == 0;
+            }
+            else
+            {
+                SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+                return 0;
+            }
+        }
+        else if (parseSide(detId) == SDL::ModulePrimitive::NegZ or parseSide(detId) == SDL::ModulePrimitive::PosZ)
+        {
+            if (parseLayer(detId) <= 2)
+            {
+                return parseModule(detId) % 2 == 1;
+            }
+            else if (parseLayer(detId) == 3)
+            {
+                return parseModule(detId) % 2 == 0;
+            }
+            else
+            {
+                SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+                return 0;
+            }
+        }
+        else
+        {
+            SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+            return 0;
+        }
+    }
+    else
+    {
+        SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+        return 0;
+    }
+}
+
+unsigned int SDL::ModulePrimitive::parsePartnerDetId(unsigned int detId)
+{
+    if (parseIsLower(detId))
+        return ((parseIsInverted(detId)) ? detId - 1 : detId + 1);
+    else
+        return ((parseIsInverted(detId)) ? detId + 1 : detId - 1);
+}
+
+SDL::ModulePrimitive::ModuleType SDL::ModulePrimitive::parseModuleType(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::ModulePrimitive::Barrel)
+    { 
+        if (parseLayer(detId) <= 3)
+            return SDL::ModulePrimitive::PS;
+        else
+            return SDL::ModulePrimitive::TwoS;
+    }
+    else
+    {
+        if (parseLayer(detId) <= 2)
+        {
+            if (parseRing(detId) <= 10)
+                return SDL::ModulePrimitive::PS;
+            else
+                return SDL::ModulePrimitive::TwoS;
+        }
+        else
+        {
+            if (parseRing(detId) <= 7)
+                return SDL::ModulePrimitive::PS;
+            else
+                return SDL::ModulePrimitive::TwoS;
+        }
+    }
+}
+
+SDL::ModulePrimitive::ModuleLayerType SDL::ModulePrimitive::parseModuleLayerType(unsigned int detId)
+{
+    if (parseModuleType(detId) == SDL::ModulePrimitive::TwoS)
+        return SDL::ModulePrimitive::Strip;
+    if (parseIsInverted(detId))
+    {
+        if (parseIsLower(detId))
+            return SDL::ModulePrimitive::Strip;
+        else
+            return SDL::ModulePrimitive::Pixel;
+    }
+    else
+    {
+        if (parseIsLower(detId))
+            return SDL::ModulePrimitive::Pixel;
+        else
+            return SDL::ModulePrimitive::Strip;
+    }
+}
