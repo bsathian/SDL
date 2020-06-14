@@ -49,7 +49,12 @@ SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
 
 SDL::Event::~Event()
 {
+    cudaFree(hitsInGPU);
+    cudaFree(modulesInGPU);
+    cudaFree(mdsInGPU);
+    cudaFree(mdCandsGPU);
 }
+
 
 bool SDL::Event::hasModule(unsigned int detId)
 {
