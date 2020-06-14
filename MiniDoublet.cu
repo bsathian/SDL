@@ -60,12 +60,12 @@ void SDL::MiniDoublet::addInwardSegmentPtr(SDL::Segment* sg)
 
 void SDL::MiniDoublet::setAnchorHit()
 {
-    const SDL::Module& lowerModule = lowerHitPtr()->getModule();
+    const SDL::ModulePrimitive& lowerModule = lowerHitPtr()->getModulePrimitive();
 
     // Assign anchor hit pointers based on their hit type
-    if (lowerModule.moduleType() == SDL::Module::PS)
+    if (lowerModule.moduleType() == SDL::ModulePrimitive::PS)
     {
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             anchorHitPtr_ = lowerHitPtr();
         }
@@ -234,9 +234,9 @@ void SDL::MiniDoublet::runMiniDoubletAllCombAlgo()
 void SDL::MiniDoublet::runMiniDoubletDefaultAlgo(SDL::LogLevel logLevel)
 {
     // Retreived the lower module object
-      const SDL::Module& lowerModule = lowerHitPtr_->getModule();
+      const SDL::ModulePrimitive& lowerModule = lowerHitPtr_->getModulePrimitive();
 
-    if (lowerModule.subdet() == SDL::Module::Barrel)
+    if (lowerModule.subdet() == SDL::ModulePrimitive::Barrel)
     {
         runMiniDoubletDefaultAlgoBarrel(logLevel);
     }
@@ -253,7 +253,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
     const SDL::Hit& upperHit = (*upperHitPtr_);
 
     // Retreived the lower module object
-    const SDL::Module& lowerModule = lowerHitPtr_->getModule();
+    const SDL::ModulePrimitive& lowerModule = lowerHitPtr_->getModulePrimitive();
 
 //TODO:Change these into regular arrays
     setMiniCut(-999);
@@ -266,7 +266,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
     setDz(lowerHit.z() - upperHit.z());
     const float& dz = getDz();
 
-    // const float dzCut = lowerModule.moduleType() == SDL::Module::PS ? 10.f : 1.5f; // Could be tighter for PS modules
+    // const float dzCut = lowerModule.moduleType() == SDL::ModulePrimitive::PS ? 10.f : 1.5f; // Could be tighter for PS modules
 
     //*
     // const float dzCut = 10.f; // Could be tighter for PS modules
@@ -274,7 +274,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
     //*
 
     //*
-    const float dzCut = lowerModule.moduleType() == SDL::Module::PS ? 2.f : 10.f;
+    const float dzCut = lowerModule.moduleType() == SDL::ModulePrimitive::PS ? 2.f : 10.f;
     // const bool isNotInvertedCrosser = lowerModule.moduleType() == SDL::Module::PS ? true : (lowerHit.z() * dz > 0); // Not used as this saves very little on combinatorics. but could be something we can add back later
     const float sign = ((dz > 0) - (dz < 0)) * ((lowerHit.z() > 0) - (lowerHit.z() < 0));
     const float invertedcrossercut = (abs(dz) > 2) * sign;
@@ -312,7 +312,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
 
     // Calculate the cut thresholds for the selection
     float miniCut = 0;
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+    if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         miniCut = dPhiThreshold(lowerHit, lowerModule);
     else
         miniCut = dPhiThreshold(upperHit, lowerModule);
@@ -320,7 +320,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
     // Cut #2: dphi difference
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3085
     float xn = 0, yn = 0 , zn = 0;
-    if (lowerModule.side() != SDL::Module::Center) // If barrel and not center it is tilted
+    if (lowerModule.side() != SDL::ModulePrimitive::Center) // If barrel and not center it is tilted
     {
         // Shift the hits and calculate new xn, yn position
         float shiftedCoords[3];
@@ -330,7 +330,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
         zn = shiftedCoords[2];
 
         // Lower or the upper hit needs to be modified depending on which one was actually shifted
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             // SDL::Hit upperHitMod(upperHit);
             // upperHitMod.setXYZ(xn, yn, upperHit.z());
@@ -388,10 +388,10 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
 
     // Cut #3: The dphi change going from lower Hit to upper Hit
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3076
-    if (lowerModule.side() != SDL::Module::Center)
+    if (lowerModule.side() != SDL::ModulePrimitive::Center)
     {
         // When it is tilted, use the new shifted positions
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             // SDL::Hit upperHitMod(upperHit);
             // upperHitMod.setXYZ(xn, yn, upperHit.z());
@@ -465,7 +465,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     const SDL::Hit& upperHit = (*upperHitPtr_);
 
     // Retreived the lower module object
-    const SDL::Module& lowerModule = lowerHitPtr_->getModule();
+    const SDL::ModulePrimitive& lowerModule = lowerHitPtr_->getModulePrimitive();
 
     setMiniCut(-999);
 
@@ -479,7 +479,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     setDz(lowerHit.z() - upperHit.z());
     float dz = getDz(); // Not const since later it might change depending on the type of module
 
-    const float dzCut = ((lowerModule.side() == SDL::Module::Endcap) ?  1.f : 10.f);
+    const float dzCut = ((lowerModule.side() == SDL::ModulePrimitive::Endcap) ?  1.f : 10.f);
     if (not (abs(dz) < dzCut)) // If cut fails continue
     {
 /*        if (logLevel >= SDL::Log_Debug2)
@@ -511,7 +511,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
 
     // Cut #2 : drt cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3100
-    const float drtCut = lowerModule.moduleType() == SDL::Module::PS ? 2.f : 10.f;
+    const float drtCut = lowerModule.moduleType() == SDL::ModulePrimitive::PS ? 2.f : 10.f;
     float drt = abs(lowerHit.rt() - upperHit.rt());
     if (not (drt < drtCut)) // If cut fails continue
     {
@@ -558,7 +558,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     // ----
     // The new scheme shifts strip hits to be "aligned" along the line of sight from interaction point to the pixel hit (if it is PS modules)
     float xn = 0, yn = 0, zn = 0;
-    // if (lowerModule.moduleType() == SDL::Module::PS)
+    // if (lowerModule.moduleType() == SDL::ModulePrimitive::PS)
     // {
     // Shift the hits and calculate new xn, yn position
     float shiftedCoords[3];
@@ -567,10 +567,10 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     yn = shiftedCoords[1];
     zn = shiftedCoords[2];
 
-    if (lowerModule.moduleType() == SDL::Module::PS)
+    if (lowerModule.moduleType() == SDL::ModulePrimitive::PS)
     {
         // Appropriate lower or upper hit is modified after checking which one was actually shifted
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             // SDL::Hit upperHitMod(upperHit);
             // upperHitMod.setXYZ(xn, yn, upperHit.z());
@@ -601,9 +601,9 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
 
     // dz needs to change if it is a PS module where the strip hits are shifted in order to properly account for the case when a tilted module falls under "endcap logic"
     // if it was an endcap it will have zero effect
-    if (lowerModule.moduleType() == SDL::Module::PS)
+    if (lowerModule.moduleType() == SDL::ModulePrimitive::PS)
     {
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             setShiftedDz(lowerHit.z() - zn);
             dz = getShiftedDz();
@@ -616,7 +616,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     }
 
     float miniCut = 0;
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+    if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         miniCut = dPhiThreshold(lowerHit, lowerModule, getDeltaPhi(), dz);
     else
         miniCut = dPhiThreshold(upperHit, lowerModule, getDeltaPhi(), dz);
@@ -754,7 +754,7 @@ namespace SDL
     }
 }
 
-float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::Module& module,const float dPhi, const float dz)
+float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::ModulePrimitive& module,const float dPhi, const float dz)
 {
     // =================================================================
     // Various constants
@@ -788,13 +788,13 @@ float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::Modul
     float rt = lowerHit.rt();
     unsigned int iL = module.layer() - 1;
     const float miniSlope = asin(min(rt * k2Rinv1GeVf / ptCut, sinAlphaMax));
-    const float rLayNominal = ((module.subdet() == SDL::Module::Barrel) ? miniRminMeanBarrel[iL] : miniRminMeanEndcap[iL]);
+    const float rLayNominal = ((module.subdet() == SDL::ModulePrimitive::Barrel) ? miniRminMeanBarrel[iL] : miniRminMeanEndcap[iL]);
     const float miniPVoff = 0.1 / rLayNominal;
-    const float miniMuls = ((module.subdet() == SDL::Module::Barrel) ? miniMulsPtScaleBarrel[iL] * 3.f / ptCut : miniMulsPtScaleEndcap[iL] * 3.f / ptCut);
-    const bool isTilted = module.subdet() == SDL::Module::Barrel and module.side() != SDL::Module::Center;
+    const float miniMuls = ((module.subdet() == SDL::ModulePrimitive::Barrel) ? miniMulsPtScaleBarrel[iL] * 3.f / ptCut : miniMulsPtScaleEndcap[iL] * 3.f / ptCut);
+    const bool isTilted = module.subdet() == SDL::ModulePrimitive::Barrel and module.side() != SDL::ModulePrimitive::Center;
     const bool tiltedOT123 = true;
     const float pixelPSZpitch = 0.15;
-    const unsigned int detid = ((module.moduleLayerType() == SDL::Module::Pixel) ?  module.partnerDetId() : module.detId());
+    const unsigned int detid = ((module.moduleLayerType() == SDL::ModulePrimitive::Pixel) ?  module.partnerDetId() : module.detId());
     const float drdz = isTilted && tiltedOT123 ? drdz_ : 0;
     const float miniTilt = ((isTilted && tiltedOT123) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(module) : 0);
 
@@ -808,12 +808,12 @@ float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::Modul
     // Return the threshold value
     // =================================================================
     // Following condition is met if the module is central and flatly lying
-    if (module.subdet() == SDL::Module::Barrel and module.side() == SDL::Module::Center)
+    if (module.subdet() == SDL::ModulePrimitive::Barrel and module.side() == SDL::ModulePrimitive::Center)
     {
         return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2));
     }
     // Following condition is met if the module is central and tilted
-    else if (module.subdet() == SDL::Module::Barrel and module.side() != SDL::Module::Center) //all types of tilted modules
+    else if (module.subdet() == SDL::ModulePrimitive::Barrel and module.side() != SDL::ModulePrimitive::Center) //all types of tilted modules
     {
         return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2) + pow(miniTilt * miniSlope, 2));
     }
@@ -825,184 +825,7 @@ float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::Modul
 
 }
 
-// NOTE: Deprecated
-[[deprecated("SDL:: fabsdPhiPixelShift() is deprecated")]]
-float SDL::MiniDoublet::fabsdPhiPixelShift(const SDL::Hit& lowerHit, const SDL::Hit& upperHit, const SDL::Module& lowerModule, SDL::LogLevel logLevel)
-{
-
-    float fabsdPhi;
-
-    // dependent variables for this if statement
-    // lowerModule
-    // lowerHit
-    // upperHit
-    // SDL::endcapGeometry
-
-    float xa; // "anchor" x (strip hit x)
-    float ya; // "anchor" y (strip hit y)
-    float xo; // old x (before the pixel hit is moved up or down)
-    float yo; // old y (before the pixel hit is moved up or down)
-    float xn; // new x (after the pixel hit is moved up or down)
-    float yn; // new y (after the pixel hit is moved up or down)
-    unsigned int detid; // Needed to access geometry information
-
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
-    {
-        xo = lowerHit.x();
-        yo = lowerHit.y();
-        xa = upperHit.x();
-        ya = upperHit.y();
-        detid = lowerModule.partnerDetId();
-    }
-    else
-    {
-        xo = upperHit.x();
-        yo = upperHit.y();
-        xa = lowerHit.x();
-        ya = lowerHit.y();
-        detid = lowerModule.detId();
-    }
-
-    float slope = 0;
-    if (lowerModule.subdet() == SDL::Module::Endcap)
-    {
-       slope = SDL::endcapGeometry.getSlopeLower(detid); // Only need one slope
-    }
-    if (lowerModule.subdet() == SDL::Module::Barrel)
-    {
-       slope = SDL::tiltedGeometry.getSlope(detid); // Only need one slope
-    }
-
-    xn = (slope * xa + (1.f / slope) * xo - ya + yo) / (slope + (1.f / slope)); // new xn
-    yn = (xn - xa) * slope + ya; // new yn
-
-    if (lowerModule.subdet() == SDL::Module::Barrel)
-    {
-        if (slope == 123456789) // Special value designated for tilted module when the slope is exactly infinity (module lying along y-axis)
-        {
-            xn = xa; // New x point is simply where the anchor is
-            yn = yo; // No shift in y
-        }
-        else if (slope == 0)
-        {
-            xn = xo; // New x point is simply where the anchor is
-            yn = ya; // No shift in y
-        }
-    }
-
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
-    {
-        SDL::Hit lowerHitMod(lowerHit);
-        lowerHitMod.setXYZ(xn, yn, lowerHit.z());
-        fabsdPhi = std::abs(lowerHitMod.deltaPhi(upperHit));
-    }
-    else
-    {
-        SDL::Hit upperHitMod(upperHit);
-        upperHitMod.setXYZ(xn, yn, upperHit.z());
-        fabsdPhi = std::abs(lowerHit.deltaPhi(upperHitMod));
-    }
-
-    if (logLevel >= SDL::Log_Debug3)
-    {
-        // SDL::cout <<  " use_lower: " << use_lower;
-        // SDL::cout <<  " yintercept: " << yintercept <<  " slope: " << slope <<  std::endl;
-        SDL::cout <<  " xa: " << xa <<  " ya: " << ya <<  std::endl;
-        SDL::cout <<  " xo: " << xo <<  " yo: " << yo <<  " xn: " << xn <<  " yn: " << yn <<  std::endl;
-    }
-
-    return fabsdPhi;
-}
-
-// NOTE: Deprecated
-[[deprecated("SDL:: fabsdPhiStripShift() is deprecated")]]
-float SDL::MiniDoublet::fabsdPhiStripShift(const SDL::Hit& lowerHit, const SDL::Hit& upperHit, const SDL::Module& lowerModule, SDL::LogLevel logLevel)
-{
-
-    float fabsdPhi;
-
-    // dependent variables for this if statement
-    // lowerModule
-    // lowerHit
-    // upperHit
-    // SDL::endcapGeometry
-
-    float xa; // "anchor" x (strip hit x)
-    float ya; // "anchor" y (strip hit y)
-    float xo; // old x (before the pixel hit is moved up or down)
-    float yo; // old y (before the pixel hit is moved up or down)
-    float xn; // new x (after the pixel hit is moved up or down)
-    float yn; // new y (after the pixel hit is moved up or down)
-    unsigned int detid; // Needed to access geometry information
-
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
-    {
-        xo = upperHit.x();
-        yo = upperHit.y();
-        xa = lowerHit.x();
-        ya = lowerHit.y();
-        detid = lowerModule.partnerDetId();
-    }
-    else
-    {
-        xo = lowerHit.x();
-        yo = lowerHit.y();
-        xa = upperHit.x();
-        ya = upperHit.y();
-        detid = lowerModule.detId();
-    }
-
-    float slope = 0;
-    if (lowerModule.subdet() == SDL::Module::Endcap)
-    {
-       slope = SDL::endcapGeometry.getSlopeLower(detid); // Only need one slope
-    }
-    if (lowerModule.subdet() == SDL::Module::Barrel)
-    {
-       slope = SDL::tiltedGeometry.getSlope(detid); // Only need one slope
-    }
-
-    xn = (slope * xa + (1.f / slope) * xo - ya + yo) / (slope + (1.f / slope)); // new xn
-    yn = (xn - xa) * slope + ya; // new yn
-
-    if (lowerModule.subdet() == SDL::Module::Barrel)
-    {
-        if (slope == 123456789) // Special value designated for tilted module when the slope is exactly infinity (module lying along y-axis)
-        {
-            xn = xa; // New x point is simply where the anchor is
-            yn = yo; // No shift in y
-        }
-        else if (slope == 0)
-        {
-            xn = xo; // New x point is simply where the anchor is
-            yn = ya; // No shift in y
-        }
-    }
-
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
-    {
-        SDL::Hit upperHitMod(upperHit);
-        upperHitMod.setXYZ(xn, yn, upperHit.z());
-        fabsdPhi = std::abs(lowerHit.deltaPhi(upperHitMod));
-    }
-    else
-    {
-        SDL::Hit lowerHitMod(lowerHit);
-        lowerHitMod.setXYZ(xn, yn, lowerHit.z());
-        fabsdPhi = std::abs(lowerHitMod.deltaPhi(upperHit));
-    }
-
-    if (logLevel >= SDL::Log_Debug3)
-    {
-        SDL::cout <<  " slope: " << slope <<  std::endl;
-        SDL::cout <<  " xa: " << xa <<  " ya: " << ya <<  std::endl;
-        SDL::cout <<  " xo: " << xo <<  " yo: " << yo <<  " xn: " << xn <<  " yn: " << yn <<  std::endl;
-    }
-
-    return fabsdPhi;
-}
-
-void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& upperHit, const SDL::Module& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel)
+void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& upperHit, const SDL::ModulePrimitive& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel)
 {
 
     // This is the strip shift scheme that is explained in http://uaf-10.t2.ucsd.edu/~phchang/talks/PhilipChang20190607_SDL_Update.pdf (see backup slides)
@@ -1047,9 +870,9 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
     float absdzprime; // The distance between the two points after shifting
 
     // Assign hit pointers based on their hit type
-    if (lowerModule.moduleType() == SDL::Module::PS)
+    if (lowerModule.moduleType() == SDL::ModulePrimitive::PS)
     {
-        if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+        if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
         {
             pixelHitPtr = &lowerHit;
             stripHitPtr = &upperHit;
@@ -1070,7 +893,7 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
     }
 
     // If it is endcap some of the math gets simplified (and also computers don't like infinities)
-    isEndcap = lowerModule.subdet() == SDL::Module::Endcap;
+    isEndcap = lowerModule.subdet() == SDL::ModulePrimitive::Endcap;
 
     // NOTE: TODO: Keep in mind that the sin(atan) function can be simplifed to something like x / sqrt(1 + x^2) and similar for cos
     // I am not sure how slow sin, atan, cos, functions are in c++. If x / sqrt(1 + x^2) are faster change this later to reduce arithmetic computation time
@@ -1103,18 +926,18 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
     moduleSeparation = moduleGapSize(lowerModule);
 
     // Sign flips if the pixel is later layer
-    if (lowerModule.moduleType() == SDL::Module::PS and lowerModule.moduleLayerType() != SDL::Module::Pixel)
+    if (lowerModule.moduleType() == SDL::ModulePrimitive::PS and lowerModule.moduleLayerType() != SDL::ModulePrimitive::Pixel)
     {
         moduleSeparation *= -1;
     }
 
     drprime = (moduleSeparation / std::sin(angleA + angleB)) * std::sin(angleA);
 
-    if (lowerModule.subdet() == SDL::Module::Endcap)
+    if (lowerModule.subdet() == SDL::ModulePrimitive::Endcap)
     {
         slope = slopeForHitShifting_;//SDL::endcapGeometry.getSlopeLower(detid); // Only need one slope
     }
-    if (lowerModule.subdet() == SDL::Module::Barrel)
+    if (lowerModule.subdet() == SDL::ModulePrimitive::Barrel)
     {
         slope = slopeForHitShifting_;//SDL::tiltedGeometry.getSlope(detid);
     }
@@ -1177,7 +1000,7 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
     absdzprime = fabs(moduleSeparation / std::sin(angleA + angleB) * std::cos(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign later
 
     // Depending on which one as closer to the interactin point compute the new z wrt to the pixel properly
-    if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
+    if (lowerModule.moduleLayerType() == SDL::ModulePrimitive::Pixel)
     {
         abszn = fabs(pixelHitPtr->z()) + absdzprime;
     }
@@ -1225,48 +1048,17 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
 
 }
 
-[[deprecated("SDL:: useBarrelLogic() is deprecated")]]
-bool SDL::MiniDoublet::useBarrelLogic(const SDL::Module& lowerModule)
-{
-
-    // Either it is a barrel and flat module (i.e. "Center")
-    // or if it is a "normal" tilted modules (ones that are not too steeply tilted)
-    // then use barrel logic
-
-    if ( (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::Center) or isNormalTiltedModules(lowerModule))
-        return true;
-    else
-        return false;
-}
-
-[[deprecated("SDL:: isNormalTiltedModules() is deprecated. Use isTighterTiltedModules instead")]]
-bool SDL::MiniDoublet::isNormalTiltedModules(const SDL::Module& lowerModule)
-{
-    // The "normal" tilted modules are the subset of tilted modules that will use the tilted module logic
-    // If a tiltde module is not part of the "normal" tiltded modules, they will default to endcap logic (the actual defaulting logic is implemented elsewhere)
-    if (
-           (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() != SDL::Module::Center and lowerModule.layer() == 3)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::NegZ and lowerModule.layer() == 2 and lowerModule.rod() > 5)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::PosZ and lowerModule.layer() == 2 and lowerModule.rod() < 8)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::NegZ and lowerModule.layer() == 1 and lowerModule.rod() > 9)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::PosZ and lowerModule.layer() == 1 and lowerModule.rod() < 4)
-       )
-        return true;
-    else
-        return false;
-}
-
-bool SDL::MiniDoublet::isTighterTiltedModules(const SDL::Module& lowerModule)
+bool SDL::MiniDoublet::isTighterTiltedModules(const SDL::ModulePrimitive& lowerModule)
 {
     // The "tighter" tilted modules are the subset of tilted modules that have smaller spacing
     // This is the same as what was previously considered as"isNormalTiltedModules"
     // See Figure 9.1 of https://cds.cern.ch/record/2272264/files/CMS-TDR-014.pdf
     if (
-           (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() != SDL::Module::Center and lowerModule.layer() == 3)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::NegZ and lowerModule.layer() == 2 and lowerModule.rod() > 5)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::PosZ and lowerModule.layer() == 2 and lowerModule.rod() < 8)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::NegZ and lowerModule.layer() == 1 and lowerModule.rod() > 9)
-           or (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::PosZ and lowerModule.layer() == 1 and lowerModule.rod() < 4)
+           (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() != SDL::ModulePrimitive::Center and lowerModule.layer() == 3)
+           or (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() == SDL::ModulePrimitive::NegZ and lowerModule.layer() == 2 and lowerModule.rod() > 5)
+           or (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() == SDL::ModulePrimitive::PosZ and lowerModule.layer() == 2 and lowerModule.rod() < 8)
+           or (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() == SDL::ModulePrimitive::NegZ and lowerModule.layer() == 1 and lowerModule.rod() > 9)
+           or (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() == SDL::ModulePrimitive::PosZ and lowerModule.layer() == 1 and lowerModule.rod() < 4)
        )
         return true;
     else
@@ -1274,7 +1066,7 @@ bool SDL::MiniDoublet::isTighterTiltedModules(const SDL::Module& lowerModule)
 }
 
 // The function to determine gap
-float SDL::MiniDoublet::moduleGapSize(const Module& lowerModule)
+float SDL::MiniDoublet::moduleGapSize(const ModulePrimitive& lowerModule)
 {
     float miniDeltaTilted[] = {0.26, 0.26, 0.26};
     float miniDeltaLooseTilted[] =  {0.4,0.4,0.4};
@@ -1323,11 +1115,11 @@ float SDL::MiniDoublet::moduleGapSize(const Module& lowerModule)
     }
 
     unsigned int iL = lowerModule.layer() - 1;
-    int iR = lowerModule.subdet() == SDL::Module::Endcap ? lowerModule.ring() - 1 : -1;
+    int iR = lowerModule.subdet() == SDL::ModulePrimitive::Endcap ? lowerModule.ring() - 1 : -1;
 
     float moduleSeparation = 0;
 
-    if (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::Center)
+    if (lowerModule.subdet() == SDL::ModulePrimitive::Barrel and lowerModule.side() == SDL::ModulePrimitive::Center)
     {
         moduleSeparation = miniDeltaFlat[iL];
     }
@@ -1335,7 +1127,7 @@ float SDL::MiniDoublet::moduleGapSize(const Module& lowerModule)
     {
         moduleSeparation = miniDeltaTilted[iL];
     }
-    else if (lowerModule.subdet() == SDL::Module::Endcap)
+    else if (lowerModule.subdet() == SDL::ModulePrimitive::Endcap)
     {
         moduleSeparation = miniDeltaEndcap[iL][iR];
     }

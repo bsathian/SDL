@@ -13,10 +13,11 @@
 
 #include "MathUtil.cuh"
 #include "PrintUtil.h"
-
+//#include "ModulePrimitive.cuh"
 
 namespace SDL
 {
+    class ModulePrimitive;
     class Module;
 }
 
@@ -26,7 +27,8 @@ namespace SDL
     class Hit
     {
         private:
-            const Module* modulePtr_;
+            const ModulePrimitive* modulePrimitivePtr_;
+            const Module* modulePtr_; //Temporary backwards compatibility
 
             float x_;
             float y_;
@@ -57,6 +59,8 @@ namespace SDL
             CUDA_HOSTDEV void setXYZ(float x, float y, float z);
             CUDA_HOSTDEV void setIdx(int idx);
             CUDA_HOSTDEV void setModule(const Module*);
+            CUDA_HOSTDEV void setModulePrimitive(const ModulePrimitive*);
+
 
             // Set the boundary hits where the hits are shifted
             void setHitHighEdgePtr(Hit* hit);
@@ -71,7 +75,8 @@ namespace SDL
             CUDA_HOSTDEV const float& phi() const;
             CUDA_HOSTDEV const float& eta() const;
             CUDA_HOSTDEV const int& idx() const;
-            CUDA_HOSTDEV const Module& getModule() const;
+            const Module& getModule() const;
+            CUDA_HOSTDEV const ModulePrimitive& getModulePrimitive() const;
 
             // Set the boundary hits where the hits are shifted
             const Hit* getHitHighEdgePtr() const;

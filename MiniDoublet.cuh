@@ -18,9 +18,11 @@
 #include "TiltedGeometry.h"
 #include "Hit.cuh"
 #include "Module.cuh"
+#include "ModulePrimitive.cuh"
 namespace SDL
 {
     class Module;
+    class ModulePrimitive;
     class Hit;
     class Segment;
 }
@@ -129,39 +131,23 @@ namespace SDL
             // The main idea is to be consistent with 1 GeV minimum pt
             // Some residual effects such as tilt, multiple scattering, beam spots are considered
             //static float dPhiThreshold(const Hit&, const Module&);
-            CUDA_HOSTDEV float dPhiThreshold(const Hit& lowerHit, const Module& module, const float dPhi = 0, const float dz = 1);
-
-            // The math for shifting the pixel hit up or down along the PS module orientation (deprecated)
-            static float fabsdPhiPixelShift(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, SDL::LogLevel logLevel=SDL::Log_Nothing);
-
-            // The math for shifting the strip hit up or down along the PS module orientation (deprecated)
-            static float fabsdPhiStripShift(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, SDL::LogLevel logLevel=SDL::Log_Nothing);
+            CUDA_HOSTDEV float dPhiThreshold(const Hit& lowerHit, const ModulePrimitive& module, const float dPhi = 0, const float dz = 1);
 
             // The math for shifting the strip hit up or dowCUDA_HOSTDEV n along the PS module orientation, returns new x, y and z position
-            CUDA_HOSTDEV void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
+            CUDA_HOSTDEV void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const ModulePrimitive& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
-            // The function to actually determine whether a pair of hits is a reco-ed mini doublet or not
-            static bool isHitPairAMiniDoublet(const Hit& lowerHit, const Hit& upperHit, const Module& lowerModule, MDAlgo algo, SDL::LogLevel logLevel=SDL::Log_Nothing);
-
-            // Condition that a module falls into "barrel"-logic of the mini-doublet algorithm
-            static bool useBarrelLogic(const Module& lowerModule);
-
-            // The function to determine transition region for inner most tilted layer
-            static bool isNormalTiltedModules(const Module& lowerModule);
 
             // The function to determine transition region for inner most tilted layer (same as isNormalTiltedModules)
-            CUDA_HOSTDEV static bool isTighterTiltedModules(const Module& lowerModule);
+            CUDA_HOSTDEV static bool isTighterTiltedModules(const ModulePrimitive& lowerModule);
 
             // The function to determine gap
-            CUDA_HOSTDEV static float moduleGapSize(const Module& lowerModule);
+            CUDA_HOSTDEV static float moduleGapSize(const ModulePrimitive& lowerModule);
 
             //Function to set drdz so that we don't transport the tilted module map every time into the GPU, also
             //GPUs don't have STL yet, so we can't transport the map even if we wanted
             CUDA_HOSTDEV void setDrDz(float);
 
             CUDA_HOSTDEV void setLowerModuleSlope(float);
-
-
             
     };
 }

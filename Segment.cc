@@ -929,11 +929,11 @@ std::unordered_map<std::string,float> SDL::Segment::dAlphaThreshold(const SDL::M
     const unsigned int outerdetid = (outerLowerModule.moduleLayerType() == SDL::Module::Pixel) ?  outerLowerModule.partnerDetId() : outerLowerModule.detId();
     const float drdzinner = tiltedGeometry.getDrDz(innerdetid);
     const float drdzouter = tiltedGeometry.getDrDz(outerdetid);
-    const float innerminiTilt = isInnerTilted ? (0.5f * pixelPSZpitch * drdzinner / sqrt(1.f + drdzinner * drdzinner) / SDL::MiniDoublet::moduleGapSize(innerLowerModule)) : 0;
-    const float outerminiTilt = isOuterTilted ? (0.5f * pixelPSZpitch * drdzouter / sqrt(1.f + drdzouter * drdzouter) / SDL::MiniDoublet::moduleGapSize(outerLowerModule)) : 0;
+    const float innerminiTilt = isInnerTilted ? (0.5f * pixelPSZpitch * drdzinner / sqrt(1.f + drdzinner * drdzinner) / SDL::MiniDoublet::moduleGapSize(*innerLowerModule.modulePrimitive())) : 0;
+    const float outerminiTilt = isOuterTilted ? (0.5f * pixelPSZpitch * drdzouter / sqrt(1.f + drdzouter * drdzouter) / SDL::MiniDoublet::moduleGapSize(*outerLowerModule.modulePrimitive())) : 0;
 
 
-    float miniDelta = SDL::MiniDoublet::moduleGapSize(innerLowerModule); 
+    float miniDelta = SDL::MiniDoublet::moduleGapSize(*innerLowerModule.modulePrimitive()); 
  
 
     float sdLumForInnerMini;    
