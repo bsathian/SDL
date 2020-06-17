@@ -50,15 +50,9 @@ void SDL::Hit::setIdx(int idx)
     idx_ = idx;
 }
 
-//backwards compatibility
 void SDL::Hit::setModule(const SDL::Module* module)
 {
     modulePtr_ = module;
-}
-
-void SDL::Hit::setModulePrimitive(const SDL::ModulePrimitive* module)
-{
-    modulePrimitivePtr_ = module;
 }
 
 void SDL::Hit::setHitHighEdgePtr(SDL::Hit* hit)
@@ -128,15 +122,9 @@ __host__ __device__ const int& SDL::Hit::idx() const
     return idx_;
 }
 
-//This should ideally be a CPU only function
-const SDL::Module& SDL::Hit::getModule() const
+__host__ __device__ const SDL::Module& SDL::Hit::getModule() const
 {
     return (*modulePtr_);
-}
-
-__host__ __device__ const SDL::ModulePrimitive& SDL::Hit::getModulePrimitive() const
-{
-    return (*modulePrimitivePtr_);
 }
 
 // Set the boundary hits where the hits are shifted

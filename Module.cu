@@ -2,92 +2,81 @@
 
 SDL::Module::Module()
 {
-    moduleInfo = new ModulePrimitive(0);
+    setDetId(0);
 }
 
 SDL::Module::Module(unsigned int detId)
 {
-    moduleInfo = new ModulePrimitive(detId);
-}
-
-SDL::Module::Module(SDL::ModulePrimitive* modulePrimitive)
-{
-    moduleInfo = modulePrimitive;
+    setDetId(detId);
 }
 
 SDL::Module::Module(const Module& module)
 {
-    moduleInfo = new ModulePrimitive(module.detId());
+    setDetId(module.detId());
 }
 
 SDL::Module::~Module()
 {
 }
 
-const SDL::ModulePrimitive* SDL::Module::modulePrimitive() const
-{
-    return moduleInfo;
-}
-
-//Ensuring backwards compatibility
 const unsigned short& SDL::Module::subdet() const
 {
-    return moduleInfo->subdet();
+    return subdet_;
 }
 
 const unsigned short& SDL::Module::side() const
 {
-    return moduleInfo->side();
+    return side_;
 }
 
 const unsigned short& SDL::Module::layer() const
 {
-    return moduleInfo->layer();
+    return layer_;
 }
 
 const unsigned short& SDL::Module::rod() const
 {
-    return moduleInfo->rod();
+    return rod_;
 }
 
 const unsigned short& SDL::Module::ring() const
 {
-    return moduleInfo->ring();
+    return ring_;
 }
 
 const unsigned short& SDL::Module::module() const
 {
-    return moduleInfo->module();
+    return module_;
 }
 
 const unsigned short& SDL::Module::isLower() const
 {
-    return moduleInfo->isLower();
+    return isLower_;
 }
 
 const unsigned int& SDL::Module::detId() const
 {
-    return moduleInfo->detId();
+    return detId_;
 }
 
 const unsigned int& SDL::Module::partnerDetId() const
 {
-    return moduleInfo->partnerDetId();
+    return partnerDetId_;
 }
 
 const bool& SDL::Module::isInverted() const
 {
-    return moduleInfo->isInverted();
+    return isInverted_;
 }
 
 const SDL::Module::ModuleType& SDL::Module::moduleType() const
 {
-    return (SDL::Module::ModuleType&)moduleInfo->moduleType();
+    return moduleType_;
 }
 
 const SDL::Module::ModuleLayerType& SDL::Module::moduleLayerType() const
 {
-    return (SDL::Module::ModuleLayerType&)moduleInfo->moduleLayerType();
+    return moduleLayerType_;
 }
 
 const std::vector<SDL::Hit*>& SDL::Module::getHitPtrs() const
@@ -115,10 +104,25 @@ const std::vector<SDL::Tracklet*>& SDL::Module::getTrackletPtrs() const
     return tracklets_;
 }
 
-//backwards compatibility
 void SDL::Module::setDetId(unsigned int detId)
 {
-    moduleInfo->setDetId(detId);
+    detId_ = detId;
+    setDerivedQuantities();
+}
+
+void SDL::Module::setDerivedQuantities()
+{
+    subdet_ = parseSubdet(detId_);
+    side_ = parseSide(detId_);
+    layer_ = parseLayer(detId_);
+    rod_ = parseRod(detId_);
+    ring_ = parseRing(detId_);
+    module_ = parseModule(detId_);
+    isLower_ = parseIsLower(detId_);
+    isInverted_ = parseIsInverted(detId_);
+    partnerDetId_ = parsePartnerDetId(detId_);
+    moduleType_ = parseModuleType(detId_);
+    moduleLayerType_ = parseModuleLayerType(detId_);
 }
 
 void SDL::Module::addHit(SDL::Hit* hit)
@@ -152,22 +156,223 @@ void SDL::Module::addTracklet(SDL::Tracklet* tp)
     tracklets_.push_back(tp);
 }
 
+unsigned short SDL::Module::parseSubdet(unsigned int detId)
+{
+    return (detId & (7 << 25)) >> 25;
+}
+
+unsigned short SDL::Module::parseSide(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Endcap)
+    {
+        return (detId & (3 << 23)) >> 23;
+    }
+    else if (parseSubdet(detId) == SDL::Module::Barrel)
+    {
+        return (detId & (3 << 18)) >> 18;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::Module::parseLayer(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Endcap)
+    {
+        return (detId & (7 << 18)) >> 18;
+    }
+    else if (parseSubdet(detId) == SDL::Module::Barrel)
+    {
+        return (detId & (7 << 20)) >> 20;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::Module::parseRod(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Endcap)
+    {
+        return 0;
+    }
+    else if (parseSubdet(detId) == SDL::Module::Barrel)
+    {
+        return (detId & (127 << 10)) >> 10;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+unsigned short SDL::Module::parseRing(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Endcap)
+    {
+        return (detId & (15 << 12)) >> 12;
+    }
+    else if (parseSubdet(detId) == SDL::Module::Barrel)
+    {
+        return 0;
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+
+unsigned short SDL::Module::parseModule(unsigned int detId)
+{
+    return (detId & (127 << 2)) >> 2;
+}
+
+unsigned short SDL::Module::parseIsLower(unsigned int detId)
+{
+    return ((parseIsInverted(detId)) ? !(detId & 1) : (detId & 1));
+}
+
+bool SDL::Module::parseIsInverted(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Endcap)
+    {
+        if (parseSide(detId) == SDL::Module::NegZ)
+        {
+            return parseModule(detId) % 2 == 1;
+        }
+        else if (parseSide(detId) == SDL::Module::PosZ)
+        {
+            return parseModule(detId) % 2 == 0;
+        }
+        else
+        {
+            SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+            return 0;
+        }
+    }
+    else if (parseSubdet(detId) == SDL::Module::Barrel)
+    {
+        if (parseSide(detId) == SDL::Module::Center)
+        {
+            if (parseLayer(detId) <= 3)
+            {
+                return parseModule(detId) % 2 == 1;
+            }
+            else if (parseLayer(detId) >= 4)
+            {
+                return parseModule(detId) % 2 == 0;
+            }
+            else
+            {
+                SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+                return 0;
+            }
+        }
+        else if (parseSide(detId) == SDL::Module::NegZ or parseSide(detId) == SDL::Module::PosZ)
+        {
+            if (parseLayer(detId) <= 2)
+            {
+                return parseModule(detId) % 2 == 1;
+            }
+            else if (parseLayer(detId) == 3)
+            {
+                return parseModule(detId) % 2 == 0;
+            }
+            else
+            {
+                SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+                return 0;
+            }
+        }
+        else
+        {
+            SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+            return 0;
+        }
+    }
+    else
+    {
+        SDL::cout << "Warning: parseIsInverted() categorization failed" << std::endl;
+        return 0;
+    }
+}
+
+unsigned int SDL::Module::parsePartnerDetId(unsigned int detId)
+{
+    if (parseIsLower(detId))
+        return ((parseIsInverted(detId)) ? detId - 1 : detId + 1);
+    else
+        return ((parseIsInverted(detId)) ? detId + 1 : detId - 1);
+}
+
+SDL::Module::ModuleType SDL::Module::parseModuleType(unsigned int detId)
+{
+    if (parseSubdet(detId) == SDL::Module::Barrel)
+    { 
+        if (parseLayer(detId) <= 3)
+            return SDL::Module::PS;
+        else
+            return SDL::Module::TwoS;
+    }
+    else
+    {
+        if (parseLayer(detId) <= 2)
+        {
+            if (parseRing(detId) <= 10)
+                return SDL::Module::PS;
+            else
+                return SDL::Module::TwoS;
+        }
+        else
+        {
+            if (parseRing(detId) <= 7)
+                return SDL::Module::PS;
+            else
+                return SDL::Module::TwoS;
+        }
+    }
+}
+
+SDL::Module::ModuleLayerType SDL::Module::parseModuleLayerType(unsigned int detId)
+{
+    if (parseModuleType(detId) == SDL::Module::TwoS)
+        return SDL::Module::Strip;
+    if (parseIsInverted(detId))
+    {
+        if (parseIsLower(detId))
+            return SDL::Module::Strip;
+        else
+            return SDL::Module::Pixel;
+    }
+    else
+    {
+        if (parseIsLower(detId))
+            return SDL::Module::Pixel;
+        else
+            return SDL::Module::Strip;
+    }
+}
+
 namespace SDL
 {
     std::ostream& operator<<(std::ostream& out, const Module& module)
     {
         out << "Module(detId=" << module.detId();
-        out << ", subdet=" << (module.subdet() == SDL::Module::Barrel ? "Barrel" : "Endcap");
-        out << ", side=" << (module.side() == SDL::Module::Center ? "Center" : "Side");
-        out << ", layer=" << module.layer();
-        out << ", rod=" << module.rod();
-        out << ", ring=" << module.ring();
-        out << ", module=" << module.module();
-        out << ", moduleType=" << (module.moduleType() == SDL::Module::PS ? "PS" : "2S");
-        out << ", moduleLayerType=" << (module.moduleLayerType() == SDL::Module::Pixel ? "Pixel" : "Strip");
-        out << ", isLower=" << module.isLower();
-        out << ", isInverted=" << module.isInverted();
-        out << ", isNormalTitled=" << SDL::MiniDoublet::isTighterTiltedModules(*module.modulePrimitive());
+        out << ", subdet=" << (module.subdet_ == SDL::Module::Barrel ? "Barrel" : "Endcap");
+        out << ", side=" << (module.side_ == SDL::Module::Center ? "Center" : "Side");
+        out << ", layer=" << module.layer_;
+        out << ", rod=" << module.rod_;
+        out << ", ring=" << module.ring_;
+        out << ", module=" << module.module_;
+        out << ", moduleType=" << (module.moduleType_ == SDL::Module::PS ? "PS" : "2S");
+        out << ", moduleLayerType=" << (module.moduleLayerType_ == SDL::Module::Pixel ? "Pixel" : "Strip");
+        out << ", isLower=" << module.isLower_;
+        out << ", isInverted=" << module.isInverted_;
+        out << ", isNormalTitled=" << SDL::MiniDoublet::isNormalTiltedModules(module);
         out << ")" << std::endl;
         // for (auto& hitPtr : module.hits_)
         //     out << hitPtr << std::endl;
@@ -185,4 +390,6 @@ namespace SDL
         out << *module;
         return out;
     }
+
+
 }
