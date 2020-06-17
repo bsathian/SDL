@@ -136,7 +136,7 @@ namespace SDL
             // The math for shifting the strip hit up or dowCUDA_HOSTDEV n along the PS module orientation, returns new x, y and z position
             CUDA_HOSTDEV void shiftStripHits(const Hit& lowerHit, const Hit& upperHit, const ModulePrimitive& lowerModule, float* shiftedCoords, SDL::LogLevel logLevel=SDL::Log_Nothing);
 
-            bool useBarrelLogic(const SDL::Module& lowerModule);
+
             // The function to determine transition region for inner most tilted layer (same as isNormalTiltedModules)
             CUDA_HOSTDEV static bool isTighterTiltedModules(const ModulePrimitive& lowerModule);
 

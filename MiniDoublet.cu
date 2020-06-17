@@ -1048,19 +1048,6 @@ void SDL::MiniDoublet::shiftStripHits(const SDL::Hit& lowerHit, const SDL::Hit& 
 
 }
 
-bool SDL::MiniDoublet::useBarrelLogic(const SDL::Module& lowerModule)
-{
-
-    // Either it is a barrel and flat module (i.e. "Center")
-    // or if it is a "normal" tilted modules (ones that are not too steeply tilted)
-    // then use barrel logic
-
-    if ( (lowerModule.subdet() == SDL::Module::Barrel and lowerModule.side() == SDL::Module::Center) or isTighterTiltedModules(*lowerModule.modulePrimitive()))
-        return true;
-    else
-        return false;
-}
-
 bool SDL::MiniDoublet::isTighterTiltedModules(const SDL::ModulePrimitive& lowerModule)
 {
     // The "tighter" tilted modules are the subset of tilted modules that have smaller spacing
