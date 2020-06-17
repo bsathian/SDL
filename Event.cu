@@ -77,7 +77,7 @@ void SDL::Event::initModulesInGPU()
 {
     const int MODULE_MAX=50000;
     cudaProfilerStart();
-    cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::ModulePrimitive));
+    cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::Module));
     cudaProfilerStop();
 }
 
@@ -96,11 +96,10 @@ SDL::Module* SDL::Event::getModule(unsigned int detId)
     if (emplace_result.second) // if true, new was inserted
     {
         //cudaMallocManaged(&((*(emplace_result.first)).second),sizeof(SDL::Module));
-        modulesInGPU[moduleMemoryCounter] = SDL::ModulePrimitive(detId);
-
-        (*(emplace_result.first)).second = new Module(&modulesInGPU[moduleMemoryCounter]);
+         (*(emplace_result.first)).second = &modulesInGPU[moduleMemoryCounter];
 
         //*inserted_or_existing =SDL:: Module(detId);
+        modulesInGPU[moduleMemoryCounter] = SDL::Module(detId);
         Module* module_ptr = inserted_or_existing;
         
         // Add the module pointer to the list of modules
@@ -175,7 +174,6 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     }
     hitsInGPU[hitMemoryCounter] = hit;
     hitsInGPU[hitMemoryCounter].setModule(getModule(detId));
-    hitsInGPU[hitMemoryCounter].setModulePrimitive(getModule(detId)->modulePrimitive());
     getModule(detId)->addHit(&hitsInGPU[hitMemoryCounter]);
     hits_.push_back(hitsInGPU[hitMemoryCounter]);
 

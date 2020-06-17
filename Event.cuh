@@ -189,7 +189,7 @@ namespace SDL
             void incrementNumberOfTrackCandidates(SDL::Module& module);
 
             //CUDA stuff
-            ModulePrimitive* modulesInGPU;
+            Module* modulesInGPU;
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
