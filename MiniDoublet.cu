@@ -24,6 +24,8 @@ SDL::MiniDoublet::MiniDoublet(const MiniDoublet& md): lowerHitPtr_(md.lowerHitPt
                                                       ,miniCut_(md.getMiniCut())
 {
     setAnchorHit();
+    setDerivedQuantities();
+    
 }
 
 SDL::MiniDoublet::MiniDoublet(SDL::Hit* lowerHitPtr, SDL::Hit* upperHitPtr) : lowerHitPtr_(lowerHitPtr), upperHitPtr_(upperHitPtr)
@@ -36,8 +38,28 @@ SDL::MiniDoublet::MiniDoublet(SDL::Hit* lowerHitPtr, SDL::Hit* upperHitPtr) : lo
                                                       ,dphichange_noshift_(0)
 {
     setAnchorHit();
+    setDerivedQuantities();
+
 }
 
+void SDL::MiniDoublet::setDerivedQuantities()
+{
+    const Module& lowerModule = lowerHitPtr_->getModule();
+    const Module& upperModule = upperHitPtr_->getModule();
+    if(lowerModule.moduleType() == SDL::Module::PS and upperModule.moduleLayerType() == SDL::Module::Strip)
+    {
+        setDrDz(upperModule.getDrDz());
+        setLowerModuleSlope(upperModule.getSlope());
+    }
+    else
+    {
+        setDrDz(lowerModule.getDrDz());
+        setLowerModuleSlope(lowerModule.getSlope());
+
+    }
+
+}
+/*
 const std::vector<SDL::Segment*>& SDL::MiniDoublet::getListOfOutwardSegmentPtrs()
 {
     return outwardSegmentPtrs;
@@ -56,7 +78,7 @@ void SDL::MiniDoublet::addOutwardSegmentPtr(SDL::Segment* sg)
 void SDL::MiniDoublet::addInwardSegmentPtr(SDL::Segment* sg)
 {
     inwardSegmentPtrs.push_back(sg);
-}
+}*/
 
 void SDL::MiniDoublet::setAnchorHit()
 {

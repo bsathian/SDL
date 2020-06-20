@@ -13,11 +13,11 @@ LIB=sdl.so
 # AMD Opteron and Intel EM64T (64 bit mode) Linux with gcc 3.x
 #CXX           = g++4 
 CXX           = nvcc
-CXXFLAGS      =  -g -O2 --compiler-options -Wall --compiler-options -Wshadow --compiler-options -Woverloaded-virtual --compiler-options -fPIC --compiler-options -fopenmp -dc 
+CXXFLAGS      =  -arch compute_61 -g -O2 --compiler-options -Wall --compiler-options -Wshadow --compiler-options -Woverloaded-virtual --compiler-options -fPIC --compiler-options -fopenmp -dc 
 #LD            = g++4 
 LD            = nvcc 
 #LDFLAGS       = -g -O2
-SOFLAGS       = -g -shared --compiler-options -fPIC
+SOFLAGS       = -arch compute_61 -g -shared --compiler-options -fPIC
 # how to make it 
 #
 

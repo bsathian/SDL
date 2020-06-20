@@ -1,16 +1,59 @@
 #include "Event.cuh"
 
 //CUDA Kernel for Minidoublet creation
-__global__ void createMiniDoubletsInGPU(SDL::MiniDoublet* mdCands, int n, SDL::MDAlgo algo)
+/*__global__ void createMiniDoubletsInGPU(SDL::MiniDoublet* mdCands, int n, SDL::MDAlgo algo)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
+
     for(int i = tid; i<n; i+= stride)
     {
         mdCands[i].runMiniDoubletAlgo(algo);
     }
 
+}*/
+
+__global__ void runMiniDoubletGPUAlgo(int moduleId,SDL::Hit** lowerHits, SDL::Hit** upperHits,int nLowerHits,int nUpperHits,SDL::MiniDoublet* mdsInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+{
+    int MAX_MD_MODULE = 100 * 100; //max number of MD cands per module
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i = tid; i<nLowerHits * nUpperHits;i+=stride)
+    {
+//        mdCands[moduleId * maxMDModule + tid] 
+        SDL::MiniDoublet mdCand(lowerHits[i/nUpperHits],upperHits[i%nUpperHits]);
+        mdCand.runMiniDoubletAlgo(algo);
+        if(mdCand.passesMiniDoubletAlgo(SDL::AllComb_MDAlgo))
+        {
+            //atomic here -possible point of failure!!!!!
+            atomicAdd(mdMemoryCounter,1);
+            mdsInGPU[*mdMemoryCounter] = mdCand; //this is gonna be expensive
+        }
+//        mdCands[moduleId * maxMDModule + tid].runMiniDoubletAlgo(algo);
+        //write the atomic add here
+    }
 }
+__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+{
+    //create the MD candidates - 
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i = tid; i<nModules; i+= stride)
+    {
+        //fetch the hit arrays from the modules and launch the other kernel
+        SDL::Module* lowerModule = lowerModulesInGPU[i];
+        SDL::Module* upperModule = (lowerModulesInGPU[i]->partnerModule());
+        int numberOfLowerHits = lowerModule->getNumberOfHits();
+        int numberOfUpperHits = upperModule->getNumberOfHits();
+        SDL::Hit** lowerHits = lowerModule->getHitPtrs();
+        SDL::Hit** upperHits = upperModule->getHitPtrs();
+        
+        int nThreads = 512;
+        int nBlocks = (numberOfLowerHits * numberOfUpperHits)/nThreads == 0 ? (numberOfLowerHits * numberOfUpperHits)/nThreads : (numberOfLowerHits * numberOfUpperHits)/nThreads + 1;
+        runMiniDoubletGPUAlgo<<<nBlocks,nThreads>>>(i,lowerHits,upperHits,numberOfLowerHits,numberOfUpperHits,mdsInGPU,mdMemoryCounter,algo);
+    }
+}
+
 
 
 SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
@@ -41,6 +84,7 @@ SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
     n_triplet_by_layer_endcap_.fill(0);
     n_trackcandidate_by_layer_endcap_.fill(0);
     moduleMemoryCounter = 0;
+    lowerModuleMemoryCounter = 0;
     hitMemoryCounter = 0;
     hit2SEdgeMemoryCounter = 0;
     mdMemoryCounter = 0;
@@ -51,6 +95,7 @@ SDL::Event::~Event()
 {
     cudaFree(hitsInGPU);
     cudaFree(modulesInGPU);
+    cudaFree(lowerModulesInGPU);
     cudaFree(mdsInGPU);
     cudaFree(mdCandsGPU);
 }
@@ -78,6 +123,7 @@ void SDL::Event::initModulesInGPU()
     const int MODULE_MAX=50000;
     cudaProfilerStart();
     cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::Module));
+    cudaMallocManaged(&lowerModulesInGPU, MODULE_MAX * sizeof(SDL::Module*));
     cudaProfilerStop();
 }
 
@@ -101,12 +147,25 @@ SDL::Module* SDL::Event::getModule(unsigned int detId)
         //*inserted_or_existing =SDL:: Module(detId);
         modulesInGPU[moduleMemoryCounter] = SDL::Module(detId);
         Module* module_ptr = inserted_or_existing;
+        module_ptr->setDrDz(tiltedGeometry.getDrDz(detId));
+        if(module_ptr->subdet() == SDL::Module::Endcap)
+        {
+            module_ptr->setSlope(SDL::endcapGeometry.getSlopeLower(detId));
+        }
+        else
+        {
+            module_ptr->setSlope(SDL::tiltedGeometry.getSlope(detId));
+        }
+
         
         // Add the module pointer to the list of modules
         modulePtrs_.push_back(module_ptr);
         // If the module is lower module then add to list of lower modules
         if (module_ptr->isLower())
-            lowerModulePtrs_.push_back(module_ptr);
+        {
+            lowerModulesInGPU[lowerModuleMemoryCounter] = module_ptr;
+            lowerModuleMemoryCounter++;
+        }
        
        moduleMemoryCounter++;
 
@@ -125,6 +184,7 @@ const std::vector<SDL::Module*> SDL::Event::getLowerModulePtrs() const
     return lowerModulePtrs_;
 }
 
+/*
 void SDL::Event::createLayers()
 {
     // Create barrel layers
@@ -153,7 +213,7 @@ SDL::Layer& SDL::Event::getLayer(int ilayer, SDL::Layer::SubDet subdet)
 const std::vector<SDL::Layer*> SDL::Event::getLayerPtrs() const
 {
     return layerPtrs_;
-}
+}*/
 
 void SDL::Event::initHitsInGPU()
 {
@@ -185,8 +245,8 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     if (getModule(detId)->subdet() == SDL::Module::Endcap and getModule(detId)->moduleType() == SDL::Module::TwoS)
     {
          
-        hits2sEdgeInGPU[hit2SEdgeMemoryCounter] = GeometryUtil::stripHighEdgeHit(hitsInGPU[hitMemoryCounter]);
-        hits2sEdgeInGPU[hit2SEdgeMemoryCounter+1] = GeometryUtil::stripLowEdgeHit(hitsInGPU[hitMemoryCounter]);
+        hits2sEdgeInGPU[hit2SEdgeMemoryCounter] = SDL::GeometryUtil::stripHighEdgeHit(hitsInGPU[hitMemoryCounter]);
+        hits2sEdgeInGPU[hit2SEdgeMemoryCounter+1] = SDL::GeometryUtil::stripLowEdgeHit(hitsInGPU[hitMemoryCounter]);
 //        hits_2s_edges_.push_back(GeometryUtil::stripHighEdgeHit(&hits_.back()));
 //        hits_.back().setHitHighEdgePtr(&(hits_2s_edges_.back()));
 //        hits_2s_edges_.push_back(GeometryUtil::stripLowEdgeHit(*hitForGPU));
@@ -207,9 +267,10 @@ void SDL::Event::initMDsInGPU()
 {
     const int MD_MAX = 60000;
     cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
+    cudaMallocManaged(&mdMemoryCounter,sizeof(int));
 }
 
-void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
+/*void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
 {
     if(mdMemoryCounter == 0)
     {
@@ -225,7 +286,7 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, 
     // And get the layer
     getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
     mdMemoryCounter++;
-}
+}*/
 
 [[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]
 void SDL::Event::addMiniDoubletToLowerModule(SDL::MiniDoublet md, unsigned int detId)
@@ -236,7 +297,7 @@ void SDL::Event::addMiniDoubletToLowerModule(SDL::MiniDoublet md, unsigned int d
     // And get the module (if not exists, then create), and add the address to Module.hits_
     getModule(detId)->addMiniDoublet(&(miniDoublets_.back()));
 }
-
+/*
 void SDL::Event::addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
 {
     // Add to global list of segments, where it will hold the object's instance
@@ -319,14 +380,32 @@ void SDL::Event::addTrackCandidateToLowerLayer(SDL::TrackCandidate tc, int layer
     getLayer(layerIdx, subdet).addTrackCandidate(&(trackcandidates_.back()));
 }
 
+*/
+
+//This dude needs to get into the GPU
+/*
 void SDL::Event::createMiniDoublets(MDAlgo algo)
 {
+    for(int i = 0; i < moduleMemoryCounter; i++)
+    {
+        moduleMemoryCounter[i].setPartnerModule(*getModule(moduleMemoryCounter.partnerDetId()));
+    }
+
+    //set partner modules first for the modules
     // Loop over lower modules
     const int MAX_MD_CAND = 500000;
-    cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
+    initMDsInGPU();
+
+//    cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
+     
 //    cudaMemPrefetchAsync(modulesInGPU,50000 * sizeof(Hit),0);
 //    cudaMemPrefetchAsync(hitsInGPU,1000000 * sizeof(Hit),0);
     mdGPUCounter = 0;
+
+    //gpu code - put this inside the kernel
+
+
+
     for (auto& lowerModulePtr : getLowerModulePtrs())
     {
         // Create mini doublets
@@ -336,10 +415,37 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
     {
         miniDoubletGPUWrapper(algo);
     }
+}*/
+
+
+void SDL::Event::createMiniDoublets(MDAlgo algo)
+{
+    for(int i = 0; i < moduleMemoryCounter; i++)
+    {
+        modulesInGPU[i].setPartnerModule(getModule(modulesInGPU[i].partnerDetId()));
+    }
+
+    const int MAX_MD_CAND = 500000;
+    initMDsInGPU();
+
+  //  cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
+
+    int nThreads = 512;
+    int nModules = modulesMapByDetId_.size(); 
+    int nBlocks = (nModules % nThreads == 0) ? nModules/nThreads : nModules/nThreads + 1;
+//    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
+
+    createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(nModules,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if (cudaerr != cudaSuccess)
+    {          
+        std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
+    }
+
 }
 
 
-void SDL::Event::miniDoubletGPUWrapper(SDL::MDAlgo algo)
+/*void SDL::Event::miniDoubletGPUWrapper(SDL::MDAlgo algo)
 {
     int nThreads = 256;
     int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
@@ -371,8 +477,9 @@ void SDL::Event::miniDoubletGPUWrapper(SDL::MDAlgo algo)
     }
     mdGPUCounter = 0; 
    
-}
+}*/
 
+/*
 void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMDCands,SDL::MDAlgo algo)
 {
     // Get reference to the lower Module
@@ -383,7 +490,6 @@ void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMD
     //std::cout<<"Upper module = "<<lowerModule.partnerDetId()<<" position in array = "<<getModule(lowerModule.partnerDetId()) - modulesInGPU<<std::endl;
     // Double nested loops
     // Loop over lower module hits
-#pragma omp parallel for default(shared) collapse(2)
     for(size_t i =0; i<lowerModule.getHitPtrs().size();i++)
 //    for (auto& lowerHitPtr : lowerModule.getHitPtrs())
     {
@@ -451,10 +557,10 @@ void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMD
     }       
     // Run mini-doublet algorithm on mdCand (mini-doublet candidate)
            //after running MD algo'
-}
+}*/
 
 
-
+/*
 void SDL::Event::createPseudoMiniDoubletsFromAnchorModule(SDL::MDAlgo algo)
 {
 
@@ -578,8 +684,9 @@ void SDL::Event::createPseudoMiniDoubletsFromAnchorModule(SDL::MDAlgo algo)
         }
     }
 
-}
+}*/
 
+/*
 void SDL::Event::createSegments(SGAlgo algo)
 {
 
@@ -1210,7 +1317,7 @@ void SDL::Event::createTrackCandidatesFromInnerModulesFromTracklets(unsigned int
 
     }
 
-}
+}*/
 
 // Multiplicity of mini-doublets
 unsigned int SDL::Event::getNumberOfHits() { return hits_.size(); }
@@ -1231,17 +1338,18 @@ unsigned int SDL::Event::getNumberOfHitsByLayerEndcapUpperModule(unsigned int il
 unsigned int SDL::Event::getNumberOfMiniDoublets() { return miniDoublets_.size(); }
 
 // Multiplicity of segments
-unsigned int SDL::Event::getNumberOfSegments() { return segments_.size(); }
+//unsigned int SDL::Event::getNumberOfSegments() { return segments_.size(); }
 
 // Multiplicity of tracklets
-unsigned int SDL::Event::getNumberOfTracklets() { return tracklets_.size(); }
+//unsigned int SDL::Event::getNumberOfTracklets() { return tracklets_.size(); }
 
 // Multiplicity of triplets
-unsigned int SDL::Event::getNumberOfTriplets() { return triplets_.size(); }
+//unsigned int SDL::Event::getNumberOfTriplets() { return triplets_.size(); }
 
 // Multiplicity of track candidates
-unsigned int SDL::Event::getNumberOfTrackCandidates() { return trackcandidates_.size(); }
+//unsigned int SDL::Event::getNumberOfTrackCandidates() { return trackcandidates_.size(); }
 
+/*
 // Multiplicity of mini-doublet candidates considered in this event
 unsigned int SDL::Event::getNumberOfMiniDoubletCandidates() { unsigned int n = 0; for (unsigned int i = 0; i < 6; ++i) {n += n_miniDoublet_candidates_by_layer_barrel_[i];} for (unsigned int i = 0; i < 5; ++i) {n += n_miniDoublet_candidates_by_layer_endcap_[i];} return n; }
 
@@ -1315,7 +1423,7 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerEndcap(unsigned int ilayer) 
 unsigned int SDL::Event::getNumberOfTripletsByLayerEndcap(unsigned int ilayer) { return n_triplet_by_layer_endcap_[ilayer]; }
 
 // Multiplicity of track candidate formed in this event
-unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerEndcap(unsigned int ilayer) { return n_trackcandidate_by_layer_endcap_[ilayer]; }
+unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerEndcap(unsigned int ilayer) { return n_trackcandidate_by_layer_endcap_[ilayer]; }*/
 
 // Multiplicity of hits in this event
 void SDL::Event::incrementNumberOfHits(SDL::Module& module)
@@ -1351,6 +1459,7 @@ void SDL::Event::incrementNumberOfMiniDoubletCandidates(SDL::Module& module,int 
         n_miniDoublet_candidates_by_layer_endcap_[layer-1]+=number;
 }
 
+/*
 // Multiplicity of segment candidates considered in this event
 void SDL::Event::incrementNumberOfSegmentCandidates(SDL::Module& module)
 {
@@ -1415,7 +1524,7 @@ void SDL::Event::incrementNumberOfTrackCandidateCandidates(SDL::Module& _module)
         n_trackcandidate_candidates_by_layer_barrel_[layer-1]++;
     else
         n_trackcandidate_candidates_by_layer_endcap_[layer-1]++;
-}
+}*/
 
 // Multiplicity of mini-doublet formed in this event
 void SDL::Event::incrementNumberOfMiniDoublets(SDL::Module& module)
@@ -1429,7 +1538,8 @@ void SDL::Event::incrementNumberOfMiniDoublets(SDL::Module& module)
 }
 
 // Multiplicity of segment formed in this event
-void SDL::Event::incrementNumberOfSegments(SDL::Module& module)
+
+/*void SDL::Event::incrementNumberOfSegments(SDL::Module& module)
 {
     int layer = module.layer();
     int isbarrel = (module.subdet() == SDL::Module::Barrel);
@@ -1438,6 +1548,7 @@ void SDL::Event::incrementNumberOfSegments(SDL::Module& module)
     else
         n_segment_by_layer_endcap_[layer-1]++;
 }
+
 
 // Multiplicity of triplet formed in this event
 void SDL::Event::incrementNumberOfTriplets(SDL::Module& module)
@@ -1492,7 +1603,7 @@ void SDL::Event::incrementNumberOfTrackCandidates(SDL::Module& _module)
         n_trackcandidate_by_layer_barrel_[layer-1]++;
     else
         n_trackcandidate_by_layer_endcap_[layer-1]++;
-}
+}*/
 
 namespace SDL
 {
@@ -1510,10 +1621,10 @@ namespace SDL
             out << modulePtr;
         }
 
-        for (auto& layerPtr : event.layerPtrs_)
+/*        for (auto& layerPtr : event.layerPtrs_)
         {
             out << layerPtr;
-        }
+        }*/
 
         return out;
     }

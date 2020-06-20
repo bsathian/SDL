@@ -1,22 +1,29 @@
 #include "Module.cuh"
 
-SDL::Module::Module()
+SDL::Module::Module() : hitCounter(0), mdCounter(0)
+
 {
     setDetId(0);
 }
 
-SDL::Module::Module(unsigned int detId)
+SDL::Module::Module(unsigned int detId) : hitCounter(0), mdCounter(0)
 {
     setDetId(detId);
 }
 
-SDL::Module::Module(const Module& module)
+SDL::Module::Module(const Module& module) : hitCounter(0), mdCounter(0)
+
 {
     setDetId(module.detId());
 }
 
 SDL::Module::~Module()
 {
+}
+
+SDL::Module* SDL::Module::partnerModule() const
+{
+    return partnerModule_;
 }
 
 const unsigned short& SDL::Module::subdet() const
@@ -64,6 +71,7 @@ const unsigned int& SDL::Module::partnerDetId() const
     return partnerDetId_;
 }
 
+
 const bool& SDL::Module::isInverted() const
 {
     return isInverted_;
@@ -79,12 +87,41 @@ const SDL::Module::ModuleLayerType& SDL::Module::moduleLayerType() const
     return moduleLayerType_;
 }
 
-const std::vector<SDL::Hit*>& SDL::Module::getHitPtrs() const
+float SDL::Module::getDrDz() const
+{
+    return drdz_;
+}
+
+float SDL::Module::getSlope() const
+{
+    return slope_;
+}
+
+void SDL::Module::setDrDz(const float drdz)
+{
+    drdz_ = drdz;
+}
+void SDL::Module::setSlope(const float slope)
+{
+    slope_ = slope;
+}
+
+int SDL::Module::getNumberOfHits() const
+{
+    return hitCounter;
+}
+
+int SDL::Module::getNumberOfMiniDoublets() const
+{
+    return mdCounter;
+}
+
+SDL::Hit **SDL::Module::getHitPtrs() 
 {
     return hits_;
 }
 
-const std::vector<SDL::MiniDoublet*>& SDL::Module::getMiniDoubletPtrs() const
+SDL::MiniDoublet** SDL::Module::getMiniDoubletPtrs()
 {
     return miniDoublets_;
 }
@@ -110,6 +147,11 @@ void SDL::Module::setDetId(unsigned int detId)
     setDerivedQuantities();
 }
 
+void SDL::Module::setPartnerModule(Module* partnerModule)
+{
+    partnerModule_ = partnerModule;
+}
+
 void SDL::Module::setDerivedQuantities()
 {
     subdet_ = parseSubdet(detId_);
@@ -133,12 +175,14 @@ void SDL::Module::addHit(SDL::Hit* hit)
 //    hit->setModule(this);
     
     // Then add to the module
-    hits_.push_back(hit);
+    hits_[hitCounter] = hit;
+    hitCounter++;
 }
 
 void SDL::Module::addMiniDoublet(SDL::MiniDoublet* md)
 {
-    miniDoublets_.push_back(md);
+    miniDoublets_[mdCounter] = md;
+    mdCounter++;
 }
 
 void SDL::Module::addSegment(SDL::Segment* sg)

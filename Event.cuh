@@ -14,10 +14,11 @@
 #include "Module.cuh"
 #include "Hit.cuh"
 #include "MiniDoublet.cuh"
-#include "Segment.h"
+#include "GeometryUtil.cuh"
+/*#include "Segment.h"
 #include "Triplet.h"
 #include "Layer.h"
-#include "PrintUtil.h"
+#include "PrintUtil.h"*/
 #include "Algo.h"
 #include "ModuleConnectionMap.h"
 #include "cuda_profiler_api.h"
@@ -31,10 +32,10 @@ namespace SDL
             std::map<unsigned int, Module*> modulesMapByDetId_;
 
             // map of barrel layers (this holds the actual instances)
-            std::map<int, Layer> barrelLayers_;
+//            std::map<int, Layer> barrelLayers_;
 
             // map of endcap layers (this holds the actual instances)
-            std::map<int, Layer> endcapLayers_;
+//            std::map<int, Layer> endcapLayers_;
 
             // list of hits (this holds the actual instances)
             std::list<Hit> hits_;
@@ -46,6 +47,7 @@ namespace SDL
             std::list<MiniDoublet> miniDoublets_;
 
             // list of Segments (this holds the actual instances)
+/*            
             std::list<Segment> segments_;
 
             // list of Triplets (this holds the actual instances)
@@ -55,13 +57,13 @@ namespace SDL
             std::list<Tracklet> tracklets_;
 
             // list of TrackCandidates (this holds the actual instances)
-            std::list<TrackCandidate> trackcandidates_;
+            std::list<TrackCandidate> trackcandidates_;*/
 
             // list of module pointers (hold only the pointers to the actual instances)
             std::vector<Module*> modulePtrs_;
 
             // list of layer pointers (hold only the pointers to the actual instances)
-            std::vector<Layer*> layerPtrs_;
+//            std::vector<Layer*> layerPtrs_;
 
             // list of lower module pointers (hold only the pointers to the actual instances)
             // (lower means, the module that is closer to the luminous region)
@@ -148,7 +150,7 @@ namespace SDL
 
             // Multiplicity of mini-doublet candidates considered in this event
             void incrementNumberOfMiniDoubletCandidates(SDL::Module& module,int number = 1);
-
+/*
             // Multiplicity of segment candidates considered in this event
             void incrementNumberOfSegmentCandidates(SDL::Module& module);
 
@@ -166,11 +168,12 @@ namespace SDL
 
             // Multiplicity of track candidate candidates considered in this event
             void incrementNumberOfTrackCandidateCandidates(SDL::Module& module);
+*/
 
             // Multiplicity of mini-doublet formed in this event
             void incrementNumberOfMiniDoublets(SDL::Module& module);
 
-            // Multiplicity of segment formed in this event
+  /*          // Multiplicity of segment formed in this event
             void incrementNumberOfSegments(SDL::Module& module);
 
             // Multiplicity of tracklet formed in this event
@@ -186,15 +189,15 @@ namespace SDL
             void incrementNumberOfTrackCandidates(SDL::Layer& layer);
 
             // Multiplicity of track candidate formed in this event
-            void incrementNumberOfTrackCandidates(SDL::Module& module);
+            void incrementNumberOfTrackCandidates(SDL::Module& module);*/
 
             //CUDA stuff
             Module* modulesInGPU;
+            Module** lowerModulesInGPU;
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
             MiniDoublet* mdsInGPU;
-            int mdGPUCounter;
             void  initModulesInGPU();
             void initHitsInGPU();
             void initMDsInGPU();
@@ -202,9 +205,10 @@ namespace SDL
 
             //counter variables
             int moduleMemoryCounter;
+            int lowerModuleMemoryCounter;
             int hitMemoryCounter;
             int hit2SEdgeMemoryCounter;
-            int mdMemoryCounter;
+            int* mdMemoryCounter;
 
 
         public:
@@ -221,8 +225,8 @@ namespace SDL
 
             // Layer related functions
             void createLayers();
-            Layer& getLayer(int layer, SDL::Layer::SubDet subdet);
-            const std::vector<Layer*> getLayerPtrs() const;
+//            Layer& getLayer(int layer, SDL::Layer::SubDet subdet);
+//            const std::vector<Layer*> getLayerPtrs() const;
 
             // Set debug
             void setLogLevel(SDL::LogLevel logLevel=SDL::Log_Nothing);
@@ -231,11 +235,11 @@ namespace SDL
             void addHitToModule(Hit hit, unsigned int detId);
 
             // MiniDoublet related functions
-            void addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
+//            void addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
 
             // MiniDoublet related functions
             void addMiniDoubletToLowerModule(MiniDoublet md, unsigned int detId);
-
+/*
             // Segment related functions
             void addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
 
@@ -255,7 +259,7 @@ namespace SDL
             void addTrackletToLowerLayer(Tracklet tl, int layerIdx, SDL::Layer::SubDet subdet);
 
             // TrackCandidate related functions
-            void addTrackCandidateToLowerLayer(TrackCandidate tc, int layerIdx, SDL::Layer::SubDet subdet);
+            void addTrackCandidateToLowerLayer(TrackCandidate tc, int layerIdx, SDL::Layer::SubDet subdet);*/
 
             // Create mini doublets
             void createMiniDoublets(MDAlgo algo=Default_MDAlgo);
@@ -266,6 +270,7 @@ namespace SDL
             // Pseudo mini-doublet (which is really just a hit) for study purpose only
             void createPseudoMiniDoubletsFromAnchorModule(MDAlgo algo=Default_MDAlgo);
 
+/*
             // Create segments
             void createSegments(SGAlgo algo=Default_SGAlgo);
 
@@ -318,7 +323,7 @@ namespace SDL
             void createTrackCandidatesFromInnerModulesFromTriplets(unsigned int detId, SDL::TCAlgo algo);
 
             // Create trackcandidates from two tracklets (and check that the connecting mini-doublet passes segment requirement)
-            void createTrackCandidatesFromInnerModulesFromTracklets(unsigned int detId, SDL::TCAlgo algo);
+            void createTrackCandidatesFromInnerModulesFromTracklets(unsigned int detId, SDL::TCAlgo algo);*/
 
             // Multiplicity of Hits
             unsigned int getNumberOfHits();
@@ -337,7 +342,7 @@ namespace SDL
 
             // Multiplicity of mini-doublets
             unsigned int getNumberOfMiniDoublets();
-
+/*            
             // Multiplicity of segments
             unsigned int getNumberOfSegments();
 
@@ -348,12 +353,12 @@ namespace SDL
             unsigned int getNumberOfTriplets();
 
             // Multiplicity of track candidates
-            unsigned int getNumberOfTrackCandidates();
+            unsigned int getNumberOfTrackCandidates();*/
 
             // Multiplicity of mini-doublet candidates considered in this event
             unsigned int getNumberOfMiniDoubletCandidates();
 
-            // Multiplicity of segment candidates considered in this event
+/*            // Multiplicity of segment candidates considered in this event
             unsigned int getNumberOfSegmentCandidates();
 
             // Multiplicity of tracklet candidates considered in this event
@@ -423,7 +428,7 @@ namespace SDL
             unsigned int getNumberOfTripletsByLayerEndcap(unsigned int);
 
             // Multiplicity of track candidate formed in this event
-            unsigned int getNumberOfTrackCandidatesByLayerEndcap(unsigned int);
+            unsigned int getNumberOfTrackCandidatesByLayerEndcap(unsigned int);*/
 
             
             // cout printing

@@ -238,14 +238,21 @@ namespace SDL
         private:
 
             ModuleLayerType moduleLayerType_;
+            Module* partnerModule_; //has the partner module pointer, because we can't use the std::map anymore!
 
             // vector of hit pointers
-            std::vector<Hit*> hits_;
+            Hit* hits_[200];
+            int hitCounter;
 
             // vector of mini doublet pointers
-            std::vector<MiniDoublet*> miniDoublets_;
+            MiniDoublet* miniDoublets_[400];
+            int mdCounter;
+
+            float drdz_;
+            float slope_;
 
             // vector of segment pointers
+//            Segment* segments_[1600]; -> Future proofed line
             std::vector<Segment*> segments_;
 
             // vector of triplet pointers
@@ -267,6 +274,7 @@ namespace SDL
             // accessor functions
             CUDA_HOSTDEV const unsigned int& detId() const;
             CUDA_HOSTDEV const unsigned int& partnerDetId() const;
+            CUDA_HOSTDEV Module* partnerModule() const;
             CUDA_HOSTDEV const unsigned short& subdet() const;
             CUDA_HOSTDEV const unsigned short& side() const;
             CUDA_HOSTDEV const unsigned short& layer() const;
@@ -277,14 +285,21 @@ namespace SDL
             CUDA_HOSTDEV const bool& isInverted() const;
             CUDA_HOSTDEV const ModuleType& moduleType() const;
             CUDA_HOSTDEV const ModuleLayerType& moduleLayerType() const;
-            const std::vector<Hit*>& getHitPtrs() const;
-            const std::vector<MiniDoublet*>& getMiniDoubletPtrs() const;
+            CUDA_HOSTDEV int getNumberOfHits() const;
+            CUDA_HOSTDEV int getNumberOfMiniDoublets() const;
+            CUDA_HOSTDEV SDL::Hit** getHitPtrs();
+            CUDA_HOSTDEV SDL::MiniDoublet** getMiniDoubletPtrs();
+            CUDA_HOSTDEV float getDrDz() const;
+            CUDA_HOSTDEV float getSlope() const;
+            void setDrDz(const float);
+            void setSlope(const float);
             const std::vector<Segment*>& getSegmentPtrs() const;
             const std::vector<Triplet*>& getTripletPtrs() const;
             const std::vector<Tracklet*>& getTrackletPtrs() const;
 
             // modifying the class content
             void setDetId(unsigned int);
+            void setPartnerModule(Module*);
             void addHit(Hit* hit);
             void addMiniDoublet(MiniDoublet* md);
             void addSegment(Segment* sg);

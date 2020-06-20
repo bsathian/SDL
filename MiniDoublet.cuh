@@ -59,18 +59,19 @@ namespace SDL
             float slopeForHitShifting_;
 
             // Pointers of segments containing this Mini-doublet as inner mini doublet
-            std::vector<Segment*> outwardSegmentPtrs;
+//            std::vector<Segment*> outwardSegmentPtrs;
 
             // Pointers of segments containing this Mini-doublet as outer mini doublet
-            std::vector<Segment*> inwardSegmentPtrs;
+//            std::vector<Segment*> inwardSegmentPtrs;
 
             float miniCut_;
+            CUDA_HOSTDEV void setDerivedQuantities();
 
         public:
-            MiniDoublet();
-            MiniDoublet(const MiniDoublet&);
-            MiniDoublet(Hit* lowerHit, Hit* upperHit);
-            ~MiniDoublet();
+            CUDA_HOSTDEV MiniDoublet();
+            CUDA_HOSTDEV MiniDoublet(const MiniDoublet&);
+            CUDA_HOSTDEV MiniDoublet(Hit* lowerHit, Hit* upperHit);
+            CUDA_HOSTDEV ~MiniDoublet();
 
             const std::vector<Segment*>& getListOfOutwardSegmentPtrs();
             const std::vector<Segment*>& getListOfInwardSegmentPtrs();
@@ -78,10 +79,10 @@ namespace SDL
             void addOutwardSegmentPtr(Segment* sg);
             void addInwardSegmentPtr(Segment* sg);
 
-            Hit* lowerHitPtr() const;
-            Hit* upperHitPtr() const;
-            Hit* anchorHitPtr() const;
-            const int& getPassAlgo() const;
+            CUDA_HOSTDEV Hit* lowerHitPtr() const;
+            CUDA_HOSTDEV Hit* upperHitPtr() const;
+            CUDA_HOSTDEV Hit* anchorHitPtr() const;
+            CUDA_HOSTDEV const int& getPassAlgo() const;
             CUDA_HOSTDEV const Hit& getLowerShiftedHit() const;
             CUDA_HOSTDEV const Hit& getUpperShiftedHit() const;
             CUDA_HOSTDEV const float& getDz() const;
@@ -93,7 +94,7 @@ namespace SDL
             CUDA_HOSTDEV const float& getMiniCut() const;
 
 
-            void setAnchorHit();
+            CUDA_HOSTDEV void setAnchorHit();
             CUDA_HOSTDEV void setLowerShiftedHit(float, float, float, int=-1);
             CUDA_HOSTDEV void setUpperShiftedHit(float, float, float, int=-1);
             CUDA_HOSTDEV void setDz(float);
@@ -105,7 +106,7 @@ namespace SDL
             CUDA_HOSTDEV void setMiniCut(float);
 
             // return whether it passed the algorithm
-            bool passesMiniDoubletAlgo(MDAlgo algo) const;
+            CUDA_HOSTDEV bool passesMiniDoubletAlgo(MDAlgo algo) const;
 
             // The function to run mini-doublet algorithm on a mini-doublet candidate
             CUDA_HOSTDEV void runMiniDoubletAlgo(MDAlgo algo, SDL::LogLevel logLevel=SDL::Log_Nothing);

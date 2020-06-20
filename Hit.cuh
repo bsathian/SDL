@@ -45,7 +45,7 @@ namespace SDL
         public:
 
             // cnstr/destr
-            Hit();
+            CUDA_HOSTDEV Hit();
             CUDA_HOSTDEV Hit(float x, float y, float z, int idx=-1);
             CUDA_HOSTDEV Hit(const Hit&);
             CUDA_HOSTDEV ~Hit();
