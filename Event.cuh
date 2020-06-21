@@ -197,7 +197,7 @@ namespace SDL
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
-            MiniDoublet** mdsInGPU;
+            MiniDoublet* mdsInGPU;
             void  initModulesInGPU();
             void initHitsInGPU();
             void initMDsInGPU();

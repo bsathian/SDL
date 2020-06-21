@@ -13,59 +13,48 @@
 
 }*/
 
-__global__ void runMiniDoubletGPUAlgo(SDL::MiniDoublet* mdCands,int numberOfMDCands,SDL::MiniDoublet** mdsInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+__global__ void runMiniDoubletGPUAlgo(int moduleId,SDL::Hit** lowerHits, SDL::Hit** upperHits,int nLowerHits,int nUpperHits,SDL::MiniDoublet* mdsInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
 {
+    int MAX_MD_MODULE = 100 * 100; //max number of MD cands per module
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-//    printf("runMiniDoubletDefaultGPUAlgo!!!\n");
-    for(int i = tid; i<numberOfMDCands;i+=stride)
+    for(int i = tid; i<nLowerHits * nUpperHits;i+=stride)
     {
-        mdCands[i].runMiniDoubletAlgo(algo);
-        if(mdCands[i].passesMiniDoubletAlgo(algo))
+//        mdCands[moduleId * maxMDModule + tid] 
+        SDL::MiniDoublet mdCand(lowerHits[i/nUpperHits],upperHits[i%nUpperHits]);
+        mdCand.runMiniDoubletAlgo(algo);
+        if(mdCand.passesMiniDoubletAlgo(algo))
         {
             //atomic here -possible point of failure!!!!!
             atomicAdd(mdMemoryCounter,1);
-            mdsInGPU[*mdMemoryCounter] = &(mdCands[i]); //this is gonna be expensive
+            mdsInGPU[*mdMemoryCounter] = mdCand; //this is gonna be expensive
         }
 //        mdCands[moduleId * maxMDModule + tid].runMiniDoubletAlgo(algo);
         //write the atomic add here
     }
 }
-
-//serial kernel
-__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdCandsGPU,SDL::MiniDoublet** mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
 {
     //create the MD candidates - 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-//  printf("createMiniDoubletsInGPU tid=%d\n",tid);
-    int counter = 0;
     for(int i = tid; i<nModules; i+= stride)
     {
         //fetch the hit arrays from the modules and launch the other kernel
         SDL::Module* lowerModule = lowerModulesInGPU[i];
         SDL::Module* upperModule = (lowerModulesInGPU[i]->partnerModule());
-//        printf("Module = %ld, partner module = %ld\n",lowerModule->detId(),upperModule->detId());
+        if(upperModule == nullptr) continue;
         int numberOfLowerHits = lowerModule->getNumberOfHits();
         int numberOfUpperHits = upperModule->getNumberOfHits();
-//        printf("Number of lower hits = %d, Number of upper hits = %d\n",numberOfLowerHits,numberOfUpperHits);
         SDL::Hit** lowerHits = lowerModule->getHitPtrs();
         SDL::Hit** upperHits = upperModule->getHitPtrs();
-         
-        if(numberOfLowerHits * numberOfUpperHits == 0) continue;
-        //create the MD candidates (life has come down to this finally)
-        for(int j = 0; j< numberOfLowerHits;j++)
-        {
-            for(int k = 0; k< numberOfUpperHits;k++)
-            {
-                mdCandsGPU[counter] = SDL::MiniDoublet(lowerHits[j],upperHits[k]);
-                counter++;
-            }
-        } 
+        if(numberOfLowerHits == 0 ||  numberOfUpperHits == 0) continue; 
+        int nThreads = min(32,(numberOfLowerHits * numberOfUpperHits));
+        //int nThreads = 32;
+        int nBlocks = (numberOfLowerHits * numberOfUpperHits)%nThreads == 0 ? (numberOfLowerHits * numberOfUpperHits)/nThreads : (numberOfLowerHits * numberOfUpperHits)/nThreads + 1;
+        printf("nBlocks = %d lower hits = %d upper hits = %d\n",nBlocks,numberOfLowerHits,numberOfUpperHits);
+        runMiniDoubletGPUAlgo<<<nBlocks,nThreads>>>(i,lowerHits,upperHits,numberOfLowerHits,numberOfUpperHits,mdsInGPU,mdMemoryCounter,algo);
     }
-    int nThreads = 512;
-    int nBlocks = (counter%nThreads == 0) ? counter/nThreads : counter/nThreads + 1; 
-    runMiniDoubletGPUAlgo<<<nBlocks,nThreads>>>(mdCandsGPU,counter,mdsInGPU,mdMemoryCounter,algo);
 }
 
 
@@ -101,7 +90,7 @@ SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
     lowerModuleMemoryCounter = 0;
     hitMemoryCounter = 0;
     hit2SEdgeMemoryCounter = 0;
-    mdMemoryCounter = 0;
+    //mdMemoryCounter = 0;
 
 }
 
@@ -111,8 +100,7 @@ SDL::Event::~Event()
     cudaFree(modulesInGPU);
     cudaFree(lowerModulesInGPU);
     cudaFree(mdsInGPU);
-    cudaFree(mdCandsGPU);
-    cudaFree(mdMemoryCounter);
+    //cudaFree(mdCandsGPU);
 }
 
 
@@ -280,10 +268,8 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
 
 void SDL::Event::initMDsInGPU()
 {
-    const int MD_CANDS_MAX = 500000;
-    const int MD_MAX = 50000;
-    cudaMallocManaged(&mdCandsGPU,MD_CANDS_MAX * sizeof(SDL::MiniDoublet));
-    cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet*));
+    const int MD_MAX = 60000;
+    cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
     cudaMallocManaged(&mdMemoryCounter,sizeof(int));
     *mdMemoryCounter = -1;
 }
@@ -448,19 +434,20 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
 
   //  cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
 
-    int nThreads = 512;
-    int nModules = lowerModuleMemoryCounter;//modulesMapByDetId_.size();
-    std::cout<<"Number of lower modules="<<nModules<<std::endl; 
+    int nThreads = 32;
+    int nModules = lowerModuleMemoryCounter; 
     int nBlocks = (nModules % nThreads == 0) ? nModules/nThreads : nModules/nThreads + 1;
 //    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
-    createMiniDoubletsInGPU<<<1,1>>>(nModules,mdCandsGPU,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
-    cudaError_t cudaerr = cudaPeekAtLastError();
-    cudaDeviceSynchronize();
+    cudaProfilerStart();
+    createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(nModules,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    cudaProfilerStop();
     if (cudaerr != cudaSuccess)
     {          
         std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
     }
-    std::cout<<"Number of MDs = "<<*mdMemoryCounter<<std::endl;
+    std::cout<<"Number of mini-doublets:"<<*mdMemoryCounter<<std::endl;
+
 }
 
 
