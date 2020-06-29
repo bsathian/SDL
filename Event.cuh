@@ -235,7 +235,7 @@ namespace SDL
             void addHitToModule(Hit hit, unsigned int detId);
 
             // MiniDoublet related functions
-//            void addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
+            void addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId);//, int layerIdx, SDL::Layer::SubDet subdet);
 
             // MiniDoublet related functions
             void addMiniDoubletToLowerModule(MiniDoublet md, unsigned int detId);
@@ -399,10 +399,10 @@ namespace SDL
 
             // Multiplicity of track candidate candidates considered in this event
             unsigned int getNumberOfTrackCandidateCandidatesByLayerEndcap(unsigned int);
-
+*/
             // Multiplicity of mini-doublet formed in this event
             unsigned int getNumberOfMiniDoubletsByLayerBarrel(unsigned int);
-
+/*
             // Multiplicity of segment formed in this event
             unsigned int getNumberOfSegmentsByLayerBarrel(unsigned int);
 

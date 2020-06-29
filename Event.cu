@@ -26,14 +26,15 @@ __global__ void runMiniDoubletGPUAlgo(int moduleId,SDL::Hit** lowerHits, SDL::Hi
         if(mdCand.passesMiniDoubletAlgo(algo))
         {
             //atomic here -possible point of failure!!!!!
-            atomicAdd(mdMemoryCounter,1);
-            mdsInGPU[*mdMemoryCounter] = mdCand; //this is gonna be expensive
+            int idx = atomicAdd(mdMemoryCounter,1);
+            mdsInGPU[idx] = mdCand; //this is gonna be expensive
         }
 //        mdCands[moduleId * maxMDModule + tid].runMiniDoubletAlgo(algo);
         //write the atomic add here
     }
 }
-__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+
+/*__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
 {
     //create the MD candidates - 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -55,9 +56,51 @@ __global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU
         printf("nBlocks = %d lower hits = %d upper hits = %d\n",nBlocks,numberOfLowerHits,numberOfUpperHits);
         runMiniDoubletGPUAlgo<<<nBlocks,nThreads>>>(i,lowerHits,upperHits,numberOfLowerHits,numberOfUpperHits,mdsInGPU,mdMemoryCounter,algo);
     }
+}*/
+
+
+__global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
+{
+    int moduleIter = blockIdx.x * blockDim.x + threadIdx.x;
+    int moduleStride = blockDim.x * gridDim.x;
+    int lowerHitIter = blockIdx.y * blockDim.y + threadIdx.y;
+    int lowerHitStride = blockDim.y * gridDim.y;
+    int upperHitIter = blockIdx.z * blockDim.z + threadIdx.z;
+    int upperHitStride = blockDim.z * gridDim.z;
+
+    for(int i = moduleIter; i<nModules;i+=moduleStride)
+    {
+        SDL::Module* lowerModule = lowerModulesInGPU[i];
+        SDL::Module* upperModule = (lowerModulesInGPU[i]->partnerModule());
+        if(upperModule == nullptr) continue;
+        int numberOfLowerHits = lowerModule->getNumberOfHits();
+        int numberOfUpperHits = upperModule->getNumberOfHits();
+
+        if(numberOfLowerHits == 0 || numberOfUpperHits == 0) continue;
+
+        SDL::Hit** lowerHits = lowerModule->getHitPtrs();
+        SDL::Hit** upperHits = upperModule->getHitPtrs();
+
+        for(int j = lowerHitIter; j<numberOfLowerHits;j+=lowerHitStride)
+        {
+            for(int k = upperHitIter;k<numberOfUpperHits;k+=upperHitStride)
+            {
+                if(lowerHits[j] == nullptr || upperHits[k] == nullptr)
+                    printf("nullptr hit encountered!\n");
+                SDL::MiniDoublet mdCand(lowerHits[j],upperHits[k]);
+                mdCand.runMiniDoubletAlgo(algo);
+                if(mdCand.passesMiniDoubletAlgo(algo))
+                {
+                    int idx = atomicAdd(mdMemoryCounter,1);
+//                    printf("counter = %d\n",idx);
+                    mdsInGPU[idx] = mdCand;
+                }
+            }
+        }
+
+    }
+
 }
-
-
 
 SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
 {
@@ -224,6 +267,7 @@ void SDL::Event::initHitsInGPU()
     cudaMallocManaged(&hitsInGPU,HIT_MAX * sizeof(SDL::Hit));
     const int HIT_2S_MAX = 100000;
     cudaMallocManaged(&hits2sEdgeInGPU,HIT_2S_MAX * sizeof(SDL::Hit));
+    //cudaDeviceSynchronize();
 }
 
 void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
@@ -271,26 +315,23 @@ void SDL::Event::initMDsInGPU()
     const int MD_MAX = 60000;
     cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
     cudaMallocManaged(&mdMemoryCounter,sizeof(int));
-    *mdMemoryCounter = -1;
+    *mdMemoryCounter = 0;
+    //cudaDeviceSynchronize();
 }
 
-/*void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
+void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId)//, int layerIdx, SDL::Layer::SubDet subdet)
 {
-    if(mdMemoryCounter == 0)
-    {
-        initMDsInGPU();
-    }
     // Add to global list of mini doublets, where it will hold the object's instance
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
-    mdsInGPU[mdMemoryCounter] = md;
-    getModule(detId)->addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
-    miniDoublets_.push_back(mdsInGPU[mdMemoryCounter]);
+    getModule(detId)->addMiniDoublet(&md);
+    miniDoublets_.push_back(md);
+
+    incrementNumberOfMiniDoublets(*getModule(detId));
     // And get the layer
-    getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
-    mdMemoryCounter++;
-}*/
+//    getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
+}
 
 [[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]
 void SDL::Event::addMiniDoubletToLowerModule(SDL::MiniDoublet md, unsigned int detId)
@@ -429,14 +470,15 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         modulesInGPU[i].setPartnerModule(getModule(modulesInGPU[i].partnerDetId()));
     }
 
-    const int MAX_MD_CAND = 500000;
+    //const int MAX_MD_CAND = 500000;
     initMDsInGPU();
 
-  //  cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
-
-    int nThreads = 32;
-    int nModules = lowerModuleMemoryCounter; 
-    int nBlocks = (nModules % nThreads == 0) ? nModules/nThreads : nModules/nThreads + 1;
+    int nModules = lowerModuleMemoryCounter;
+    int MAX_HITS = 100;
+//    int nBlocks = (nModules % nThreads == 0) ? nModules/nThreads : nModules/nThreads + 1;
+    dim3 nThreads(16,8,8);
+    dim3 nBlocks((nModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(MAX_HITS % nThreads.y == 0 ? MAX_HITS/nThreads.y : MAX_HITS/nThreads.y + 1), (MAX_HITS % nThreads.z == 0 ? MAX_HITS/nThreads.z : MAX_HITS/nThreads.z + 1));
+      std::cout<<nBlocks.x<<" " <<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
 //    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
     cudaProfilerStart();
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(nModules,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
@@ -446,8 +488,23 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
     {          
         std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
     }
-    std::cout<<"Number of mini-doublets:"<<*mdMemoryCounter<<std::endl;
-
+        std::cout<<"Number of mini-doublets:"<<*mdMemoryCounter<<std::endl;
+    //add mini-doublets to the module arrays for other stuff outside
+    for(int i=0; i<*mdMemoryCounter;i++)
+    {
+//        SDL::cout<<mdsInGPU[i]<<std::endl;
+        if(mdsInGPU[i].lowerHitPtr() == nullptr)
+            std::cout<<"lower hit nullptr"<<std::endl;
+        SDL::Module& lowerModule = (Module&)(mdsInGPU[i].lowerHitPtr()->getModule());
+        if(lowerModule.subdet() == SDL::Module::Barrel)
+        {
+            addMiniDoubletToEvent(mdsInGPU[i],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);    
+        }
+        else
+        {
+            addMiniDoubletToEvent(mdsInGPU[i],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);
+        }
+    }
 }
 
 
@@ -1400,10 +1457,10 @@ unsigned int SDL::Event::getNumberOfTripletCandidatesByLayerEndcap(unsigned int 
 
 // Multiplicity of track candidate candidates considered in this event
 unsigned int SDL::Event::getNumberOfTrackCandidateCandidatesByLayerEndcap(unsigned int ilayer) { return n_trackcandidate_candidates_by_layer_endcap_[ilayer]; }
-
+*/
 // Multiplicity of mini-doublet formed in this event
 unsigned int SDL::Event::getNumberOfMiniDoubletsByLayerBarrel(unsigned int ilayer) { return n_miniDoublet_by_layer_barrel_[ilayer]; }
-
+/*
 // Multiplicity of segment formed in this event
 unsigned int SDL::Event::getNumberOfSegmentsByLayerBarrel(unsigned int ilayer) { return n_segment_by_layer_barrel_[ilayer]; }
 
