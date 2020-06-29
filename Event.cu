@@ -1,64 +1,6 @@
 #include "Event.cuh"
 
 //CUDA Kernel for Minidoublet creation
-/*__global__ void createMiniDoubletsInGPU(SDL::MiniDoublet* mdCands, int n, SDL::MDAlgo algo)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-
-    for(int i = tid; i<n; i+= stride)
-    {
-        mdCands[i].runMiniDoubletAlgo(algo);
-    }
-
-}*/
-
-__global__ void runMiniDoubletGPUAlgo(int moduleId,SDL::Hit** lowerHits, SDL::Hit** upperHits,int nLowerHits,int nUpperHits,SDL::MiniDoublet* mdsInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
-{
-    int MAX_MD_MODULE = 100 * 100; //max number of MD cands per module
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-    for(int i = tid; i<nLowerHits * nUpperHits;i+=stride)
-    {
-//        mdCands[moduleId * maxMDModule + tid] 
-        SDL::MiniDoublet mdCand(lowerHits[i/nUpperHits],upperHits[i%nUpperHits]);
-        mdCand.runMiniDoubletAlgo(algo);
-        if(mdCand.passesMiniDoubletAlgo(algo))
-        {
-            //atomic here -possible point of failure!!!!!
-            int idx = atomicAdd(mdMemoryCounter,1);
-            mdsInGPU[idx] = mdCand; //this is gonna be expensive
-        }
-//        mdCands[moduleId * maxMDModule + tid].runMiniDoubletAlgo(algo);
-        //write the atomic add here
-    }
-}
-
-/*__global__ void createMiniDoubletsInGPU(int nModules, SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
-{
-    //create the MD candidates - 
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-    for(int i = tid; i<nModules; i+= stride)
-    {
-        //fetch the hit arrays from the modules and launch the other kernel
-        SDL::Module* lowerModule = lowerModulesInGPU[i];
-        SDL::Module* upperModule = (lowerModulesInGPU[i]->partnerModule());
-        if(upperModule == nullptr) continue;
-        int numberOfLowerHits = lowerModule->getNumberOfHits();
-        int numberOfUpperHits = upperModule->getNumberOfHits();
-        SDL::Hit** lowerHits = lowerModule->getHitPtrs();
-        SDL::Hit** upperHits = upperModule->getHitPtrs();
-        if(numberOfLowerHits == 0 ||  numberOfUpperHits == 0) continue; 
-        int nThreads = min(32,(numberOfLowerHits * numberOfUpperHits));
-        //int nThreads = 32;
-        int nBlocks = (numberOfLowerHits * numberOfUpperHits)%nThreads == 0 ? (numberOfLowerHits * numberOfUpperHits)/nThreads : (numberOfLowerHits * numberOfUpperHits)/nThreads + 1;
-        printf("nBlocks = %d lower hits = %d upper hits = %d\n",nBlocks,numberOfLowerHits,numberOfUpperHits);
-        runMiniDoubletGPUAlgo<<<nBlocks,nThreads>>>(i,lowerHits,upperHits,numberOfLowerHits,numberOfUpperHits,mdsInGPU,mdMemoryCounter,algo);
-    }
-}*/
-
-
 __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,SDL::Module** lowerModulesInGPU,int* mdMemoryCounter,SDL::MDAlgo algo)
 {
     int moduleIter = blockIdx.x * blockDim.x + threadIdx.x;
@@ -92,7 +34,6 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
                 if(mdCand.passesMiniDoubletAlgo(algo))
                 {
                     int idx = atomicAdd(mdMemoryCounter,1);
-//                    printf("counter = %d\n",idx);
                     mdsInGPU[idx] = mdCand;
                 }
             }
@@ -267,7 +208,6 @@ void SDL::Event::initHitsInGPU()
     cudaMallocManaged(&hitsInGPU,HIT_MAX * sizeof(SDL::Hit));
     const int HIT_2S_MAX = 100000;
     cudaMallocManaged(&hits2sEdgeInGPU,HIT_2S_MAX * sizeof(SDL::Hit));
-    //cudaDeviceSynchronize();
 }
 
 void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
@@ -294,10 +234,6 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
          
         hits2sEdgeInGPU[hit2SEdgeMemoryCounter] = SDL::GeometryUtil::stripHighEdgeHit(hitsInGPU[hitMemoryCounter]);
         hits2sEdgeInGPU[hit2SEdgeMemoryCounter+1] = SDL::GeometryUtil::stripLowEdgeHit(hitsInGPU[hitMemoryCounter]);
-//        hits_2s_edges_.push_back(GeometryUtil::stripHighEdgeHit(&hits_.back()));
-//        hits_.back().setHitHighEdgePtr(&(hits_2s_edges_.back()));
-//        hits_2s_edges_.push_back(GeometryUtil::stripLowEdgeHit(*hitForGPU));
-//        hits_.back().setHitLowEdgePtr(&(hits_2s_edges_.back()));
         hits_2s_edges_.push_back(hits2sEdgeInGPU[hit2SEdgeMemoryCounter]);
         hitsInGPU[hitMemoryCounter].setHitHighEdgePtr(&hits2sEdgeInGPU[hit2SEdgeMemoryCounter]);
 
@@ -316,7 +252,6 @@ void SDL::Event::initMDsInGPU()
     cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
     cudaMallocManaged(&mdMemoryCounter,sizeof(int));
     *mdMemoryCounter = 0;
-    //cudaDeviceSynchronize();
 }
 
 void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId)//, int layerIdx, SDL::Layer::SubDet subdet)
@@ -333,15 +268,7 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId)/
 //    getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
 }
 
-[[deprecated("SDL:: addMiniDoubletToLowerModule() is deprecated. Use addMiniDoubletToEvent")]]
-void SDL::Event::addMiniDoubletToLowerModule(SDL::MiniDoublet md, unsigned int detId)
-{
-    // Add to global list of mini doublets, where it will hold the object's instance
-    miniDoublets_.push_back(md);
 
-    // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId)->addMiniDoublet(&(miniDoublets_.back()));
-}
 /*
 void SDL::Event::addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
 {
@@ -428,40 +355,6 @@ void SDL::Event::addTrackCandidateToLowerLayer(SDL::TrackCandidate tc, int layer
 */
 
 //This dude needs to get into the GPU
-/*
-void SDL::Event::createMiniDoublets(MDAlgo algo)
-{
-    for(int i = 0; i < moduleMemoryCounter; i++)
-    {
-        moduleMemoryCounter[i].setPartnerModule(*getModule(moduleMemoryCounter.partnerDetId()));
-    }
-
-    //set partner modules first for the modules
-    // Loop over lower modules
-    const int MAX_MD_CAND = 500000;
-    initMDsInGPU();
-
-//    cudaMallocManaged(&mdCandsGPU,(int)(1.5 * MAX_MD_CAND)*sizeof(SDL::MiniDoublet));
-     
-//    cudaMemPrefetchAsync(modulesInGPU,50000 * sizeof(Hit),0);
-//    cudaMemPrefetchAsync(hitsInGPU,1000000 * sizeof(Hit),0);
-    mdGPUCounter = 0;
-
-    //gpu code - put this inside the kernel
-
-
-
-    for (auto& lowerModulePtr : getLowerModulePtrs())
-    {
-        // Create mini doublets
-        createMiniDoubletsFromLowerModule(lowerModulePtr->detId(), MAX_MD_CAND,algo);
-    }
-    if(mdGPUCounter < MAX_MD_CAND and mdGPUCounter > 0) //incomplete dudes from the final iteration
-    {
-        miniDoubletGPUWrapper(algo);
-    }
-}*/
-
 
 void SDL::Event::createMiniDoublets(MDAlgo algo)
 {
@@ -470,12 +363,10 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         modulesInGPU[i].setPartnerModule(getModule(modulesInGPU[i].partnerDetId()));
     }
 
-    //const int MAX_MD_CAND = 500000;
     initMDsInGPU();
 
     int nModules = lowerModuleMemoryCounter;
     int MAX_HITS = 100;
-//    int nBlocks = (nModules % nThreads == 0) ? nModules/nThreads : nModules/nThreads + 1;
     dim3 nThreads(16,8,8);
     dim3 nBlocks((nModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(MAX_HITS % nThreads.y == 0 ? MAX_HITS/nThreads.y : MAX_HITS/nThreads.y + 1), (MAX_HITS % nThreads.z == 0 ? MAX_HITS/nThreads.z : MAX_HITS/nThreads.z + 1));
       std::cout<<nBlocks.x<<" " <<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
@@ -492,7 +383,6 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
     //add mini-doublets to the module arrays for other stuff outside
     for(int i=0; i<*mdMemoryCounter;i++)
     {
-//        SDL::cout<<mdsInGPU[i]<<std::endl;
         if(mdsInGPU[i].lowerHitPtr() == nullptr)
             std::cout<<"lower hit nullptr"<<std::endl;
         SDL::Module& lowerModule = (Module&)(mdsInGPU[i].lowerHitPtr()->getModule());
@@ -506,248 +396,6 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         }
     }
 }
-
-
-/*void SDL::Event::miniDoubletGPUWrapper(SDL::MDAlgo algo)
-{
-    int nThreads = 256;
-    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
-    createMiniDoubletsInGPU <<<nBlocks, nThreads>>> (mdCandsGPU,mdGPUCounter,algo);
-    cudaError_t cudaerr = cudaDeviceSynchronize();
-    if (cudaerr != cudaSuccess)
-    {          
-        std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
-    }
-
-    for(int i = 0; i < mdGPUCounter; i++)
-    {
-        auto mdCand = mdCandsGPU[i];
-        if(mdCand.passesMiniDoubletAlgo(algo))
-        {
-            // Count the number of md formed
-            SDL::Module& lowerModule = (Module&)((mdCand.lowerHitPtr())->getModule()); 
-            incrementNumberOfMiniDoublets(lowerModule);
-
-            if (lowerModule.subdet() == SDL::Module::Barrel)
-            {
-                addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Barrel);
-            }
-            else
-            {
-                addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Endcap);
-            }
-        }
-    }
-    mdGPUCounter = 0; 
-   
-}*/
-
-/*
-void SDL::Event::createMiniDoubletsFromLowerModule(unsigned int detId, int maxMDCands,SDL::MDAlgo algo)
-{
-    // Get reference to the lower Module
-    Module& lowerModule = *getModule(detId);
-    //std::cout<<"\nLower module = "<<detId<<" position in array = "<<(getModule(detId) - modulesInGPU)<<std::endl;
-    // Get reference to the upper Module
-    Module& upperModule = *getModule(lowerModule.partnerDetId());
-    //std::cout<<"Upper module = "<<lowerModule.partnerDetId()<<" position in array = "<<getModule(lowerModule.partnerDetId()) - modulesInGPU<<std::endl;
-    // Double nested loops
-    // Loop over lower module hits
-    for(size_t i =0; i<lowerModule.getHitPtrs().size();i++)
-//    for (auto& lowerHitPtr : lowerModule.getHitPtrs())
-    {
-        // Get reference to lower Hit
-//        SDL::Hit& lowerHit = *lowerHitPtr;
-
-        // Loop over upper module hits
-        for(size_t j = 0; j<upperModule.getHitPtrs().size();j++)
-//        for (auto& upperHitPtr : upperModule.getHitPtrs())
-        {
-            auto& lowerHitPtr = lowerModule.getHitPtrs().at(i);
-	    auto& upperHitPtr = upperModule.getHitPtrs().at(j);
-            // Get reference to upper Hit
-//            SDL::Hit& upperHit = *upperHitPtr;
-
-            // Create a mini-doublet candidate
-            SDL::MiniDoublet mdCand(lowerHitPtr, upperHitPtr);
-            if(lowerModule.moduleType() == SDL::Module::PS and upperModule.moduleLayerType() == SDL::Module::Strip)
-            {
-                mdCand.setDrDz(tiltedGeometry.getDrDz(upperModule.detId())); 
-            }
-            else
-            {
-                mdCand.setDrDz(tiltedGeometry.getDrDz(lowerModule.detId()));
-
-            }
-            if(lowerModule.subdet() == SDL::Module::Endcap)
-            {
-                if(lowerModule.moduleType() == SDL::Module::PS and upperModule.moduleLayerType() == SDL::Module::Strip)
-                {
-                    mdCand.setLowerModuleSlope(SDL::endcapGeometry.getSlopeLower(upperModule.detId()));
-                }
-                else
-                {
-                    mdCand.setLowerModuleSlope(SDL::endcapGeometry.getSlopeLower(lowerModule.detId()));
-                }
-            }
-            else
-            {
-                //FIXME: Might need some jugaad for nonexistent det Ids
-                if(lowerModule.moduleType() == SDL::Module::PS and upperModule.moduleLayerType() == SDL::Module::Strip)
-                {
-                    mdCand.setLowerModuleSlope(SDL::tiltedGeometry.getSlope(upperModule.detId()));
-                }
-                else
-                {
-                    mdCand.setLowerModuleSlope(SDL::tiltedGeometry.getSlope(lowerModule.detId()));
-                }
-            }
-//	        memcpy(&mdCandsGPU[mdGPUCounter],&mdCand,sizeof(SDL::MiniDoublet));
-            mdCandsGPU[mdGPUCounter + i * upperModule.getHitPtrs().size() + j] = mdCand;
-//            mdGPUCounter++;
-
-             // Count the number of mdCand considered
-    //        incrementNumberOfMiniDoubletCandidates(lowerModule);
-        }
-    }
-    //Checking here
-    
-    incrementNumberOfMiniDoubletCandidates(lowerModule,upperModule.getHitPtrs().size() * lowerModule.getHitPtrs().size());
-    mdGPUCounter += lowerModule.getHitPtrs().size() * upperModule.getHitPtrs().size();
-    if(mdGPUCounter >= maxMDCands)
-    {
-        miniDoubletGPUWrapper(algo);
-    }       
-    // Run mini-doublet algorithm on mdCand (mini-doublet candidate)
-           //after running MD algo'
-}*/
-
-
-/*
-void SDL::Event::createPseudoMiniDoubletsFromAnchorModule(SDL::MDAlgo algo)
-{
-
-    // Loop over lower modules
-    for (auto& lowerModulePtr : getLowerModulePtrs())
-    {
-
-        unsigned int detId = lowerModulePtr->detId();
-
-        // Get reference to the lower Module
-        Module& lowerModule = *getModule(detId);
-
-        // Assign anchor hit pointers based on their hit type
-        bool loopLower = true;
-        if (lowerModule.moduleType() == SDL::Module::PS)
-        {
-            if (lowerModule.moduleLayerType() == SDL::Module::Pixel)
-            {
-                loopLower = true;
-            }
-            else
-            {
-                loopLower = false;
-            }
-        }
-        else
-        {
-            loopLower = true;
-        }
-
-        // Get reference to the upper Module
-        Module& upperModule = *getModule(lowerModule.partnerDetId());
-
-        if (loopLower)
-        {
-            // Loop over lower module hits
-            for (auto& lowerHitPtr : lowerModule.getHitPtrs())
-            {
-                // Get reference to lower Hit
-                SDL::Hit& lowerHit = *lowerHitPtr;
-
-                // Loop over upper module hits
-                for (auto& upperHitPtr : upperModule.getHitPtrs())
-                {
-
-                    // Get reference to upper Hit
-                    SDL::Hit& upperHit = *upperHitPtr;
-
-                    // Create a mini-doublet candidate
-                    SDL::MiniDoublet mdCand(lowerHitPtr, upperHitPtr);
-
-                    // Count the number of mdCand considered
-                    incrementNumberOfMiniDoubletCandidates(lowerModule);
-
-                    // Run mini-doublet algorithm on mdCand (mini-doublet candidate)
-                    mdCand.runMiniDoubletAlgo(SDL::AllComb_MDAlgo, logLevel_);
-
-                    if (mdCand.passesMiniDoubletAlgo(SDL::AllComb_MDAlgo))
-                    {
-
-                        // Count the number of md formed
-                        incrementNumberOfMiniDoublets(lowerModule);
-
-                        if (lowerModule.subdet() == SDL::Module::Barrel)
-                            addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Barrel);
-                        else
-                            addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Endcap);
-
-                        // Break to exit on first pseudo mini-doublet
-                        break;
-                    }
-
-                }
-
-            }
-
-        }
-        else
-        {
-            // Loop over lower module hits
-            for (auto& upperHitPtr : upperModule.getHitPtrs())
-            {
-                // Get reference to upper Hit
-                SDL::Hit& upperHit = *upperHitPtr;
-
-                // Loop over upper module hits
-                for (auto& lowerHitPtr : lowerModule.getHitPtrs())
-                {
-
-                    // Get reference to lower Hit
-                    SDL::Hit& lowerHit = *lowerHitPtr;
-
-                    // Create a mini-doublet candidate
-                    SDL::MiniDoublet mdCand(lowerHitPtr, upperHitPtr);
-
-                    // Count the number of mdCand considered
-                    incrementNumberOfMiniDoubletCandidates(lowerModule);
-
-                    // Run mini-doublet algorithm on mdCand (mini-doublet candidate)
-                    mdCand.runMiniDoubletAlgo(SDL::AllComb_MDAlgo, logLevel_);
-
-                    if (mdCand.passesMiniDoubletAlgo(SDL::AllComb_MDAlgo))
-                    {
-
-                        // Count the number of md formed
-                        incrementNumberOfMiniDoublets(lowerModule);
-
-                        if (lowerModule.subdet() == SDL::Module::Barrel)
-                            addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Barrel);
-                        else
-                            addMiniDoubletToEvent(mdCand, lowerModule.detId(), lowerModule.layer(), SDL::Layer::Endcap);
-
-                        // Break to exit on first pseudo mini-doublet
-                        break;
-                    }
-
-                }
-
-            }
-
-        }
-    }
-
-}*/
 
 /*
 void SDL::Event::createSegments(SGAlgo algo)
