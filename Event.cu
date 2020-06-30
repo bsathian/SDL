@@ -74,7 +74,6 @@ SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
     lowerModuleMemoryCounter = 0;
     hitMemoryCounter = 0;
     hit2SEdgeMemoryCounter = 0;
-    //mdMemoryCounter = 0;
 
 }
 
@@ -84,7 +83,6 @@ SDL::Event::~Event()
     cudaFree(modulesInGPU);
     cudaFree(lowerModulesInGPU);
     cudaFree(mdsInGPU);
-    //cudaFree(mdCandsGPU);
 }
 
 
