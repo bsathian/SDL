@@ -17,8 +17,8 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
         if(upperModule == nullptr) continue;
         int numberOfLowerHits = lowerModule->getNumberOfHits();
         int numberOfUpperHits = upperModule->getNumberOfHits();
-
-        if(numberOfLowerHits == 0 || numberOfUpperHits == 0) continue;
+        if(lowerHitIter >= numberOfLowerHits) continue;
+        if(upperHitIter >= numberOfUpperHits) continue;
 
         SDL::Hit** lowerHits = lowerModule->getHitPtrs();
         SDL::Hit** upperHits = upperModule->getHitPtrs();
