@@ -27,14 +27,12 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
         {
             for(int k = upperHitIter;k<numberOfUpperHits;k+=upperHitStride)
             {
-                if(lowerHits[j] == nullptr || upperHits[k] == nullptr)
-                    printf("nullptr hit encountered!\n");
                 SDL::MiniDoublet mdCand(lowerHits[j],upperHits[k]);
                 mdCand.runMiniDoubletAlgo(algo);
                 if(mdCand.passesMiniDoubletAlgo(algo))
                 {
-                    int idx = atomicAdd(mdMemoryCounter,1);
-                    mdsInGPU[idx] = mdCand;
+                    int idx = atomicAdd(&mdMemoryCounter[i],1);
+                    mdsInGPU[i*100+idx] = mdCand;
                 }
             }
         }
@@ -246,10 +244,14 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
 
 void SDL::Event::initMDsInGPU()
 {
-    const int MD_MAX = 60000;
+    const int MD_MAX = lowerModuleMemoryCounter * 100;
     cudaMallocManaged(&mdsInGPU,MD_MAX * sizeof(SDL::MiniDoublet));
-    cudaMallocManaged(&mdMemoryCounter,sizeof(int));
-    *mdMemoryCounter = 0;
+    cudaMallocManaged(&mdMemoryCounter,lowerModuleMemoryCounter * sizeof(int));
+#pragma omp parallel for
+    for(int i = 0; i< lowerModuleMemoryCounter; i++)
+    {
+        mdMemoryCounter[i] = 0;
+    }
 }
 
 void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId)//, int layerIdx, SDL::Layer::SubDet subdet)
@@ -379,18 +381,19 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
     }
         std::cout<<"Number of mini-doublets:"<<*mdMemoryCounter<<std::endl;
     //add mini-doublets to the module arrays for other stuff outside
-    for(int i=0; i<*mdMemoryCounter;i++)
+    for(int i=0; i<lowerModuleMemoryCounter;i++)
     {
-        if(mdsInGPU[i].lowerHitPtr() == nullptr)
-            std::cout<<"lower hit nullptr"<<std::endl;
-        SDL::Module& lowerModule = (Module&)(mdsInGPU[i].lowerHitPtr()->getModule());
-        if(lowerModule.subdet() == SDL::Module::Barrel)
+        SDL::Module& lowerModule = (Module&)(*lowerModulesInGPU[i]);
+        for(int j = 0; j<mdMemoryCounter[i];j++)
         {
-            addMiniDoubletToEvent(mdsInGPU[i],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);    
-        }
-        else
-        {
-            addMiniDoubletToEvent(mdsInGPU[i],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);
+            if(lowerModule.subdet() == SDL::Module::Barrel)
+            {
+                addMiniDoubletToEvent(mdsInGPU[i*100 + j],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);    
+            }
+            else
+            {
+                addMiniDoubletToEvent(mdsInGPU[i*100+j],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);
+            }
         }
     }
 }
