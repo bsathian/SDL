@@ -254,16 +254,16 @@ void SDL::Event::initMDsInGPU()
     }
 }
 
-void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId)//, int layerIdx, SDL::Layer::SubDet subdet)
+void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, SDL::Module& module)//, int layerIdx, SDL::Layer::SubDet subdet)
 {
     // Add to global list of mini doublets, where it will hold the object's instance
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
-    getModule(detId)->addMiniDoublet(&md);
+    module.addMiniDoublet(&md);
     miniDoublets_.push_back(md);
 
-    incrementNumberOfMiniDoublets(*getModule(detId));
+    incrementNumberOfMiniDoublets(module);
     // And get the layer
 //    getLayer(layerIdx, subdet).addMiniDoublet(&mdsInGPU[mdMemoryCounter]);
 }
@@ -367,7 +367,7 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
 
     int nModules = lowerModuleMemoryCounter;
     int MAX_HITS = 100;
-    dim3 nThreads(16,8,8);
+    dim3 nThreads(1,32,32);
     dim3 nBlocks((nModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(MAX_HITS % nThreads.y == 0 ? MAX_HITS/nThreads.y : MAX_HITS/nThreads.y + 1), (MAX_HITS % nThreads.z == 0 ? MAX_HITS/nThreads.z : MAX_HITS/nThreads.z + 1));
       std::cout<<nBlocks.x<<" " <<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
 //    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
@@ -387,11 +387,11 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         {
             if(lowerModule.subdet() == SDL::Module::Barrel)
             {
-                addMiniDoubletToEvent(mdsInGPU[i*100 + j],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);    
+                addMiniDoubletToEvent(mdsInGPU[i*100 + j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);    
             }
             else
             {
-                addMiniDoubletToEvent(mdsInGPU[i*100+j],lowerModule.detId());//,lowerModule.layer(),SDL::Layer::Barrel);
+                addMiniDoubletToEvent(mdsInGPU[i*100+j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);
             }
         }
     }
