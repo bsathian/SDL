@@ -380,7 +380,8 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
     }
     //add mini-doublets to the module arrays for other stuff outside
-    for(int i=0; i<lowerModuleMemoryCounter;i++)
+
+   /* for(int i=0; i<lowerModuleMemoryCounter;i++)
     {
         SDL::Module& lowerModule = (Module&)(*lowerModulesInGPU[i]);
         for(int j = 0; j<mdMemoryCounter[i];j++)
@@ -394,7 +395,7 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
                 addMiniDoubletToEvent(mdsInGPU[i*100+j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);
             }
         }
-    }
+    }*/
 }
 
 /*
