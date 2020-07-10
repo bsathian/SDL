@@ -372,6 +372,8 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
       std::cout<<nBlocks.x<<" " <<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
 //    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
     cudaProfilerStart();
+    cudaMemPrefetchAsync(hitsInGPU,sizeof(SDL::Hit) * (hitMemoryCounter+1),0);
+    cudaMemPrefetchAsync(modulesInGPU,sizeof(SDL::Module) * (moduleMemoryCounter+1),0);
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(nModules,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
     cudaError_t cudaerr = cudaDeviceSynchronize();
     cudaProfilerStop();
