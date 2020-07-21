@@ -497,6 +497,12 @@ void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
     dim3 nThreads(1,32,32);
     dim3 nBlocks((dimX % nThreads.x == 0 ? dimX/nThreads.x : dimX/nThreads.x + 1),(N_MAX_MD % nThreads.y == 0 ? N_MAX_MD / nThreads.y : N_MAX_MD/nThreads.y + 1),(N_MAX_MD % nThreads.z == 0 ? N_MAX_MD/nThreads.z : N_MAX_MD/nThreads.z + 1 ));
     createSegmentsInGPU<<<nBlocks,nThreads>>>(nModules,segmentsInGPU,lowerModulesInGPU,modulesInGPU,segmentMemoryCounter,moduleConnectionMapArray,numberOfConnectedModules,algo);
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+//    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if (cudaerr != cudaSuccess)
+    {          
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
+    }
 
     for(int i = 0; i<*segmentMemoryCounter; i++)
     {
