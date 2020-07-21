@@ -15,8 +15,9 @@
 #include "Hit.cuh"
 #include "MiniDoublet.cuh"
 #include "GeometryUtil.cuh"
-/*#include "Segment.h"
-#include "Triplet.h"
+#include "Segment.cuh"
+
+/*#include "Triplet.h"
 #include "Layer.h"
 #include "PrintUtil.h"*/
 #include "Algo.h"
@@ -198,10 +199,16 @@ namespace SDL
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
             MiniDoublet* mdsInGPU;
+            Segment* segmentsInGPU;
+
+
             void  initModulesInGPU();
             void initHitsInGPU();
             void initMDsInGPU();
             void miniDoubletGPUWrapper(SDL::MDAlgo algo);
+
+            void initSegmentsInGPU();
+            void segmentGPUWrapper(SDL::SGAlgo algo);
 
             //counter variables
             int moduleMemoryCounter;
@@ -209,6 +216,10 @@ namespace SDL
             int hitMemoryCounter;
             int hit2SEdgeMemoryCounter;
             int* mdMemoryCounter;
+
+            //also in managed memory
+            int* moduleConnectionMapArray;
+            int* numberOfConnectedModules;
 
 
         public:
@@ -222,6 +233,7 @@ namespace SDL
             Module* getModule(unsigned int detId);
             const std::vector<Module*> getModulePtrs() const;
             const std::vector<Module*> getLowerModulePtrs() const;
+            void getConnectedModuleArray();
 
             // Layer related functions
             void createLayers();
@@ -269,6 +281,8 @@ namespace SDL
 
             // Pseudo mini-doublet (which is really just a hit) for study purpose only
             void createPseudoMiniDoubletsFromAnchorModule(MDAlgo algo=Default_MDAlgo);
+
+            void createSegmentsWithModuleMap(SGAlgo algo);
 
 /*
             // Create segments

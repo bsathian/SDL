@@ -33,6 +33,7 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
                 {
                     int idx = atomicAdd(&mdMemoryCounter[i],1);
                     mdsInGPU[i*100+idx] = mdCand;
+
                 }
             }
         }
@@ -398,6 +399,51 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
         }
     }
 }
+
+void SDL::Event::getConnectedModuleArray()
+{
+    
+    /* Create an index based module map array. First get the detIds, then search the modulesInGPU
+     * array for the corresponding module indices, and fill the moduleConnectionMap array
+     */
+    int N_MAX_CONNECTED_MODULES = 30;
+    for(int i = 0; i<moduleMemoryCounter;i++)
+    {
+        unsigned int detId = modulesInGPU[i].detId();
+        const std::vector<unsigned int>& connections = moduleConnectionMap.getConnectedModuleDetIds(detId);
+        int j = 0;
+        numberOfConnectedModules[i] = connections.size();
+        for(auto &connectedModuleId:connections)
+        {
+            unsigned int index = getModule(connectedModuleId) - modulesInGPU;
+            moduleConnectionMapArray[i * N_MAX_CONNECTED_MODULES + j] = index;
+            j++;
+        }
+
+    }
+}
+
+void SDL::Event::initSegmentsInGPU()
+{
+    int N_MAX_CONNECTED_MODULES = 30;
+    int N_MAX_SEGMENTS = 90000;
+    cudaMallocManaged(&moduleConnectionMapArray,sizeof(int) * N_MAX_CONNECTED_MODULES * moduleMemoryCounter);
+    cudaMallocManaged(&numberOfConnectedModules,sizeof(int) * moduleMemoryCounter);
+    cudaMallocManaged(&segmentsInGPU,N_MAX_SEGMENTS * sizeof(SDL::Segment));
+}
+
+void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
+{
+    initSegmentsInGPU();
+    int N_MAX_CONNECTED_MODULES = 30;
+    int N_MAX_MD = 200;
+    int nModules = lowerModuleMemoryCounter;
+    int dimX = N_MAX_CONNECTED_MODULES * nModules;
+    dim3 nThreads(1,32,32);
+    dim3 nBlocks((dimX % nThreads.x == 0 ? dimX/nThreads.x : dimX/nThreads.x + 1),(N_MAX_MD % nThreads.y == 0 ? N_MAX_MD / nThreads.y : N_MAX_MD/nThreads.y + 1),(N_MAX_MD % nThreads.z == 0 ? N_MAX_MD/nThreads.z : N_MAX_MD/nThreads.z + 1 ));
+
+}
+
 
 /*
 void SDL::Event::createSegments(SGAlgo algo)
