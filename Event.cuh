@@ -247,7 +247,7 @@ namespace SDL
             void addHitToModule(Hit hit, unsigned int detId);
 
             // MiniDoublet related functions
-            void addMiniDoubletToEvent(SDL::MiniDoublet md, SDL::Module& module);//, int layerIdx, SDL::Layer::SubDet subdet);
+            void addMiniDoubletToEvent(SDL::MiniDoublet *md, SDL::Module& module);//, int layerIdx, SDL::Layer::SubDet subdet);
 
             // MiniDoublet related functions
             void addMiniDoubletToLowerModule(MiniDoublet md, unsigned int detId);

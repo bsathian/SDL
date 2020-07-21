@@ -105,10 +105,8 @@ void SDL::Event::setLogLevel(SDL::LogLevel logLevel)
 void SDL::Event::initModulesInGPU()
 {
     const int MODULE_MAX=50000;
-    cudaProfilerStart();
     cudaMallocManaged(&modulesInGPU,MODULE_MAX * sizeof(SDL::Module));
     cudaMallocManaged(&lowerModulesInGPU, MODULE_MAX * sizeof(SDL::Module*));
-    cudaProfilerStop();
 }
 
 SDL::Module* SDL::Event::getModule(unsigned int detId)
@@ -219,7 +217,7 @@ void SDL::Event::addHitToModule(SDL::Hit hit, unsigned int detId)
     hitsInGPU[hitMemoryCounter] = hit;
     hitsInGPU[hitMemoryCounter].setModule(getModule(detId));
     getModule(detId)->addHit(&hitsInGPU[hitMemoryCounter]);
-    hits_.push_back(hitsInGPU[hitMemoryCounter]);
+    //hits_.push_back(hitsInGPU[hitMemoryCounter]);
 
 
     // Count number of hits in the event
@@ -255,14 +253,14 @@ void SDL::Event::initMDsInGPU()
     }
 }
 
-void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet md, SDL::Module& module)//, int layerIdx, SDL::Layer::SubDet subdet)
+void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet* md, SDL::Module& module)//, int layerIdx, SDL::Layer::SubDet subdet)
 {
     // Add to global list of mini doublets, where it will hold the object's instance
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
     //construct a cudaMallocManaged object and send that in, so that we won't have issues in the GPU
-    module.addMiniDoublet(&md);
-    miniDoublets_.push_back(md);
+    module.addMiniDoublet(md);
+//    miniDoublets_.push_back(md);
 
     incrementNumberOfMiniDoublets(module);
     // And get the layer
@@ -359,6 +357,7 @@ void SDL::Event::addTrackCandidateToLowerLayer(SDL::TrackCandidate tc, int layer
 
 void SDL::Event::createMiniDoublets(MDAlgo algo)
 {
+
     for(int i = 0; i < moduleMemoryCounter; i++)
     {
         modulesInGPU[i].setPartnerModule(getModule(modulesInGPU[i].partnerDetId()));
@@ -368,33 +367,43 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
 
     int nModules = lowerModuleMemoryCounter;
     int MAX_HITS = 100;
-    dim3 nThreads(1,32,32);
+    dim3 nThreads(1,16,16);
     dim3 nBlocks((nModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(MAX_HITS % nThreads.y == 0 ? MAX_HITS/nThreads.y : MAX_HITS/nThreads.y + 1), (MAX_HITS % nThreads.z == 0 ? MAX_HITS/nThreads.z : MAX_HITS/nThreads.z + 1));
       std::cout<<nBlocks.x<<" " <<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
 //    int nBlocks = (mdGPUCounter % nThreads == 0) ? mdGPUCounter/nThreads : mdGPUCounter/nThreads + 1;
-    cudaProfilerStart();
-    cudaMemPrefetchAsync(hitsInGPU,sizeof(SDL::Hit) * (hitMemoryCounter+1),0);
-    cudaMemPrefetchAsync(modulesInGPU,sizeof(SDL::Module) * (moduleMemoryCounter+1),0);
+    cudaError_t prefetchErr = cudaMemPrefetchAsync(hitsInGPU,sizeof(SDL::Hit) * (hitMemoryCounter+1),0);
+    if(prefetchErr != cudaSuccess)
+    {
+        std::cout<<"prefetch failed with error : "<<cudaGetErrorString(prefetchErr)<<std::endl;
+    }
+    prefetchErr = cudaMemPrefetchAsync(modulesInGPU,sizeof(SDL::Module) * (moduleMemoryCounter+1),0);
+    if(prefetchErr != cudaSuccess)
+    {
+        std::cout<<"prefetch failed with error : "<<cudaGetErrorString(prefetchErr)<<std::endl;
+    } 
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(nModules,mdsInGPU,lowerModulesInGPU,mdMemoryCounter,algo);
+    
     cudaError_t cudaerr = cudaDeviceSynchronize();
-    cudaProfilerStop();
+//    cudaError_t cudaerr = cudaDeviceSynchronize();
     if (cudaerr != cudaSuccess)
     {          
-        std::cout<<"kernel launch failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
     }
     //add mini-doublets to the module arrays for other stuff outside
+
     for(int i=0; i<lowerModuleMemoryCounter;i++)
     {
         SDL::Module& lowerModule = (Module&)(*lowerModulesInGPU[i]);
+
         for(int j = 0; j<mdMemoryCounter[i];j++)
         {
             if(lowerModule.subdet() == SDL::Module::Barrel)
             {
-                addMiniDoubletToEvent(mdsInGPU[i*100 + j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);    
+                addMiniDoubletToEvent(&mdsInGPU[i*100 + j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);    
             }
             else
             {
-                addMiniDoubletToEvent(mdsInGPU[i*100+j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);
+                addMiniDoubletToEvent(&mdsInGPU[i*100+j],lowerModule);//,lowerModule.layer(),SDL::Layer::Barrel);
             }
         }
     }
