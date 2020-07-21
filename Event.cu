@@ -1159,7 +1159,7 @@ unsigned int SDL::Event::getNumberOfHitsByLayerEndcapUpperModule(unsigned int il
 unsigned int SDL::Event::getNumberOfMiniDoublets() { return miniDoublets_.size(); }
 
 // Multiplicity of segments
-//unsigned int SDL::Event::getNumberOfSegments() { return segments_.size(); }
+unsigned int SDL::Event::getNumberOfSegments() { return *segmentMemoryCounter+1; }
 
 // Multiplicity of tracklets
 //unsigned int SDL::Event::getNumberOfTracklets() { return tracklets_.size(); }
