@@ -357,10 +357,11 @@ namespace SDL
 
             // Multiplicity of mini-doublets
             unsigned int getNumberOfMiniDoublets();
-/*            
+            
             // Multiplicity of segments
+            
             unsigned int getNumberOfSegments();
-
+/*
             // Multiplicity of tracklets
             unsigned int getNumberOfTracklets();
 
