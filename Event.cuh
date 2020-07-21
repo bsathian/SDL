@@ -174,9 +174,9 @@ namespace SDL
             // Multiplicity of mini-doublet formed in this event
             void incrementNumberOfMiniDoublets(SDL::Module& module);
 
-  /*          // Multiplicity of segment formed in this event
+          // Multiplicity of segment formed in this event
             void incrementNumberOfSegments(SDL::Module& module);
-
+/*
             // Multiplicity of tracklet formed in this event
             void incrementNumberOfTracklets(SDL::Layer& layer);
 
@@ -216,6 +216,7 @@ namespace SDL
             int hitMemoryCounter;
             int hit2SEdgeMemoryCounter;
             int* mdMemoryCounter;
+            int* segmentMemoryCounter;
 
             //also in managed memory
             int* moduleConnectionMapArray;
@@ -251,10 +252,10 @@ namespace SDL
 
             // MiniDoublet related functions
             void addMiniDoubletToLowerModule(MiniDoublet md, unsigned int detId);
-/*
-            // Segment related functions
-            void addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
 
+            // Segment related functions
+            void addSegmentToEvent(SDL::Segment* sg, SDL::Module& module);//, int layerIdx, SDL::Layer::SubDet subdet);
+/*
             // Segment related functions
             void addSegmentToLowerModule(Segment md, unsigned int detId);
 

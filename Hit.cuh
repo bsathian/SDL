@@ -74,12 +74,14 @@ namespace SDL
             CUDA_HOSTDEV const Module& getModule() const;
 
             // Set the boundary hits where the hits are shifted
-            const Hit* getHitHighEdgePtr() const;
-            const Hit* getHitLowEdgePtr() const;
+            CUDA_HOSTDEV const Hit* getHitHighEdgePtr() const;
+            CUDA_HOSTDEV const Hit* getHitLowEdgePtr() const;
 
             // variable computation between two hits
             CUDA_HOSTDEV float deltaPhi(const Hit&) const;
+            CUDA_HOSTDEV float deltaPhi(float x, float y, float z = 0) const;
             CUDA_HOSTDEV float deltaPhiChange(const Hit&) const;
+            CUDA_HOSTDEV float deltaPhiChange(float x, float y, float z = 0) const;
             bool isIdxMatched(const Hit&) const;
 
             // operator overloading

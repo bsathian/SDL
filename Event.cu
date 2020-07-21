@@ -42,6 +42,48 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
 
 }
 
+
+
+
+__global__ void createSegmentsInGPU(int nModules, SDL::Segment* segmentsInGPU,SDL::Module** lowerModulesInGPU,SDL::Module* modulesInGPU,int* segmentMemoryCounter,int* connectedModuleArray, int* nConnectedModules,SDL::SGAlgo algo)
+{
+    int MAX_CONNECTED_MODULES = 30;
+    int moduleIter = blockIdx.x * blockDim.x + threadIdx.x;
+    int moduleStride = blockDim.x * gridDim.x;
+    int lowerMDIter = blockIdx.y * blockDim.y + threadIdx.y;
+//    int lowerMDStride = blockDim.y * gridDim.y;
+    int upperMDIter = blockIdx.z * blockDim.z + threadIdx.z;
+//    int upperMDStride = blockDim.z * gridDim.z;
+
+    for(int i = moduleIter; i<nModules * MAX_CONNECTED_MODULES;i+=moduleStride) //runs only once
+    {
+        int lowerModuleIter = i/MAX_CONNECTED_MODULES;
+        int upperModuleIter = i % MAX_CONNECTED_MODULES;
+        if(lowerModuleIter > nModules) continue;
+        if(upperModuleIter > nConnectedModules[i]) continue;  //important dude
+        int upperModuleIndex = connectedModuleArray[lowerModuleIter * MAX_CONNECTED_MODULES + upperModuleIter];
+        SDL::Module* lowerModule = lowerModulesInGPU[i];
+        SDL::Module* upperModule = &modulesInGPU[upperModuleIndex];
+
+        int numberOfLowerMDs = lowerModule->getNumberOfMiniDoublets();
+        int numberOfUpperMDs = upperModule->getNumberOfMiniDoublets();
+
+        if(lowerMDIter > numberOfLowerMDs) continue;
+        if(upperMDIter > numberOfUpperMDs) continue;
+
+        SDL::MiniDoublet** lowerMDs = lowerModule->getMiniDoubletPtrs();
+        SDL::MiniDoublet** upperMDs = upperModule->getMiniDoubletPtrs();
+        SDL::Segment sgCand(lowerMDs[lowerMDIter],upperMDs[upperMDIter]);
+        sgCand.runSegmentAlgo(algo);
+        if(sgCand.passesSegmentAlgo(algo))
+        {
+            int idx = atomicAdd(segmentMemoryCounter,1);
+            segmentsInGPU[idx] = sgCand;
+        }
+    }
+
+}
+
 SDL::Event::Event() : logLevel_(SDL::Log_Nothing)
 {
     //createLayers();
@@ -268,24 +310,25 @@ void SDL::Event::addMiniDoubletToEvent(SDL::MiniDoublet* md, SDL::Module& module
 }
 
 
-/*
-void SDL::Event::addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
+
+void SDL::Event::addSegmentToEvent(SDL::Segment* sg, SDL::Module& module)//, int layerIdx, SDL::Layer::SubDet subdet)
 {
     // Add to global list of segments, where it will hold the object's instance
-    segments_.push_back(sg);
+//    segments_.push_back(sg);
 
     // And get the module (if not exists, then create), and add the address to Module.hits_
-    getModule(detId)->addSegment(&(segments_.back()));
+    module.addSegment(sg);
+    incrementNumberOfSegments(module);
 
     // And get the layer andd the segment to it
-    getLayer(layerIdx, subdet).addSegment(&(segments_.back()));
+//    getLayer(layerIdx, subdet).addSegment(&(segments_.back()));
 
     // Link segments to mini-doublets
-    segments_.back().addSelfPtrToMiniDoublets();
+//    segments_.back().addSelfPtrToMiniDoublets();
 
 }
 
-void SDL::Event::addTrackletToEvent(SDL::Tracklet tl, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
+/*void SDL::Event::addTrackletToEvent(SDL::Tracklet tl, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet)
 {
     // Add to global list of segments, where it will hold the object's instance
     tracklets_.push_back(tl);
@@ -412,13 +455,13 @@ void SDL::Event::createMiniDoublets(MDAlgo algo)
 void SDL::Event::getConnectedModuleArray()
 {
     
-    /* Create an index based module map array. First get the detIds, then search the modulesInGPU
+    /* Create an index based module map array. First get the detIds of the lower modules, then search the modulesInGPU
      * array for the corresponding module indices, and fill the moduleConnectionMap array
      */
     int N_MAX_CONNECTED_MODULES = 30;
-    for(int i = 0; i<moduleMemoryCounter;i++)
+    for(int i = 0; i<lowerModuleMemoryCounter;i++)
     {
-        unsigned int detId = modulesInGPU[i].detId();
+        unsigned int detId = lowerModulesInGPU[i]->detId();
         const std::vector<unsigned int>& connections = moduleConnectionMap.getConnectedModuleDetIds(detId);
         int j = 0;
         numberOfConnectedModules[i] = connections.size();
@@ -435,10 +478,13 @@ void SDL::Event::getConnectedModuleArray()
 void SDL::Event::initSegmentsInGPU()
 {
     int N_MAX_CONNECTED_MODULES = 30;
-    int N_MAX_SEGMENTS = 90000;
-    cudaMallocManaged(&moduleConnectionMapArray,sizeof(int) * N_MAX_CONNECTED_MODULES * moduleMemoryCounter);
-    cudaMallocManaged(&numberOfConnectedModules,sizeof(int) * moduleMemoryCounter);
-    cudaMallocManaged(&segmentsInGPU,N_MAX_SEGMENTS * sizeof(SDL::Segment));
+    int SEGMENTS_MAX = 90000;
+    cudaMallocManaged(&moduleConnectionMapArray,sizeof(int) * N_MAX_CONNECTED_MODULES * lowerModuleMemoryCounter);
+    cudaMallocManaged(&numberOfConnectedModules,sizeof(int) * lowerModuleMemoryCounter);
+    cudaMallocManaged(&segmentsInGPU,SEGMENTS_MAX * sizeof(SDL::Segment));
+    cudaMallocManaged(&segmentMemoryCounter,sizeof(int));
+
+    
 }
 
 void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
@@ -450,6 +496,13 @@ void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
     int dimX = N_MAX_CONNECTED_MODULES * nModules;
     dim3 nThreads(1,32,32);
     dim3 nBlocks((dimX % nThreads.x == 0 ? dimX/nThreads.x : dimX/nThreads.x + 1),(N_MAX_MD % nThreads.y == 0 ? N_MAX_MD / nThreads.y : N_MAX_MD/nThreads.y + 1),(N_MAX_MD % nThreads.z == 0 ? N_MAX_MD/nThreads.z : N_MAX_MD/nThreads.z + 1 ));
+    createSegmentsInGPU<<<nBlocks,nThreads>>>(nModules,segmentsInGPU,lowerModulesInGPU,modulesInGPU,segmentMemoryCounter,moduleConnectionMapArray,numberOfConnectedModules,algo);
+
+    for(int i = 0; i<*segmentMemoryCounter; i++)
+    {
+        SDL::Module& lowerModule = (SDL::Module&)segmentsInGPU[i].innerMiniDoubletPtr()->lowerHitPtr()->getModule();
+        addSegmentToEvent(&segmentsInGPU[i],lowerModule);
+    }
 
 }
 
@@ -1307,7 +1360,7 @@ void SDL::Event::incrementNumberOfMiniDoublets(SDL::Module& module)
 
 // Multiplicity of segment formed in this event
 
-/*void SDL::Event::incrementNumberOfSegments(SDL::Module& module)
+void SDL::Event::incrementNumberOfSegments(SDL::Module& module)
 {
     int layer = module.layer();
     int isbarrel = (module.subdet() == SDL::Module::Barrel);
@@ -1319,7 +1372,7 @@ void SDL::Event::incrementNumberOfMiniDoublets(SDL::Module& module)
 
 
 // Multiplicity of triplet formed in this event
-void SDL::Event::incrementNumberOfTriplets(SDL::Module& module)
+/*void SDL::Event::incrementNumberOfTriplets(SDL::Module& module)
 {
     int layer = module.layer();
     int isbarrel = (module.subdet() == SDL::Module::Barrel);
