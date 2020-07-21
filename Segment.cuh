@@ -2,7 +2,7 @@
 #define Segment_h
 
 #include "MiniDoublet.cuh"
-#include "TiltedGeometry.h"
+//#include "TiltedGeometry.h"
 #include "Module.cuh"
 #include "Algo.h"
 #include "ModuleConnectionMap.h"

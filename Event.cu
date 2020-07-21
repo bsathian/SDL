@@ -1218,10 +1218,10 @@ unsigned int SDL::Event::getNumberOfTrackCandidateCandidatesByLayerEndcap(unsign
 */
 // Multiplicity of mini-doublet formed in this event
 unsigned int SDL::Event::getNumberOfMiniDoubletsByLayerBarrel(unsigned int ilayer) { return n_miniDoublet_by_layer_barrel_[ilayer]; }
-/*
+
 // Multiplicity of segment formed in this event
 unsigned int SDL::Event::getNumberOfSegmentsByLayerBarrel(unsigned int ilayer) { return n_segment_by_layer_barrel_[ilayer]; }
-
+/*
 // Multiplicity of tracklet formed in this event
 unsigned int SDL::Event::getNumberOfTrackletsByLayerBarrel(unsigned int ilayer) { return n_tracklet_by_layer_barrel_[ilayer]; }
 

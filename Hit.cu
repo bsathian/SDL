@@ -132,7 +132,7 @@ const SDL::Hit* SDL::Hit::getHitHighEdgePtr() const
 {
     if (not hit_high_edge_)
     {
-        SDL::cout << "Error:: hit_high_edge_ does not exist but was asked" << std::endl;
+        printf("Error:: hit_high_edge_ does not exist but was asked\n");    
     }
     return hit_high_edge_;
 }
@@ -141,7 +141,7 @@ const SDL::Hit* SDL::Hit::getHitLowEdgePtr() const
 {
     if (not hit_low_edge_)
     {
-        SDL::cout << "Error:: hit_low_edge_ does not exist but was asked" << std::endl;
+        printf("Error:: hit_low_edge_ does not exist but was asked\n");
     }
     return hit_low_edge_;
 }

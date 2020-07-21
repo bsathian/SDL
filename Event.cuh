@@ -417,10 +417,10 @@ namespace SDL
 */
             // Multiplicity of mini-doublet formed in this event
             unsigned int getNumberOfMiniDoubletsByLayerBarrel(unsigned int);
-/*
+
             // Multiplicity of segment formed in this event
             unsigned int getNumberOfSegmentsByLayerBarrel(unsigned int);
-
+/*
             // Multiplicity of tracklet formed in this event
             unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int);
 
