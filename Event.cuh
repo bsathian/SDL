@@ -283,7 +283,7 @@ namespace SDL
             // Pseudo mini-doublet (which is really just a hit) for study purpose only
             void createPseudoMiniDoubletsFromAnchorModule(MDAlgo algo=Default_MDAlgo);
 
-            void createSegmentsWithModuleMap(SGAlgo algo);
+            void createSegmentsWithModuleMap(SGAlgo algo=Default_SGAlgo);
 
 /*
             // Create segments
