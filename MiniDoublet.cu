@@ -299,8 +299,8 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
     const float dzCut = lowerModule.moduleType() == SDL::Module::PS ? 2.f : 10.f;
     // const bool isNotInvertedCrosser = lowerModule.moduleType() == SDL::Module::PS ? true : (lowerHit.z() * dz > 0); // Not used as this saves very little on combinatorics. but could be something we can add back later
     const float sign = ((dz > 0) - (dz < 0)) * ((lowerHit.z() > 0) - (lowerHit.z() < 0));
-    const float invertedcrossercut = (abs(dz) > 2) * sign;
-    if (not (abs(dz) < dzCut and invertedcrossercut <= 0)) // Adding inverted crosser rejection
+    const float invertedcrossercut = (fabs(dz) > 2) * sign;
+    if (not (fabs(dz) < dzCut and invertedcrossercut <= 0)) // Adding inverted crosser rejection
     //*
 
     {
@@ -379,7 +379,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
 
     setMiniCut(miniCut);
 
-    if (not (abs(getDeltaPhi()) < miniCut)) // If cut fails continue
+    if (not (fabs(getDeltaPhi()) < miniCut)) // If cut fails continue
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -445,7 +445,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoBarrel(SDL::LogLevel logLevel)
         setDeltaPhiChangeNoShift(lowerHit.deltaPhiChange(upperHit));
     }
 
-    if (not (std::abs(getDeltaPhiChange()) < miniCut)) // If cut fails continue
+    if (not (fabs(getDeltaPhiChange()) < miniCut)) // If cut fails continue
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -502,7 +502,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     float dz = getDz(); // Not const since later it might change depending on the type of module
 
     const float dzCut = ((lowerModule.side() == SDL::Module::Endcap) ?  1.f : 10.f);
-    if (not (abs(dz) < dzCut)) // If cut fails continue
+    if (not (fabs(dz) < dzCut)) // If cut fails continue
     {
 /*        if (logLevel >= SDL::Log_Debug2)
         {
@@ -534,7 +534,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     // Cut #2 : drt cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3100
     const float drtCut = lowerModule.moduleType() == SDL::Module::PS ? 2.f : 10.f;
-    float drt = abs(lowerHit.rt() - upperHit.rt());
+    float drt = fabs(lowerHit.rt() - upperHit.rt());
     if (not (drt < drtCut)) // If cut fails continue
     {
        /* if (logLevel >= SDL::Log_Debug2)
@@ -645,7 +645,7 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
 
     setMiniCut(miniCut);
 
-    if (not (std::abs(getDeltaPhi()) < miniCut)) // If cut fails continue
+    if (not (fabs(getDeltaPhi()) < miniCut)) // If cut fails continue
     {
        /* if (logLevel >= SDL::Log_Debug2)
         {
@@ -678,10 +678,10 @@ void SDL::MiniDoublet::runMiniDoubletDefaultAlgoEndcap(SDL::LogLevel logLevel)
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3119-L3124
 
     
-    float dzFrac = abs(dz) / fabs(lowerHit.z());
+    float dzFrac = fabs(dz) / fabs(lowerHit.z());
     setDeltaPhiChange(getDeltaPhi() / dzFrac * (1.f + dzFrac));
     setDeltaPhiChangeNoShift(getDeltaPhiNoShift() / dzFrac * (1.f + dzFrac));
-    if (not (abs(getDeltaPhiChange()) < miniCut)) // If cut fails continue
+    if (not (fabs(getDeltaPhiChange()) < miniCut)) // If cut fails continue
     {
         /*if (logLevel >= SDL::Log_Debug2)
         {
@@ -822,7 +822,7 @@ float SDL::MiniDoublet::dPhiThreshold(const SDL::Hit& lowerHit, const SDL::Modul
 
     // Compute luminous region requirement for endcap
     const float deltaZLum = 15.f;
-    const float miniLum = abs(dPhi * deltaZLum/dz); // Balaji's new error
+    const float miniLum = fabs(dPhi * deltaZLum/dz); // Balaji's new error
     // const float miniLum = abs(deltaZLum / lowerHit.z()); // Old error
 
 
@@ -916,13 +916,13 @@ float SDL::MiniDoublet::fabsdPhiPixelShift(const SDL::Hit& lowerHit, const SDL::
     {
         SDL::Hit lowerHitMod(lowerHit);
         lowerHitMod.setXYZ(xn, yn, lowerHit.z());
-        fabsdPhi = std::abs(lowerHitMod.deltaPhi(upperHit));
+        fabsdPhi = fabs(lowerHitMod.deltaPhi(upperHit));
     }
     else
     {
         SDL::Hit upperHitMod(upperHit);
         upperHitMod.setXYZ(xn, yn, upperHit.z());
-        fabsdPhi = std::abs(lowerHit.deltaPhi(upperHitMod));
+        fabsdPhi = fabs(lowerHit.deltaPhi(upperHitMod));
     }
 
     if (logLevel >= SDL::Log_Debug3)
@@ -1005,13 +1005,13 @@ float SDL::MiniDoublet::fabsdPhiStripShift(const SDL::Hit& lowerHit, const SDL::
     {
         SDL::Hit upperHitMod(upperHit);
         upperHitMod.setXYZ(xn, yn, upperHit.z());
-        fabsdPhi = std::abs(lowerHit.deltaPhi(upperHitMod));
+        fabsdPhi = fabs(lowerHit.deltaPhi(upperHitMod));
     }
     else
     {
         SDL::Hit lowerHitMod(lowerHit);
         lowerHitMod.setXYZ(xn, yn, lowerHit.z());
-        fabsdPhi = std::abs(lowerHitMod.deltaPhi(upperHit));
+        fabsdPhi = fabs(lowerHitMod.deltaPhi(upperHit));
     }
 
     if (logLevel >= SDL::Log_Debug3)

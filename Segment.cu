@@ -463,7 +463,7 @@ void SDL::Segment::runSegmentDefaultAlgoBarrel(SDL::LogLevel logLevel)
     setRecoVars("deltaPhi", deltaPhi);*/
 
     // Cut #2: phi differences between the two minidoublets
-    if (not (std::abs(deltaPhi) <= sdCut))
+    if (not (fabs(deltaPhi) <= sdCut))
     {
 /*        if (logLevel >= SDL::Log_Debug3)
         {
@@ -480,7 +480,7 @@ void SDL::Segment::runSegmentDefaultAlgoBarrel(SDL::LogLevel logLevel)
     setDeltaPhiChange(innerMiniDoubletAnchorHit.deltaPhiChange(outerMiniDoubletAnchorHit));
 
     // Cut #3: phi change between the two minidoublets
-    if (not (std::abs(getDeltaPhiChange()) <= sdCut))
+    if (not (fabs(getDeltaPhiChange()) <= sdCut))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -516,7 +516,7 @@ void SDL::Segment::runSegmentDefaultAlgoBarrel(SDL::LogLevel logLevel)
     // Cut #4: angle compatibility between mini-doublet and segment
     float dAlpha_inner_md_sg = inner_md_alpha - sg_alpha;
 
-    if (not (std::abs(dAlpha_inner_md_sg) < dAlpha_compat_inner_vs_sg))
+    if (not (fabs(dAlpha_inner_md_sg) < dAlpha_compat_inner_vs_sg))
     {
 /*        if (logLevel >= SDL::Log_Debug3)
         {
@@ -536,7 +536,7 @@ void SDL::Segment::runSegmentDefaultAlgoBarrel(SDL::LogLevel logLevel)
     float dAlpha_outer_md_sg = outer_md_alpha - sg_alpha;
     setdAlphaOuterMDSegment(dAlpha_outer_md_sg);
 
-    if (not (std::abs(dAlpha_outer_md_sg) < dAlpha_compat_outer_vs_sg))
+    if (not (fabs(dAlpha_outer_md_sg) < dAlpha_compat_outer_vs_sg))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -556,7 +556,7 @@ void SDL::Segment::runSegmentDefaultAlgoBarrel(SDL::LogLevel logLevel)
     float dAlpha_outer_md_inner_md = outer_md_alpha - inner_md_alpha;
     setdAlphaOuterMDSegment(dAlpha_outer_md_inner_md);
 
-    if (not (std::abs(dAlpha_outer_md_inner_md) < dAlpha_compat_inner_vs_outer))
+    if (not (fabs(dAlpha_outer_md_inner_md) < dAlpha_compat_inner_vs_outer))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -710,7 +710,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     }
 
     // Cut #2: dPhi compatibility
-    // const float sdLum = deltaZLum / std::abs(innerMiniDoubletAnchorHitZ);
+    // const float sdLum = deltaZLum / fabs(innerMiniDoubletAnchorHitZ);
     // const float sdCut = sdSlope + sqrt(sdMuls * sdMuls + sdPVoff * sdPVoff + sdLum * sdLum);
     //const float sdCut = sdSlope;
     const float dPhiPos = innerMiniDoubletAnchorHit.deltaPhi(outerMiniDoubletAnchorHit);
@@ -729,7 +729,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     setDeltaPhiMin(dPhiPos_min);
     setDeltaPhiMax(dPhiPos_max);
 
-    if (not (std::abs(dPhiPos) <= sdCut))
+    if (not (fabs(dPhiPos) <= sdCut))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -748,7 +748,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     setDeltaPhiMinChange(dPhiPos_min / dzFrac * (1.f + dzFrac));
     setDeltaPhiMaxChange(dPhiPos_max / dzFrac * (1.f + dzFrac));
 
-    if (not (std::abs(getDeltaPhiChange()) <= sdCut))
+    if (not (fabs(getDeltaPhiChange()) <= sdCut))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -785,7 +785,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     float dAlpha_inner_md_sg = inner_md_alpha - sg_alpha;
     setdAlphaInnerMDSegment(dAlpha_inner_md_sg);
 
-    if (not (std::abs(dAlpha_inner_md_sg) < dAlpha_compat_inner_vs_sg))
+    if (not (fabs(dAlpha_inner_md_sg) < dAlpha_compat_inner_vs_sg))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -801,7 +801,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     float dAlpha_outer_md_sg = outer_md_alpha - sg_alpha;
     setdAlphaOuterMDSegment(dAlpha_outer_md_sg);
 
-    if (not (std::abs(dAlpha_outer_md_sg) < dAlpha_compat_outer_vs_sg))
+    if (not (fabs(dAlpha_outer_md_sg) < dAlpha_compat_outer_vs_sg))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -817,7 +817,7 @@ void SDL::Segment::runSegmentDefaultAlgoEndcap(SDL::LogLevel logLevel)
     float dAlpha_outer_md_inner_md = outer_md_alpha - inner_md_alpha;
     setdAlphaInnerMDOuterMD(dAlpha_outer_md_inner_md);
 
-    if (not (std::abs(dAlpha_outer_md_inner_md) < dAlpha_compat_inner_vs_outer))
+    if (not (fabs(dAlpha_outer_md_inner_md) < dAlpha_compat_inner_vs_outer))
     {
         /*if (logLevel >= SDL::Log_Debug3)
         {
@@ -943,8 +943,8 @@ void SDL::Segment::dAlphaThreshold(const SDL::MiniDoublet &innerMiniDoublet, con
 
     //Unique stuff for the segment dudes alone
 
-    float dAlpha_res_inner = 0.02f/miniDelta * (innerLowerModule.subdet() == SDL::Module::Barrel ? 1.0f : std::abs(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt));
-    float dAlpha_res_outer = 0.02f/miniDelta * (outerLowerModule.subdet() == SDL::Module::Barrel ? 1.0f : std::abs(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt));
+    float dAlpha_res_inner = 0.02f/miniDelta * (innerLowerModule.subdet() == SDL::Module::Barrel ? 1.0f : fabs(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt));
+    float dAlpha_res_outer = 0.02f/miniDelta * (outerLowerModule.subdet() == SDL::Module::Barrel ? 1.0f : fabs(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt));
 
     float dAlpha_res = dAlpha_res_inner + dAlpha_res_outer;
 
@@ -1025,7 +1025,7 @@ bool SDL::Segment::isMiniDoubletPairASegmentCandidateBarrel(const MiniDoublet& i
     const float deltaPhi = innerMiniDoubletAnchorHit.deltaPhi(outerMiniDoubletAnchorHit);
 
     // Cut #2: phi differences between the two minidoublets
-    if (not (std::abs(deltaPhi) <= sdCut))
+    if (not (fabs(deltaPhi) <= sdCut))
     {
         if (logLevel >= SDL::Log_Debug3)
         {
@@ -1038,7 +1038,7 @@ bool SDL::Segment::isMiniDoubletPairASegmentCandidateBarrel(const MiniDoublet& i
     float dPhiChange = innerMiniDoubletAnchorHit.deltaPhiChange(outerMiniDoubletAnchorHit);
 
     // Cut #3: phi change between the two minidoublets
-    if (not (std::abs(dPhiChange) <= sdCut))
+    if (not (fabs(dPhiChange) <= sdCut))
     {
         if (logLevel >= SDL::Log_Debug3)
         {
@@ -1122,13 +1122,13 @@ bool SDL::Segment::isMiniDoubletPairASegmentCandidateEndcap(const MiniDoublet& i
     }
 
     // Cut #2: dPhi compatibility
-    // const float sdLum = deltaZLum / std::abs(innerMiniDoubletAnchorHitZ);
+    // const float sdLum = deltaZLum / fabs(innerMiniDoubletAnchorHitZ);
     // const float sdCut = sdSlope + sqrt(sdMuls * sdMuls + sdPVoff * sdPVoff + sdLum * sdLum);
     const float sdCut = sdSlope;
     const float dPhiPos = innerMiniDoubletAnchorHit.deltaPhi(outerMiniDoubletAnchorHit);
 
 
-    if (not (std::abs(dPhiPos) <= sdCut))
+    if (not (fabs(dPhiPos) <= sdCut))
     {
         if (logLevel >= SDL::Log_Debug3)
         {
@@ -1142,7 +1142,7 @@ bool SDL::Segment::isMiniDoubletPairASegmentCandidateEndcap(const MiniDoublet& i
     // const float dPhiChange = innerMiniDoubletAnchorHit.deltaPhiChange(outerMiniDoubletAnchorHit); // NOTE When using the full r3 coordinate (this was turned off in slava's code)
     const float dzFrac = dz / innerMiniDoubletAnchorHitZ;
     const float dPhiChange = dPhiPos / dzFrac * (1.f + dzFrac);
-    if (not (std::abs(dPhiChange) <= sdCut))
+    if (not (fabs(dPhiChange) <= sdCut))
     {
         if (logLevel >= SDL::Log_Debug3)
         {
