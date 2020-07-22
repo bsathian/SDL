@@ -231,7 +231,7 @@ namespace SDL
 
             // Module related functions
             bool hasModule(unsigned int detId);
-            Module* getModule(unsigned int detId);
+            Module* getModule(unsigned int detId,bool addModule=true);
             const std::vector<Module*> getModulePtrs() const;
             const std::vector<Module*> getLowerModulePtrs() const;
             void getConnectedModuleArray();
