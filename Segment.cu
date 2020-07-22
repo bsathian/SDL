@@ -53,12 +53,12 @@ SDL::Segment::Segment(SDL::MiniDoublet* innerMiniDoubletPtr, SDL::MiniDoublet* o
 {
     // addSelfPtrToMiniDoublets();
 }
-
+/*
 void SDL::Segment::addSelfPtrToMiniDoublets()
 {
     innerMiniDoubletPtr_->addOutwardSegmentPtr(this);
     outerMiniDoubletPtr_->addInwardSegmentPtr(this);
-}
+}*/
 
 /*const std::vector<SDL::Tracklet*>& SDL::Segment::getListOfOutwardTrackletPtrs()
 {
