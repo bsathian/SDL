@@ -1165,7 +1165,18 @@ unsigned int SDL::Event::getNumberOfHitsByLayerBarrelUpperModule(unsigned int il
 unsigned int SDL::Event::getNumberOfHitsByLayerEndcapUpperModule(unsigned int ilayer) { return n_hits_by_layer_endcap_upper_[ilayer]; }
 
 // Multiplicity of mini-doublets
-unsigned int SDL::Event::getNumberOfMiniDoublets() { return miniDoublets_.size(); }
+unsigned int SDL::Event::getNumberOfMiniDoublets() 
+{
+    unsigned int nMiniDoublets = 0;
+    for(int i=0; i<lowerModuleMemoryCounter;i++)
+    {
+        for(int j = 0; j<mdMemoryCounter[i];j++)
+        {
+            nMiniDoublets++;
+        }
+    }
+    return nMiniDoublets;
+}
 
 // Multiplicity of segments
 unsigned int SDL::Event::getNumberOfSegments() { return *segmentMemoryCounter+1; }
