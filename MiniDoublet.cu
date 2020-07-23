@@ -749,6 +749,7 @@ namespace SDL
         out << "dphichangenoshift " << md.getDeltaPhiChangeNoShift() << std::endl;
         out << "ptestimate " << SDL::MathUtil::ptEstimateFromDeltaPhiChangeAndRt(md.getDeltaPhiChange(), md.lowerHitPtr_->rt()) << std::endl;
         out << "ptestimate from noshift " << SDL::MathUtil::ptEstimateFromDeltaPhiChangeAndRt(md.getDeltaPhiChangeNoShift(), md.lowerHitPtr_->rt()) << std::endl;
+        out << "miniCut "<<md.getMiniCut() << std::endl;
         out << std::endl;
         out << "Lower Hit " << std::endl;
         out << "------------------------------" << std::endl;
