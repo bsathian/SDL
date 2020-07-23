@@ -47,7 +47,7 @@ __global__ void createMiniDoubletsInGPU(int nModules,SDL::MiniDoublet* mdsInGPU,
 
 __global__ void createSegmentsInGPU(int nModules, SDL::Segment* segmentsInGPU,SDL::Module** lowerModulesInGPU,SDL::Module* modulesInGPU,int* segmentMemoryCounter,int* connectedModuleArray, int* nConnectedModules,SDL::SGAlgo algo)
 {
-    int MAX_CONNECTED_MODULES = 30;
+    int MAX_CONNECTED_MODULES = 40;
     int moduleIter = blockIdx.x * blockDim.x + threadIdx.x;
     int moduleStride = blockDim.x * gridDim.x;
     int lowerMDIter = blockIdx.y * blockDim.y + threadIdx.y;
@@ -64,7 +64,7 @@ __global__ void createSegmentsInGPU(int nModules, SDL::Segment* segmentsInGPU,SD
         int upperModuleIndex = connectedModuleArray[lowerModuleIter * MAX_CONNECTED_MODULES + upperModuleIter];
         SDL::Module* lowerModule = lowerModulesInGPU[lowerModuleIter];
         SDL::Module* upperModule = &modulesInGPU[upperModuleIndex];
-
+//        printf("lowerModuleIter = %d,upperModuleIndex = %d\n",lowerModuleIter,upperModuleIndex);
         int numberOfLowerMDs = lowerModule->getNumberOfMiniDoublets();
         int numberOfUpperMDs = upperModule->getNumberOfMiniDoublets();
 
@@ -124,6 +124,12 @@ SDL::Event::~Event()
     cudaFree(modulesInGPU);
     cudaFree(lowerModulesInGPU);
     cudaFree(mdsInGPU);
+    cudaFree(mdMemoryCounter);
+
+    cudaFree(segmentsInGPU);
+    cudaFree(moduleConnectionMapArray);
+    cudaFree(numberOfConnectedModules);
+    cudaFree(segmentMemoryCounter);
 }
 
 
@@ -458,8 +464,8 @@ void SDL::Event::getConnectedModuleArray()
     /* Create an index based module map array. First get the detIds of the lower modules, then search the modulesInGPU
      * array for the corresponding module indices, and fill the moduleConnectionMap array
      */
-    int N_MAX_CONNECTED_MODULES = 30;
-        for(int i = 0; i<lowerModuleMemoryCounter;i++)
+    int N_MAX_CONNECTED_MODULES = 40;
+    for(int i = 0; i<lowerModuleMemoryCounter;i++)
     {
         unsigned int detId = lowerModulesInGPU[i]->detId();
         const std::vector<unsigned int>& connections = moduleConnectionMap.getConnectedModuleDetIds(detId);
@@ -471,14 +477,15 @@ void SDL::Event::getConnectedModuleArray()
             moduleConnectionMapArray[i * N_MAX_CONNECTED_MODULES + j] = index;
             j++;
         }
+        if(j > N_MAX_CONNECTED_MODULES) std::cout<<"WARNING : increase max connected modules to "<<j<<std::endl;
         numberOfConnectedModules[i] = j;
     }
 }
 
 void SDL::Event::initSegmentsInGPU()
 {
-    int N_MAX_CONNECTED_MODULES = 30;
-    int SEGMENTS_MAX = 90000;
+    int N_MAX_CONNECTED_MODULES = 40;
+    int SEGMENTS_MAX = 100000;
     cudaMallocManaged(&moduleConnectionMapArray,sizeof(int) * N_MAX_CONNECTED_MODULES * lowerModuleMemoryCounter);
     cudaMallocManaged(&numberOfConnectedModules,sizeof(int) * lowerModuleMemoryCounter);
     cudaMallocManaged(&segmentsInGPU,SEGMENTS_MAX * sizeof(SDL::Segment));
@@ -490,11 +497,12 @@ void SDL::Event::initSegmentsInGPU()
 void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
 {
     initSegmentsInGPU();
-    int N_MAX_CONNECTED_MODULES = 30;
+    getConnectedModuleArray();
+    int N_MAX_CONNECTED_MODULES = 40;
     int N_MAX_MD = 200;
     int nModules = lowerModuleMemoryCounter;
     int dimX = N_MAX_CONNECTED_MODULES * nModules;
-    dim3 nThreads(1,32,32);
+    dim3 nThreads(1,16,16);
     dim3 nBlocks((dimX % nThreads.x == 0 ? dimX/nThreads.x : dimX/nThreads.x + 1),(N_MAX_MD % nThreads.y == 0 ? N_MAX_MD / nThreads.y : N_MAX_MD/nThreads.y + 1),(N_MAX_MD % nThreads.z == 0 ? N_MAX_MD/nThreads.z : N_MAX_MD/nThreads.z + 1 ));
     createSegmentsInGPU<<<nBlocks,nThreads>>>(nModules,segmentsInGPU,lowerModulesInGPU,modulesInGPU,segmentMemoryCounter,moduleConnectionMapArray,numberOfConnectedModules,algo);
     cudaError_t cudaerr = cudaDeviceSynchronize();
@@ -507,8 +515,10 @@ void SDL::Event::createSegmentsWithModuleMap(SGAlgo algo)
     {
         std::cout<<"sync successful!"<<std::endl;
     }
+
     for(int i = 0; i<*segmentMemoryCounter; i++)
     {
+    //    SDL::cout<<segmentsInGPU[i]<<std::endl;
         SDL::Module& lowerModule = (SDL::Module&)segmentsInGPU[i].innerMiniDoubletPtr()->lowerHitPtr()->getModule();
         addSegmentToEvent(&segmentsInGPU[i],lowerModule);
     }
@@ -1179,7 +1189,7 @@ unsigned int SDL::Event::getNumberOfMiniDoublets()
 }
 
 // Multiplicity of segments
-unsigned int SDL::Event::getNumberOfSegments() { return *segmentMemoryCounter+1; }
+unsigned int SDL::Event::getNumberOfSegments() { return *segmentMemoryCounter; }
 
 // Multiplicity of tracklets
 //unsigned int SDL::Event::getNumberOfTracklets() { return tracklets_.size(); }
@@ -1249,11 +1259,12 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerBarrel(unsigned int ilayer) 
 unsigned int SDL::Event::getNumberOfTripletsByLayerBarrel(unsigned int ilayer) { return n_triplet_by_layer_barrel_[ilayer]; }
 
 // Multiplicity of track candidate formed in this event
-unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerBarrel(unsigned int ilayer) { return n_trackcandidate_by_layer_barrel_[ilayer]; }
+unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerBarrel(unsigned int ilayer) { return n_trackcandidate_by_layer_barrel_[ilayer]; }*/
 
 // Multiplicity of mini-doublet formed in this event
 unsigned int SDL::Event::getNumberOfMiniDoubletsByLayerEndcap(unsigned int ilayer) { return n_miniDoublet_by_layer_endcap_[ilayer]; }
 
+/*
 // Multiplicity of segment formed in this event
 unsigned int SDL::Event::getNumberOfSegmentsByLayerEndcap(unsigned int ilayer) { return n_segment_by_layer_endcap_[ilayer]; }
 
