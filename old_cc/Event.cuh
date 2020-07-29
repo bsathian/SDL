@@ -15,8 +15,9 @@
 #include "Hit.cuh"
 #include "MiniDoublet.cuh"
 #include "GeometryUtil.cuh"
-/*#include "Segment.h"
-#include "Triplet.h"
+#include "Segment.cuh"
+
+/*#include "Triplet.h"
 #include "Layer.h"
 #include "PrintUtil.h"*/
 #include "Algo.h"
@@ -173,9 +174,9 @@ namespace SDL
             // Multiplicity of mini-doublet formed in this event
             void incrementNumberOfMiniDoublets(SDL::Module& module);
 
-  /*          // Multiplicity of segment formed in this event
+          // Multiplicity of segment formed in this event
             void incrementNumberOfSegments(SDL::Module& module);
-
+/*
             // Multiplicity of tracklet formed in this event
             void incrementNumberOfTracklets(SDL::Layer& layer);
 
@@ -197,11 +198,17 @@ namespace SDL
             Hit* hitsInGPU;
             Hit* hits2sEdgeInGPU;
             MiniDoublet* mdCandsGPU;
-            MiniDoublet** mdsInGPU;
+            MiniDoublet* mdsInGPU;
+            Segment* segmentsInGPU;
+
+
             void  initModulesInGPU();
             void initHitsInGPU();
             void initMDsInGPU();
             void miniDoubletGPUWrapper(SDL::MDAlgo algo);
+
+            void initSegmentsInGPU();
+            void segmentGPUWrapper(SDL::SGAlgo algo);
 
             //counter variables
             int moduleMemoryCounter;
@@ -209,6 +216,11 @@ namespace SDL
             int hitMemoryCounter;
             int hit2SEdgeMemoryCounter;
             int* mdMemoryCounter;
+            int* segmentMemoryCounter;
+
+            //also in managed memory
+            int* moduleConnectionMapArray;
+            int* numberOfConnectedModules;
 
 
         public:
@@ -219,9 +231,10 @@ namespace SDL
 
             // Module related functions
             bool hasModule(unsigned int detId);
-            Module* getModule(unsigned int detId);
+            Module* getModule(unsigned int detId,bool addModule=true);
             const std::vector<Module*> getModulePtrs() const;
             const std::vector<Module*> getLowerModulePtrs() const;
+            void getConnectedModuleArray();
 
             // Layer related functions
             void createLayers();
@@ -235,14 +248,14 @@ namespace SDL
             void addHitToModule(Hit hit, unsigned int detId);
 
             // MiniDoublet related functions
-//            void addMiniDoubletToEvent(SDL::MiniDoublet md, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
+            void addMiniDoubletToEvent(SDL::MiniDoublet *md, SDL::Module& module);//, int layerIdx, SDL::Layer::SubDet subdet);
 
             // MiniDoublet related functions
             void addMiniDoubletToLowerModule(MiniDoublet md, unsigned int detId);
-/*
-            // Segment related functions
-            void addSegmentToEvent(SDL::Segment sg, unsigned int detId, int layerIdx, SDL::Layer::SubDet subdet);
 
+            // Segment related functions
+            void addSegmentToEvent(SDL::Segment* sg, SDL::Module& module);//, int layerIdx, SDL::Layer::SubDet subdet);
+/*
             // Segment related functions
             void addSegmentToLowerModule(Segment md, unsigned int detId);
 
@@ -269,6 +282,8 @@ namespace SDL
 
             // Pseudo mini-doublet (which is really just a hit) for study purpose only
             void createPseudoMiniDoubletsFromAnchorModule(MDAlgo algo=Default_MDAlgo);
+
+            void createSegmentsWithModuleMap(SGAlgo algo=Default_SGAlgo);
 
 /*
             // Create segments
@@ -342,10 +357,11 @@ namespace SDL
 
             // Multiplicity of mini-doublets
             unsigned int getNumberOfMiniDoublets();
-/*            
+            
             // Multiplicity of segments
+            
             unsigned int getNumberOfSegments();
-
+/*
             // Multiplicity of tracklets
             unsigned int getNumberOfTracklets();
 
@@ -399,13 +415,13 @@ namespace SDL
 
             // Multiplicity of track candidate candidates considered in this event
             unsigned int getNumberOfTrackCandidateCandidatesByLayerEndcap(unsigned int);
-
+*/
             // Multiplicity of mini-doublet formed in this event
             unsigned int getNumberOfMiniDoubletsByLayerBarrel(unsigned int);
 
             // Multiplicity of segment formed in this event
             unsigned int getNumberOfSegmentsByLayerBarrel(unsigned int);
-
+/*
             // Multiplicity of tracklet formed in this event
             unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int);
 
@@ -413,11 +429,11 @@ namespace SDL
             unsigned int getNumberOfTripletsByLayerBarrel(unsigned int);
 
             // Multiplicity of track candidate formed in this event
-            unsigned int getNumberOfTrackCandidatesByLayerBarrel(unsigned int);
+            unsigned int getNumberOfTrackCandidatesByLayerBarrel(unsigned int);*/
 
             // Multiplicity of mini-doublet formed in this event
             unsigned int getNumberOfMiniDoubletsByLayerEndcap(unsigned int);
-
+/*
             // Multiplicity of segment formed in this event
             unsigned int getNumberOfSegmentsByLayerEndcap(unsigned int);
 
