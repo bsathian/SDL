@@ -71,6 +71,15 @@ inline float phi(float x, float y, float z)
 {
     phi_mpi_pi(M_PI + SDL::MathUtil::ATan2(-y_, -x_));
 }
+
+inline float ATan2(float y, float x)
+{
+    if (x != 0) return  atan2(y, x);
+    if (y == 0) return  0;
+    if (y >  0) return  M_PI / 2;
+    else        return -M_PI / 2;
+}
+
 inline float phi_mpi_pi(float phi)
 {
     if (isnan(x))
