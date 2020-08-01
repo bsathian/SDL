@@ -1,21 +1,21 @@
 #include "EndcapGeometry.h"
 
-SDL::EndcapGeometry SDL::endcapGeometry;
+EndcapGeometry endcapGeometry;
 
-SDL::EndcapGeometry::EndcapGeometry()
+EndcapGeometry::EndcapGeometry()
 {
 }
 
-SDL::EndcapGeometry::EndcapGeometry(std::string filename)
+EndcapGeometry::EndcapGeometry(std::string filename)
 {
     load(filename);
 }
 
-SDL::EndcapGeometry::~EndcapGeometry()
+EndcapGeometry::~EndcapGeometry()
 {
 }
 
-void SDL::EndcapGeometry::load(std::string filename)
+void EndcapGeometry::load(std::string filename)
 {
     avgr2s_.clear();
     yls_.clear();
@@ -60,42 +60,42 @@ void SDL::EndcapGeometry::load(std::string filename)
     }
 }
 
-float SDL::EndcapGeometry::getAverageR2(unsigned int detid)
+float EndcapGeometry::getAverageR2(unsigned int detid)
 {
     return avgr2s_[detid];
 }
 
-float SDL::EndcapGeometry::getYInterceptLower(unsigned int detid)
+float EndcapGeometry::getYInterceptLower(unsigned int detid)
 {
     return yls_[detid];
 }
 
-float SDL::EndcapGeometry::getSlopeLower(unsigned int detid)
+float EndcapGeometry::getSlopeLower(unsigned int detid)
 {
     return sls_[detid];
 }
 
-float SDL::EndcapGeometry::getYInterceptUpper(unsigned int detid)
+float EndcapGeometry::getYInterceptUpper(unsigned int detid)
 {
     return yus_[detid];
 }
 
-float SDL::EndcapGeometry::getSlopeUpper(unsigned int detid)
+float EndcapGeometry::getSlopeUpper(unsigned int detid)
 {
     return sus_[detid];
 }
 
-float SDL::EndcapGeometry::getCentroidR(unsigned int detid)
+float EndcapGeometry::getCentroidR(unsigned int detid)
 {
     return centroid_rs_[detid];
 }
 
-float SDL::EndcapGeometry::getCentroidPhi(unsigned int detid)
+float EndcapGeometry::getCentroidPhi(unsigned int detid)
 {
     return centroid_phis_[detid];
 }
 
-float SDL::EndcapGeometry::getCentroidZ(unsigned int detid)
+float EndcapGeometry::getCentroidZ(unsigned int detid)
 {
     return centroid_zs_[detid];
 }
