@@ -16,6 +16,7 @@ void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nMod
     cudaMallocManaged(&modulesInGPU.modules,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.rods,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.subdets,nModules * sizeof(short));
+    cudaMallocManaged(&modulesInGPU.sides,nModules * sizeof(short));
 
     cudaMallocManaged(&modulesInGPU.hitRanges,nModules * 2 * sizeof(int));
     cudaMallocManaged(&modulesInGPU.mdRanges,nModules * 2 * sizeof(int));
@@ -58,13 +59,14 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
         unsigned int detId = it->first;
         unsigned int index = it->second; 
         modulesInGPU.detIds[index] = detId;
-        unsigned short layer,ring,rod,module,subdet;
-        setDerivedQuantities(detId,layer,ring,rod,module,subdet); 
+        unsigned short layer,ring,rod,module,subdet,side;
+        setDerivedQuantities(detId,layer,ring,rod,module,subdet,side); 
         modulesInGPU.layers[index] = layer;
         modulesInGPU.rings[index] = ring;
         modulesInGPU.rods[index] = rod;
         modulesInGPU.modules[index] = module;
-        modulesInGPU.subdets[index] = subdet; 
+        modulesInGPU.subdets[index] = subdet;
+        modulesInGPU.sides[index] = side; 
 
         modulesInGPU.drdzs[index] = tiltedGeometry.getDrDz(detId);
         modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
@@ -88,13 +90,14 @@ void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModule
     }
 }
 
-void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& rod, unsigned short& module, unsigned short& subdet)
+void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side)
 {
     subdet = (detId & (7 << 25)) >> 25;
     side = (subdet == Endcap) ? (detId & (3 << 23)) >> 23 : (detId & (3 << 18)) >> 18;
     layer = (subdet == Endcap) ? (detId & (7 << 18)) >> 18 : (detId & (7 << 20)) >> 20;
     ring = (subdet == Endcap) ? (detId & (15 << 12)) >> 12 : 0;
     module = (detId & (127 << 2)) >> 2;
+    rod = (subdet == Endcap) ? 0 : (detId & (127 << 10)) >> 10;
 }
 
 //auxilliary functions - will be called as needed
@@ -258,3 +261,4 @@ void resetObjectRanges(struct modules& modulesInGPU, int nModules)
     }
 
 }
+

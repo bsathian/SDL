@@ -29,12 +29,13 @@ struct modules
     short* modules;
     short* rods;
     short* subdets;
+    short* sides;
     
-    bool isInverted(unsigned int index);
-    bool isLower(unsigned int index);
-    unsigned int partnerDetIdIndex(unsigned int index);
-    ModuleType moduleType(unsigned int index);
-    ModuleLayerType moduleLayerType(unsigned int index);
+    CUDA_HOSTDEV bool isInverted(unsigned int index);
+    CUDA_HOSTDEV bool isLower(unsigned int index);
+    CUDA_HOSTDEV unsigned int partnerDetIdIndex(unsigned int index);
+    CUDA_HOSTDEV ModuleType moduleType(unsigned int index);
+    CUDA_HOSTDEV ModuleLayerType moduleLayerType(unsigned int index);
 
     int* hitRanges;
     int* mdRanges;
@@ -70,6 +71,7 @@ enum ModuleLayerType
 void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules);
 void fillConnectedModuleArray(struct modules& modulesInGPU);
 void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules);
-void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& rod, unsigned short& module, unsigned short& subdet);
+void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned int& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side);
 void resetObjectRanges(struct modules& modulesInGPU, int nModules);
 #endif
+
