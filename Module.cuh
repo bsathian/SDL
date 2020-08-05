@@ -65,7 +65,7 @@ struct modules
 
     int* hitRanges;
     int* mdRanges;
-    //others will be added lateunsigned r
+    //others will be added later
 
 };
 
