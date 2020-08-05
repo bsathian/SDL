@@ -10,7 +10,7 @@ void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nMod
     cudaMallocManaged(&modulesInGPU.drdzs,nModules * sizeof(float));
     cudaMallocManaged(&modulesInGPU.slopes,nModules * sizeof(float));
     cudaMallocManaged(&modulesInGPU.nModules,sizeof(unsigned int));
-
+    cudaMallocManaged(&modulesInGPU.nLowerModules,sizeof(unsigned int));
     cudaMallocManaged(&modulesInGPU.layers,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.rings,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.modules,nModules * sizeof(short));
@@ -25,8 +25,22 @@ void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nMod
 
 }
 
+void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules)
+{
+    cudaMallocManaged(&modulesInGPU.lowerModuleIndices,nLowerModules * sizeof(unsigned int));
+    unsigned int lowerModuleCounter = 0;
+    for(auto& it = detIdToIndex.begin(); it != detIdToIndex.end(); it++)
+    {
+        unsigned int index = it->second; 
+        if(isLower(index))
+        {
+            modulesInGPU.lowerModuleIndices[lowerModuleCounter] = index;
+            lowerModuleCounter++;
+        }
+    }
+}
 
-void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
+void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, unsigned int& nLowerModules)
 {
     /*modules structure object will be created in Event.cu*/
     /* Load the whole text file into the unordered_map first*/
@@ -35,6 +49,7 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
     ifile.open("data/centroid.txt");
     std::string line;
     unsigned int counter = 0;
+    unsigned int lowerModuleCounter = 0;
 
     while(std::getline(ifile,line))
     {
@@ -50,7 +65,7 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
             counter++;
         }
     }
-    nModules = counter+1;
+    nModules = counter;
 
     createModulesInUnifiedMemory(modulesInGPU,nModules);
 
@@ -68,9 +83,14 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
         modulesInGPU.subdets[index] = subdet;
         modulesInGPU.sides[index] = side; 
 
-        modulesInGPU.drdzs[index] = tiltedGeometry.getDrDz(detId);
-        modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+        modulesInGPU.drdzs    if(moduleIdx > nModules)
+        return;
+s[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+        if(isLower(index)) lowerModuleCounter++;
     }
+
+    *modulesInGPU.nLowerModules = lowerModuleCounter;
+    createLowerModuleIndexMap(modulesInGPU,lowerModuleCounter);
     fillConnectedModuleArray(modulesInGPU,nModules);
     resetObjectRanges(modulesInGPU,nModules);
 } 
@@ -166,7 +186,7 @@ bool modules::isLower(unsigned int index)
     return (isInverted(detId)) ? !(detId & 1) : (detId & 1);
 }
 
-unsigned int modules::partnerDetIdIndex(unsigned int index)
+unsigned int modules::partnerModuleIndex(unsigned int index)
 {
     /*We need to ensure modules with successive det Ids are right next to each other
     or we're dead*/

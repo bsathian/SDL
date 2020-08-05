@@ -23,6 +23,8 @@ struct modules
     float* drdzs;
     float* slopes;
     unsigned int *nModules; //single number
+    unsigned int *nLowerModules;
+    unsigned int *lowerModuleIndices;
     
     short* layers;
     short* rings;
@@ -33,7 +35,7 @@ struct modules
     
     CUDA_HOSTDEV bool isInverted(unsigned int index);
     CUDA_HOSTDEV bool isLower(unsigned int index);
-    CUDA_HOSTDEV unsigned int partnerDetIdIndex(unsigned int index);
+    CUDA_HOSTDEV unsigned int partnerModuleIndex(unsigned int index);
     CUDA_HOSTDEV ModuleType moduleType(unsigned int index);
     CUDA_HOSTDEV ModuleLayerType moduleLayerType(unsigned int index);
 
