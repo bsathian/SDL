@@ -21,7 +21,7 @@ Event::~Event()
 
 void initModules()
 {
-    if(modulesInGPU.detids == nullptr) //check for nullptr and create memory
+    if(modulesInGPU.detIds == nullptr) //check for nullptr and create memory
     {
         loadModulesFromFile(modulesInGPU,nModules); //nModules gets filled here
     }
@@ -45,8 +45,8 @@ void Event::addHitToEvent(float x, float y, float z, unsigned int detId)
     //calls the addHitToMemory function
     addHitToMemory(hitsInGPU, modulesInGPU, x, y, z, detId);
 
-    unsigned int moduleLayer = modulesInGPU.layers[detIdToIndex[detId]];
-    unsigned int subdet = modulesInGPU.subdets[detIdToIndex[detId]];
+    unsigned int moduleLayer = modulesInGPU.layers[(*detIdToIndex)[detId]];
+    unsigned int subdet = modulesInGPU.subdets[(*detIdToIndex)[detId]];
 
     if(subdet == Barrel)
     {
@@ -64,7 +64,7 @@ void Event::addMiniDoubletsToEvent()
     for(unsigned int i = 0; i<nModules; i++)
     {
         modulesInGPU.mdRanges[i * 2] = i * N_MAX_MD_PER_MODULES;
-        modulesInGPU.mdRanges[i * 2 + 1] = (i * N_MAX_MD_PER_MODULES) + nMDs[i];
+        modulesInGPU.mdRanges[i * 2 + 1] = (i * N_MAX_MD_PER_MODULES) + mdsInGPU.nMDs[i];
      
         if(modulesInGPU.subdets[i] == Barrel)
         {
@@ -81,7 +81,7 @@ void Event::createMiniDoublets()
 {
     unsigned int nLowerModules = *modulesInGPU.nLowerModules;
     dim3 nThreads(1,16,16);
-    dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(N_N_MAX_HITS_PER_MODULE_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
+    dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
     std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
     
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU);
@@ -92,7 +92,7 @@ void Event::createMiniDoublets()
 __global__ void createMiniDoubletsInGPU(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIdx = blockIdx.x * blockDim.x + threadIdx.x;
-    if(lowerModuleIdx > (*modulesInGPU.nLowerModules)) return; //extra precaution
+    if(lowerModuleArrayIdx > (*modulesInGPU.nLowerModules)) return; //extra precaution
 
     int lowerModuleIdx = modulesInGPU.lowerModuleIndices[lowerModuleArrayIdx];
     int upperModuleIdx = modulesInGPU.partnerModuleIndex(lowerModuleIdx);
@@ -109,7 +109,7 @@ __global__ void createMiniDoubletsInGPU(struct modules& modulesInGPU, struct hit
     unsigned int upperHitArrayIndex = modulesInGPU.hitRanges[upperModuleIdx * 2] + upperHitIdx;
 
     float dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange;
-    bool success = runMiniDoubletDefaultAlgo(modulesInGPU, hitsInGPU, lowerModuleIdx, lowerHitArrayIndex, upperHitArrayIndex, dz, dphi, dphichange, shiftedX, shfitedY, shiftedZ, noShfitedDz, noShiftedDphi, noShiftedDphiChange);
+    bool success = runMiniDoubletDefaultAlgo(modulesInGPU, hitsInGPU, lowerModuleIdx, lowerHitArrayIndex, upperHitArrayIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange);
     if(success)
     {
         unsigned int mdModuleIdx = atomicAdd(&mdsInGPU.nMDs[lowerModuleIdx],1);
@@ -126,7 +126,7 @@ unsigned int Event::getNumberOfHits()
     {
         hits += it;
     }
-    void(auto &it:n_hist_by_layer_endcap_)
+    for(auto& it:n_hits_by_layer_endcap_)
     {
         hits += it;
     }
@@ -142,7 +142,7 @@ unsigned int Event::getNumberOfHitsByLayer(unsigned int layer)
         return n_hits_by_layer_barrel_[layer] + n_hits_by_layer_endcap_[layer];
 }
 
-unsigned int Event::getNumberOfHitsBylayerBarrel(unsigned int layer)
+unsigned int Event::getNumberOfHitsByLayerBarrel(unsigned int layer)
 {
     return n_hits_by_layer_barrel_[layer];
 }
@@ -155,16 +155,16 @@ unsigned int Event::getNumberOfHitsByLayerEndcap(unsigned int layer)
 unsigned int Event::getNumberOfMiniDoublets()
 {
      unsigned int miniDoublets = 0;
-    for(auto &it:n_hits_by_layer_barrel_)
+    for(auto &it:n_minidoublets_by_layer_barrel_)
     {
-        hits += it;
+        miniDoublets += it;
     }
-    void(auto &it:n_hist_by_layer_endcap_)
+    for(auto &it:n_minidoublets_by_layer_endcap_)
     {
-        hits += it;
+        miniDoublets += it;
     }
 
-    return hits;
+    return miniDoublets;
    
 }
 

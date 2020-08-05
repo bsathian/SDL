@@ -14,7 +14,6 @@
 #include "Module.cuh"
 #include "Hit.cuh"
 #include "MiniDoublet.cuh"
-#include "GeometryUtil.cuh"
 #include "cuda_profiler_api.h"
 
 class Event
@@ -54,14 +53,14 @@ public:
 };
 
 //global stuff
-int N_MAX_MD_PER_MODULES = 100;
-int N_MAX_HITS_PER_MODULE = 100;
+const unsigned int N_MAX_MD_PER_MODULES = 100;
+const unsigned int N_MAX_HITS_PER_MODULE = 100;
 
 struct modules modulesInGPU;
-int nModules;
+unsigned int nModules;
 void initModules(); //read from file and init
 
-__global__ void createMiniDoubletsInGPU(struct hits& hitsInGPU, struct modules& modulesInGPU, struct miniDoublets& mdsInGPU);
+__global__ void createMiniDoubletsInGPU(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU);
 
 
 

@@ -3,9 +3,9 @@
 void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits,unsigned int nMax2SHits)
 {
     //nMaxHits and nMax2SHits are the maximum possible numbers
-    cudaMallocManaged(&hitsInGPU.x, nMaxHits * sizeof(float));
-    cudaMallocManaged(&hitsInGPU.y, nMaxHits * sizeof(float));
-    cudaMallocManaged(&hitsInGPU.z, nMaxHits * sizeof(float));
+    cudaMallocManaged(&hitsInGPU.xs, nMaxHits * sizeof(float));
+    cudaMallocManaged(&hitsInGPU.ys, nMaxHits * sizeof(float));
+    cudaMallocManaged(&hitsInGPU.zs, nMaxHits * sizeof(float));
     cudaMallocManaged(&hitsInGPU.moduleIndices, nMaxHits * sizeof(unsigned int));
 
     cudaMallocManaged(&hitsInGPU.rts, nMaxHits * sizeof(float));
@@ -29,18 +29,18 @@ void addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float 
     unsigned int idx = *hitsInGPU.nHits;
     unsigned int idxEdge2S = *hitsInGPU.n2SHits;
 
-    hitsInGPU.x[idx] = x;
-    hitsInGPU.y[idx] = y;
-    hitsInGPU.z[idx] = z;
+    hitsInGPU.xs[idx] = x;
+    hitsInGPU.ys[idx] = y;
+    hitsInGPU.zs[idx] = z;
     hitsInGPU.rts[idx] = sqrt(x*x + y*y);
-    hitsInGPU.phi[idx] = phi(x,y,z);
-    unsigned int moduleIndex = detIdToIndex[detId]
+    hitsInGPU.phis[idx] = phi(x,y,z);
+    unsigned int moduleIndex = (*detIdToIndex)[detId];
     hitsInGPU.moduleIndices[idx] = moduleIndex;
-    if(modulesInGPU.subdets[moduleIndex] == Endcap and modulesInGPU.moduleLayerType(moduleIndex) == TwoS)
+    if(modulesInGPU.subdets[moduleIndex] == Endcap and modulesInGPU.moduleType(moduleIndex) == TwoS)
     {
         float xhigh, yhigh, xlow, ylow;
         getEdgeHits(detId,x,y,xhigh,yhigh,xlow,ylow);
-        hitsInGPU.edge2SMap[index] = idxEdge2S;
+        hitsInGPU.edge2SMap[idx] = idxEdge2S;
         hitsInGPU.highEdgeXs[idxEdge2S] = xhigh;
         hitsInGPU.highEdgeYs[idxEdge2S] = yhigh;
         hitsInGPU.lowEdgeXs[idxEdge2S] = xlow;
@@ -50,7 +50,7 @@ void addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float 
     }
     else
     {
-        hitsInGPU.edge2SMap[index] = -1;
+        hitsInGPU.edge2SMap[idx] = -1;
     }
 
     //set the hit ranges appropriately in the modules struct
@@ -67,11 +67,6 @@ void addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float 
     
 }
 
-inline float phi(float x, float y, float z)
-{
-    phi_mpi_pi(M_PI + SDL::MathUtil::ATan2(-y_, -x_));
-}
-
 inline float ATan2(float y, float x)
 {
     if (x != 0) return  atan2(y, x);
@@ -80,7 +75,14 @@ inline float ATan2(float y, float x)
     else        return -M_PI / 2;
 }
 
-inline float phi_mpi_pi(float phi)
+
+inline float phi(float x, float y, float z)
+{
+    return phi_mpi_pi(M_PI + ATan2(-y, -x)); 
+}
+
+
+inline float phi_mpi_pi(float x)
 {
     if (isnan(x))
     {
@@ -99,8 +101,8 @@ inline float phi_mpi_pi(float phi)
 
 float deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2)
 {
-    phi1 = phi(x1,y1,z1);
-    phi2 = phi(x2,y2,z2);
+    float phi1 = phi(x1,y1,z1);
+    float phi2 = phi(x2,y2,z2);
     return phi_mpi_pi((phi2 - phi1));
 }
 
@@ -118,7 +120,7 @@ void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh
     ylow = x - 2.5 * sin(phi);
 }
 
-struct hits::~hits()
+hits::~hits()
 {
     cudaFree(nHits);
     cudaFree(n2SHits);

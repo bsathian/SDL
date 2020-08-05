@@ -27,12 +27,13 @@ void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nMod
 
 void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules)
 {
+    detIdToIndex = new std::unordered_map<unsigned int, unsigned int>;
     cudaMallocManaged(&modulesInGPU.lowerModuleIndices,nLowerModules * sizeof(unsigned int));
     unsigned int lowerModuleCounter = 0;
-    for(auto& it = detIdToIndex.begin(); it != detIdToIndex.end(); it++)
+    for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); it++)
     {
         unsigned int index = it->second; 
-        if(isLower(index))
+        if(modulesInGPU.isLower(index))
         {
             modulesInGPU.lowerModuleIndices[lowerModuleCounter] = index;
             lowerModuleCounter++;
@@ -60,7 +61,7 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, u
         while(std::getline(ss,token,','))
         {
             if(flag == 1) break;
-            detIdToIndex[counter] = atoi(ss);
+            (*detIdToIndex)[counter] = stoi(token);
             flag = 1;
             counter++;
         }
@@ -69,7 +70,7 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, u
 
     createModulesInUnifiedMemory(modulesInGPU,nModules);
 
-    for(auto& it = detIdToIndex.begin(); it != detIdToIndex.end(); it++)
+    for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); it++)
     {
         unsigned int detId = it->first;
         unsigned int index = it->second; 
@@ -83,10 +84,8 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, u
         modulesInGPU.subdets[index] = subdet;
         modulesInGPU.sides[index] = side; 
 
-        modulesInGPU.drdzs    if(moduleIdx > nModules)
-        return;
-s[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
-        if(isLower(index)) lowerModuleCounter++;
+        modulesInGPU.drdzs[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+        if(modulesInGPU.isLower(index)) lowerModuleCounter++;
     }
 
     *modulesInGPU.nLowerModules = lowerModuleCounter;
@@ -97,15 +96,15 @@ s[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeom
 
 void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModules)
 {
-    for(auto& it = detIdToIndex.begin(); it != detIdToIndex.end(); it++)
+    for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); ++it)
     {
         unsigned int detId = it->first;
         unsigned int index = it->second;
-        std::vector<unsigned int>& connectedModules = moduleConnectionMap.getConnectedModuleDetails(detId);
-        nConnectedModules[index] = connectedModules.size();
-        for(unsigned int i = 0; i< nConnectedModules[index];i++)
+        auto& connectedModules = moduleConnectionMap.getConnectedModuleDetIds(detId);
+        modulesInGPU.nConnectedModules[index] = connectedModules.size();
+        for(unsigned int i = 0; i< modulesInGPU.nConnectedModules[index];i++)
         {
-            moduleMap[index][i] = detIdToIndex[connectedModules[i]];
+            modulesInGPU.moduleMap[index * 40 + i] = (*detIdToIndex)[connectedModules[i]];
         }
     }
 }
@@ -183,7 +182,7 @@ bool modules::isInverted(unsigned int index)
 
 bool modules::isLower(unsigned int index)
 {
-    return (isInverted(detId)) ? !(detId & 1) : (detId & 1);
+    return (isInverted(index)) ? !(index & 1) : (index & 1);
 }
 
 unsigned int modules::partnerModuleIndex(unsigned int index)
@@ -270,7 +269,7 @@ ModuleLayerType modules::moduleLayerType(unsigned int index)
     }
 }
 
-void resetObjectRanges(struct modules& modulesInGPU, int nModules)
+void resetObjectRanges(struct modules& modulesInGPU, unsigned int nModules)
 {
 
 #pragma omp parallel for default(shared)

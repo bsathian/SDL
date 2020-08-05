@@ -15,6 +15,30 @@
 #include "EndcapGeometry.h"
 #include "ModuleConnectionMap.h"
 
+enum SubDet
+{
+    Barrel = 5,
+    Endcap = 4
+};
+enum Side
+{
+    NegZ = 1,
+    PosZ = 2,
+    Center = 3
+};
+enum ModuleType
+{
+    PS,
+    TwoS
+};
+
+enum ModuleLayerType
+{
+    Pixel,
+    Strip
+};
+
+
 struct modules
 {
     unsigned int* detIds;
@@ -41,39 +65,18 @@ struct modules
 
     int* hitRanges;
     int* mdRanges;
-    //others will be added later
+    //others will be added lateunsigned r
 
 };
-std::unordered_map <unsigned int,unsigned int> detIdToIndex;
 
-enum SubDet
-{
-    Barrel = 5,
-    Endcap = 4
-};
-enum Side
-{
-    NegZ = 1,
-    PosZ = 2,
-    Center = 3
-};
-enum ModuleType
-{
-    PS,
-    TwoS
-};
+extern std::unordered_map <unsigned int,unsigned int>* detIdToIndex;
 
-enum ModuleLayerType
-{
-    Pixel,
-    Strip
-};
 
 //functions
 void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules);
-void fillConnectedModuleArray(struct modules& modulesInGPU);
+void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModules);
 void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules);
-void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned int& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side);
-void resetObjectRanges(struct modules& modulesInGPU, int nModules);
+void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side);
+void resetObjectRanges(struct modules& modulesInGPU, unsigned int nModules);
 #endif
 
