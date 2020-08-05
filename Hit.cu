@@ -101,7 +101,7 @@ float deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2)
 {
     phi1 = phi(x1,y1,z1);
     phi2 = phi(x2,y2,z2);
-    return phi_mpi_pi(std::abs(phi2 - phi1));
+    return phi_mpi_pi((phi2 - phi1));
 }
 
 float deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2)
@@ -116,4 +116,22 @@ void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh
     yhigh = x + 2.5 * sin(phi);
     xlow = x - 2.5 * cos(phi);
     ylow = x - 2.5 * sin(phi);
+}
+
+struct hits::~hits()
+{
+    cudaFree(nHits);
+    cudaFree(n2SHits);
+    cudaFree(xs);
+    cudaFree(ys);
+    cudaFree(zs);
+    cudaFree(moduleIndices);
+    cudaFree(rts);
+    cudaFree(phis);
+
+    cudaFree(edge2SMap);
+    cudaFree(highEdgeXs);
+    cudaFree(highEdgeYs);
+    cudaFree(lowEdgeXs);
+    cudaFree(lowEdgeYs);
 }

@@ -35,6 +35,8 @@ struct hits
     float *lowEdgeXs;
     float *lowEdgeYs;
 
+    ~hits();
+
 };
 
 void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int maxHits, unsigned int max2SHits);
