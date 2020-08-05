@@ -56,22 +56,345 @@ void addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct
     mdsInGPU.noShfitedDphiChanges[idx] = noShiftedDphiChange;
 }
 
-bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
+bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
 {
+    float xLower = hitsInGPU.xs[lowerHitIndex];
+    float yLower = hitsInGPU.ys[lowerHitIndex];
+    float zLower = hitsInGPU.zs[lowerHitIndex];
+
+    float xUpper = hitsInGPU.xs[upperHitIndex];
+    float yUpper = hitsInGPU.ys[upperHitIndex];
+    float zUpper = hitsInGPU.zs[upperHitIndex];
+
+    bool pass = true; 
+    dz = zLower - zUpper;     
+    const float dzCut = modulesInGPU.moduleType(lowerModuleIndex) == PS ? 2.f : 10.f;
+    const float sign = ((dz > 0) - (dz < 0)) * ((hitsInGPU.zs[lowerHitIndex] > 0) - (hitsInGPU.zs[lowerHitIndex] < 0));
+    const float invertedcrossercut = (fabs(dz) > 2) * sign;
+
+
+    //cut convention - when a particular cut fails, the pass variable goes to false
+    //but all cuts will be checked even if a previous cut has failed, this is
+    //to prevent thread divergence
+
+    if (not (fabs(dz) < dzCut and invertedcrossercut <= 0)) // Adding inverted crosser rejection
+    {
+        pass = false;
+    }
+
+    float miniCut = 0;
+
+    if (modulesInGPU.moduleLayerType(lowerModule) == Pixel)
+    {
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
+    }
+    else
+    {
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
+    }
+
+    // Cut #2: dphi difference
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3085
+    float xn = 0, yn = 0 , zn = 0;
+    float shiftedRt;
+    if (modulesInGPU.sides[lowerModuleIndex] != Center) // If barrel and not center it is tilted
+    {
+        // Shift the hits and calculate new xn, yn position
+        float shiftedCoords[3];
+        shiftStripHits(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, shiftedCoords);
+        xn = shiftedCoords[0];
+        yn = shiftedCoords[1];
+        zn = shiftedCoords[2];
+
+        // Lower or the upper hit needs to be modified depending on which one was actually shifted
+        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        {
+            shiftedX = xn;
+            shiftedY = yn;
+            shiftedZ = zUpper;
+            shiftedRt = sqrt(xn * xn + yn * yn);
+
+            dPhi = deltaPhi(xLower,yLower,zLower,shiftedX, shiftedY, shiftedZ); //function from Hit.cu
+            noShiftedDphi = deltaPhi(x,y,z);
+        }
+        else
+        {
+            shiftedX = xn;
+            shiftedY = yn;
+            shiftedZ = zLower;
+            shiftedRt = sqrt(xn * xn + yn * yn);
+            dPhi = deltaPhi(shiftedX, shiftedY, shiftedZ, xUpper, yUpper, zUpper);
+            noShiftedDphi = deltaPhi(x,y,z)
+
+        }
+    }
+    else
+    {
+        dPhi = deltaPhi(xLower, yLower, zLower, xUpper, yUpper, zUpper);
+        noShiftedDphi = dPhi;
+    }
+
+
+    if (not (fabs(dPhi) < miniCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    // Cut #3: The dphi change going from lower Hit to upper Hit
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3076
+    if (modulesInGPU.sides[lowerModule]!= Center)
+    {
+        // When it is tilted, use the new shifted positions
+        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        {
+            // dPhi Change should be calculated so that the upper hit has higher rt.
+            // In principle, this kind of check rt_lower < rt_upper should not be necessary because the hit shifting should have taken care of this.
+            // (i.e. the strip hit is shifted to be aligned in the line of sight from interaction point to pixel hit of PS module guaranteeing rt ordering)
+            // But I still placed this check for safety. (TODO: After cheking explicitly if not needed remove later?)
+            // setDeltaPhiChange(lowerHit.rt() < upperHitMod.rt() ? lowerHit.deltaPhiChange(upperHitMod) : upperHitMod.deltaPhiChange(lowerHit));
+
+
+            dPhiChange = (hitsInGPU.rt[lowerHitIndex] < shiftedRt) ? deltaPhiChange(xLower, yLower, zLower, shiftedX, shiftedY, shiftedZ) : deltaPhiChange(shfitedX, shiftedY, shiftedZ, xLower, yLower, zLower); 
+            noShiftedDphichange = hitsInGPU.rts[lowerHitIndex] < hitsInGPU.rts[upperHitIndex] ? deltaPhiChange(xLower,yLower, zLower, xUpper, yUpper, zUpper) : deltaPhiChange(xUpper, yUpper, zUpper, xLower, yLower, zLower);
+        }
+        else
+        {
+            // dPhi Change should be calculated so that the upper hit has higher rt.
+            // In principle, this kind of check rt_lower < rt_upper should not be necessary because the hit shifting should have taken care of this.
+            // (i.e. the strip hit is shifted to be aligned in the line of sight from interaction point to pixel hit of PS module guaranteeing rt ordering)
+            // But I still placed this check for safety. (TODO: After cheking explicitly if not needed remove later?)
+
+            dPhiChange = (shiftedRt < hitsInGPU.rts[upperHitIdx]) ? deltaPhiChange(shiftedX, shiftedY, shiftedZ, xUpper, yUpper, zUpper) : deltaPhiChange(xUpper, yUpper, zUpper, shiftedX, shiftedY, shiftedZ);
+            noShiftedDphichange = hitsInGPU.rts[lowerHitIndex] < hitsInGPU.rts[upperHitIndex] ? deltaPhiChange(xLower,yLower, zLower, xUpper, yUpper, zUpper) : deltaPhiChange(xUpper, yUpper, zUpper, xLower, yLower, zLower);
+        }
+    }
+    else
+    {
+        // When it is flat lying module, whichever is the lowerSide will always have rt lower
+        dPhiChange = deltaPhiChange(xLower, yLower, zLower, xUpper, yUpper, zUpper);
+        noShfitedDphiChange = dPhiChange;
+    }
+
+    if (not (fabs(dPhiChange) < miniCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    return pass;
 }
 
-bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, float& drt, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
 {
+    float xLower = hitsInGPU.xs[lowerHitIndex];
+    float yLower = hitsInGPU.ys[lowerHitIndex];
+    float zLower = hitsInGPU.zs[lowerHitIndex];
 
+    float xUpper = hitsInGPU.xs[upperHitIndex];
+    float yUpper = hitsInGPU.ys[upperHitIndex];
+    float zUpper = hitsInGPU.zs[upperHitIndex];
+
+    bool pass = true; 
+
+    // There are series of cuts that applies to mini-doublet in a "endcap" region
+
+    // Cut #1 : dz cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3093
+    // For PS module in case when it is tilted a different dz (after the strip hit shift) is calculated later.
+    // This is because the 10.f cut is meant more for sanity check (most will pass this cut anyway) (TODO: Maybe revisit this cut later?)
+
+    float dz = zLower - zUpper; // Not const since later it might change depending on the type of module
+
+    const float dzCut = ((modulesInGPU.sides[lowerModuleIndex] == Endcap) ?  1.f : 10.f);
+    if (not (fabs(dz) < dzCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    // Cut #2 : drt cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3100
+    const float drtCut = modulesInGPU.moduleType(lowerModuleIndex) == PS ? 2.f : 10.f;
+    drt = hitsInGPU.rts[lowerHitIndex] - hitsInGPU.rts[upperHitIndex];
+    if (not (fabs(drt) < drtCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    // Calculate the cut thresholds for the selection
+    
+    // Cut #3: dphi difference
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3111
+    // // Old comments ----
+    // // Old comments Slava, 6:17 PM
+    // // Old comments here for the code to work you would need to slide (line extrapolate) the lower or the upper  hit along the strip direction to the radius of the other
+    // // Old comments you'll get it almost right by assuming radial strips and just add the d_rt*(cosPhi, sinPhi)
+    // // Old comments ----
+    // // Old comments The algorithm assumed that the radial position is ~close according to Slava.
+    // // Old comments However, for PS modules, it is not the case.
+    // // Old comments So we'd have to move the hits to be in same position as the other.
+    // // Old comments We'll move the pixel along the radial direction (assuming the radial direction is more or less same as the strip direction)
+    // ----
+    // The new scheme shifts strip hits to be "aligned" along the line of sight from interaction point to the pixel hit (if it is PS modules)
+    float xn = 0, yn = 0, zn = 0;
+    float shiftedRt;
+
+    float shiftedCoords[3];
+    shiftStripHits(lowerHit, upperHit, lowerModule, shiftedCoords, logLevel);
+    xn = shiftedCoords[0];
+    yn = shiftedCoords[1];
+    zn = shiftedCoords[2];
+
+    if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
+    {
+        // Appropriate lower or upper hit is modified after checking which one was actually shifted
+        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        {
+            // SDL::Hit upperHitMod(upperHit);
+            // upperHitMod.setXYZ(xn, yn, upperHit.z());
+            // setDeltaPhi(lowerHit.deltaPhi(upperHitMod));
+            setUpperShiftedHit(xn, yn, upperHit.z());
+            shiftedX = xn;
+            shiftedY = yn;
+            shiftedZ = zUpper;
+            dPhi = deltaPhi(xLower, yLower, zLower, shiftedX, shiftedY, shiftedZ);
+            noShiftedDphi = deltaPhi(xLower, yLower, zLower, xUpper, yUpper, zUpper);
+        }
+        else
+        {
+            // SDL::Hit lowerHitMod(lowerHit);
+            // lowerHitMod.setXYZ(xn, yn, lowerHit.z());
+            // setDeltaPhi(lowerHitMod.deltaPhi(upperHit));
+            shiftedX = xn;
+            shiftedY = yn;
+            shiftedZ = zLower;
+            dPhi = deltaPhi(shiftedX, shiftedY, shiftedZ, xUpper, yUpper, zUpper);
+            noShiftedDphi = deltaPhi(xLower, yLower, zLower, xUpper, yUpper, zUpper);
+        }
+    }
+    else
+    {
+        shiftedX = xn;
+        shiftedY = yn;
+        shiftedZ = zUpper;
+        dPhi = deltaPhi(xLower, yLower, zLower, xn, yn, zUpper);
+        noShiftedDphi = deltaPhi(xLower, yLower, zLower, xUpper, yUpper, zUpper);
+    }
+
+    // dz needs to change if it is a PS module where the strip hits are shifted in order to properly account for the case when a tilted module falls under "endcap logic"
+    // if it was an endcap it will have zero effect
+    if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
+    {
+        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        {
+            dz = zLower - zn;
+        }
+        else
+        {
+            dz = zUpper - zn;
+        }
+    }
+
+    float miniCut = 0;
+    if(modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+    {
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex,dPhi, dz);
+    }
+    else
+    {
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex, dPhi, dz);
+    }
+
+    if (not (fabs(dPhi) < miniCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    // Cut #4: Another cut on the dphi after some modification
+    // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3119-L3124
+
+    
+    float dzFrac = fabs(dz) / fabs(zLower);
+    dPhiChange = dPhi / dzFrac * (1.f + dzFrac);
+    noShiftedDphichange = noShiftedDphi / dzFrac * (1.f + dzFrac);
+    if (not (fabs(dPhiChange) < miniCut)) // If cut fails continue
+    {
+        pass = false;
+    }
+
+    return pass;
 }
 
-bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
+    bool pass;
+   if(lowerModule.subdets[lowerModuleIndex] == Barrel)
+   {
+        pass = runMiniDoubletDefaultAlgoBarrel(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphichange);
+   } 
+   else
+   {
+       pass = runMiniDoubletDefaultAlgoEndcap(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphichange);
 
+   }
+   return pass;
 }
 
-float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex)
+float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
 {
+    // =================================================================
+    // Various constants
+    // =================================================================
+    const float kRinv1GeVf = (2.99792458e-3 * 3.8);
+    const float k2Rinv1GeVf = kRinv1GeVf / 2.;
+    // const float ptCut = PTCUT;
+    // const float sinAlphaMax = 0.95;
+    float ptCut = 1;
+    float sinAlphaMax = 0.95;
+    float miniMulsPtScaleBarrel[] = {0.0052, 0.0038, 0.0034, 0.0034, 0.0032, 0.0034};
+    float miniMulsPtScaleEndcap[] =  {0.006, 0.006, 0.006, 0.006, 0.006}; //inter/extra-polated from L11 and L13 both roughly 0.006 [larger R have smaller value by ~50%]
+    //mean of the horizontal layer position in y; treat this as R below
+    float miniRminMeanBarrel[] = {21.8, 34.6, 49.6, 67.4, 87.6, 106.8}; // TODO: Update this with newest geometry
+    float miniRminMeanEndcap[] = {131.4, 156.2, 185.6, 220.3, 261.5};// use z for endcaps // TODO: Update this with newest geometry
+
+    // =================================================================
+    // Computing some components that make up the cut threshold
+    // =================================================================
+
+    float rt = hitsInGPU.rts[hitIndex];
+    unsigned int iL = modulesInGPU.layers[moduleIndex] - 1;
+    const float miniSlope = std::asin(min(rt * k2Rinv1GeVf / ptCut, sinAlphaMax));
+    const float rLayNominal = ((modulesInGPU.subdets[moduleIndex]== Barrel) ? miniRminMeanBarrel[iL] : miniRminMeanEndcap[iL]);
+    const float miniPVoff = 0.1 / rLayNominal;
+    const float miniMuls = ((modulesInGPU.subdets[moduleIndex] == Barrel) ? miniMulsPtScaleBarrel[iL] * 3.f / ptCut : miniMulsPtScaleEndcap[iL] * 3.f / ptCut);
+    const bool isTilted = modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center;
+    const bool tiltedOT123 = true;
+    const float pixelPSZpitch = 0.15;
+    const float drdz = isTilted && tiltedOT123 ? modulesInGPU.drdzs[moduleIndex] : 0;
+    const float miniTilt = ((isTilted && tiltedOT123) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
+
+    // Compute luminous region requirement for endcap
+    const float deltaZLum = 15.f;
+    const float miniLum = fabs(dPhi * deltaZLum/dz); // Balaji's new error
+    // const float miniLum = abs(deltaZLum / lowerHit.z()); // Old error
+
+
+    // =================================================================
+    // Return the threshold value
+    // =================================================================
+    // Following condition is met if the module is central and flatly lying
+    if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] == Center)
+    {
+        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2));
+    }
+    // Following condition is met if the module is central and tilted
+    else if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center) //all types of tilted modules
+    {
+        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2) + pow(miniTilt * miniSlope, 2));
+    }
+    // If not barrel, it is Endcap
+    else
+    {
+        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2) + pow(miniLum, 2));
+    }
 
 }
 
@@ -366,4 +689,21 @@ void shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsign
 
 }
 
+miniDoublets::~miniDoublets()
+{
+    cudaFree(hitIndices);
+    cudaFree(moduleIndices);
+    cudaFree(pixelModuleFlag);
+    cudaFree(nMDs);
+    cudaFree(dphichanges);
 
+    cudaFree(dzs);
+    cudaFree(dphis);
+
+    cudaFree(shiftedXs);
+    cudaFree(shiftedYs);
+    cudaFree(shiftedZs);
+    cudaFree(noShiftedDzs);
+    cudaFree(noShiftedDphis);
+    cudaFree(noShiftedDphiChanges);
+}
