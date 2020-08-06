@@ -1,6 +1,6 @@
 #include "EndcapGeometry.h"
 
-SDL::EndcapGeometry endcapGeometry;
+SDL::EndcapGeometry SDL::endcapGeometry;
 
 SDL::EndcapGeometry::EndcapGeometry()
 {

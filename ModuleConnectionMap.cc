@@ -1,6 +1,6 @@
 #include "ModuleConnectionMap.h"
 
-SDL::ModuleConnectionMap moduleConnectionMap;
+SDL::ModuleConnectionMap SDL::moduleConnectionMap;
 
 SDL::ModuleConnectionMap::ModuleConnectionMap()
 {

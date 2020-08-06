@@ -1,6 +1,6 @@
 #include "TiltedGeometry.h"
 
-SDL::TiltedGeometry tiltedGeometry;
+SDL::TiltedGeometry SDL::tiltedGeometry;
 
 SDL::TiltedGeometry::TiltedGeometry()
 {
