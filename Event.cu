@@ -1,8 +1,11 @@
 # include "Event.cuh"
 
 
-N_MAX_HITS_PER_MODULE = 100;
-N_MAX_MD_PER_MODULES = 100;
+const unsigned int N_MAX_HITS_PER_MODULE = 100;
+const unsigned int N_MAX_MD_PER_MODULES = 100;
+struct modules SDL::modulesInGPU;
+unsigned int SDL::nModules;
+
 SDL::Event::Event()
 {
     //reset the arrays

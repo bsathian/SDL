@@ -1,4 +1,5 @@
 # include "Module.cuh"
+std::unordered_map <unsigned int, unsigned int> *SDL::detIdToIndex;
 
 void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules)
 {
