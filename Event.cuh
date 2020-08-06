@@ -63,8 +63,8 @@ namespace SDL
 }
 
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU);
-extern const unsigned int N_MAX_MD_PER_MODULES = 100;
-extern const unsigned int N_MAX_HITS_PER_MODULE = 100;
+extern const unsigned int N_MAX_MD_PER_MODULES;
+extern const unsigned int N_MAX_HITS_PER_MODULE;
 
 
 

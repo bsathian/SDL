@@ -1,5 +1,8 @@
 # include "Event.cuh"
 
+
+N_MAX_HITS_PER_MODULE = 100;
+N_MAX_MD_PER_MODULES = 100;
 SDL::Event::Event()
 {
     //reset the arrays
