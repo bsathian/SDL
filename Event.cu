@@ -19,6 +19,7 @@ SDL::Event::Event()
             n_minidoublets_by_layer_endcap_[i] = 0;
         }
     }
+    resetObjectsInModule();
 }
 
 SDL::Event::~Event()
