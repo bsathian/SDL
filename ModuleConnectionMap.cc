@@ -1,21 +1,21 @@
 #include "ModuleConnectionMap.h"
 
-ModuleConnectionMap moduleConnectionMap;
+SDL::ModuleConnectionMap moduleConnectionMap;
 
-ModuleConnectionMap::ModuleConnectionMap()
+SDL::ModuleConnectionMap::ModuleConnectionMap()
 {
 }
 
-ModuleConnectionMap::ModuleConnectionMap(std::string filename)
+SDL::ModuleConnectionMap::ModuleConnectionMap(std::string filename)
 {
     load(filename);
 }
 
-ModuleConnectionMap::~ModuleConnectionMap()
+SDL::ModuleConnectionMap::~ModuleConnectionMap()
 {
 }
 
-void ModuleConnectionMap::load(std::string filename)
+void SDL::ModuleConnectionMap::load(std::string filename)
 {
     moduleConnections_.clear();
 
@@ -46,7 +46,7 @@ void ModuleConnectionMap::load(std::string filename)
     }
 }
 
-void ModuleConnectionMap::add(std::string filename)
+void SDL::ModuleConnectionMap::add(std::string filename)
 {
 
     std::ifstream ifile;
@@ -84,7 +84,7 @@ void ModuleConnectionMap::add(std::string filename)
 
 }
 
-void ModuleConnectionMap::print()
+void SDL::ModuleConnectionMap::print()
 {
     std::cout << "Printing ModuleConnectionMap" << std::endl;
     for (auto& pair : moduleConnections_)
@@ -100,7 +100,7 @@ void ModuleConnectionMap::print()
     }
 }
 
-const std::vector<unsigned int>& ModuleConnectionMap::getConnectedModuleDetIds(unsigned int detid)
+const std::vector<unsigned int>& SDL::ModuleConnectionMap::getConnectedModuleDetIds(unsigned int detid)
 {
     return moduleConnections_[detid];
 }

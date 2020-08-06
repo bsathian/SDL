@@ -1,26 +1,26 @@
 # include "MiniDoublet.cuh"
 #define SDL_INF 123456789
 
-void createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDs, unsigned int nModules)
+void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules)
 {
-    cudaMallocManaged(&mdsInGPU.hitIndices, maxMDs * 2 * sizeof(unsigned int));
-    cudaMallocManaged(&mdsInGPU.moduleIndices, maxMDs * sizeof(unsigned int));
-    cudaMallocManaged(&mdsInGPU.pixelModuleFlag, maxMDs * sizeof(short));
-    cudaMallocManaged(&mdsInGPU.dphichanges, maxMDs * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.hitIndices, maxMDsPerModule * nModules * 2 * sizeof(unsigned int));
+    cudaMallocManaged(&mdsInGPU.moduleIndices, maxMDsPerModule * nModules * sizeof(unsigned int));
+    cudaMallocManaged(&mdsInGPU.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short));
+    cudaMallocManaged(&mdsInGPU.dphichanges, maxMDsPerModule * nModules * sizeof(float));
 
     cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(int));
 
-    cudaMallocManaged(&mdsInGPU.dzs, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.dphis, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedXs, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedYs, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedZs, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDzs, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDphis, maxMDs * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDphiChanges, maxMDs * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.dzs, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.dphis, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedXs, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedYs, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedZs, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDzs, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDphis, maxMDsPerModule * nModules * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
 }
 
-void addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
+void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
 {
     //the index into which this MD needs to be written will be computed in the kernel
     //nMDs variable will be incremented in the kernel, no need to worry about that here
@@ -57,7 +57,7 @@ void addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct
     mdsInGPU.noShiftedDphiChanges[idx] = noShiftedDPhiChange;
 }
 
-bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
     float xLower = hitsInGPU.xs[lowerHitIndex];
     float yLower = hitsInGPU.ys[lowerHitIndex];
@@ -184,7 +184,7 @@ bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& 
     return pass;
 }
 
-bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
+bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
 {
     float xLower = hitsInGPU.xs[lowerHitIndex];
     float yLower = hitsInGPU.ys[lowerHitIndex];
@@ -310,7 +310,7 @@ bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& 
     return pass;
 }
 
-bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
     bool pass;
    if(modulesInGPU.subdets[lowerModuleIndex] == Barrel)
@@ -325,7 +325,7 @@ bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsIn
    return pass;
 }
 
-float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
+float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
 {
     // =================================================================
     // Various constants
@@ -385,7 +385,7 @@ float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsign
 
 }
 
-inline float isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex)
+inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex)
 {
     // The "tighter" tilted modules are the subset of tilted modules that have smaller spacing
     // This is the same as what was previously considered as"isNormalTiltedModules"
@@ -408,7 +408,7 @@ inline float isTighterTiltedModules(struct modules& modulesInGPU, unsigned int m
 
 }
 
-inline float moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
+inline float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
 {
     float miniDeltaTilted[] = {0.26, 0.26, 0.26};
     float miniDeltaLooseTilted[] =  {0.4,0.4,0.4};
@@ -482,7 +482,7 @@ inline float moduleGapSize(struct modules& modulesInGPU, unsigned int moduleInde
     return moduleSeparation;
 }
 
-void shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords)
+void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords)
 {
 
     // This is the strip shift scheme that is explained in http://uaf-10.t2.ucsd.edu/~phchang/talks/PhilipChang20190607_SDL_Update.pdf (see backup slides)
@@ -678,7 +678,7 @@ void shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsign
 
 }
 
-miniDoublets::~miniDoublets()
+SDL::miniDoublets::~miniDoublets()
 {
     cudaFree(hitIndices);
     cudaFree(moduleIndices);

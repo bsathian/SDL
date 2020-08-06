@@ -14,36 +14,39 @@
 //#include "PrintUtil.h"
 #include "Module.cuh"
 
-struct hits
+namespace SDL
 {
-    unsigned int *nHits; //single number
-    unsigned int *n2SHits;
-    float *xs;
-    float *ys;
-    float *zs;
+    struct hits
+    {
+        unsigned int *nHits; //single number
+        unsigned int *n2SHits;
+        float *xs;
+        float *ys;
+        float *zs;
 
-    unsigned int* moduleIndices;
-    
-    float *rts;
-    float* phis;
+        unsigned int* moduleIndices;
+        
+        float *rts;
+        float* phis;
 
-    int *edge2SMap;
-    float *highEdgeXs;
-    float *highEdgeYs;
-    float *lowEdgeXs;
-    float *lowEdgeYs;
+        int *edge2SMap;
+        float *highEdgeXs;
+        float *highEdgeYs;
+        float *lowEdgeXs;
+        float *lowEdgeYs;
 
-    ~hits();
+        ~hits();
 
-};
+    };
 
-void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int maxHits, unsigned int max2SHits);
-void addHitToMemory(struct hits& hitsInGPU,struct modules& modulesInGPU,float x, float y, float z, unsigned int detId);
-CUDA_HOSTDEV inline float phi(float x, float y, float z);
-CUDA_HOSTDEV inline float ATan2(float y, float x);
-CUDA_HOSTDEV inline float phi_mpi_pi(float phi);
-CUDA_HOSTDEV float deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2);
-CUDA_HOSTDEV float deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2);
-void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh, float& xlow, float& ylow);
+    void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int maxHits, unsigned int max2SHits);
+    void addHitToMemory(struct hits& hitsInGPU,struct modules& modulesInGPU,float x, float y, float z, unsigned int detId);
+    CUDA_HOSTDEV inline float phi(float x, float y, float z);
+    CUDA_HOSTDEV inline float ATan2(float y, float x);
+    CUDA_HOSTDEV inline float phi_mpi_pi(float phi);
+    CUDA_HOSTDEV float deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2);
+    CUDA_HOSTDEV float deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2);
+    void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh, float& xlow, float& ylow);
+}
 #endif
 

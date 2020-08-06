@@ -1,21 +1,21 @@
 #include "TiltedGeometry.h"
 
-TiltedGeometry tiltedGeometry;
+SDL::TiltedGeometry tiltedGeometry;
 
-TiltedGeometry::TiltedGeometry()
+SDL::TiltedGeometry::TiltedGeometry()
 {
 }
 
-TiltedGeometry::TiltedGeometry(std::string filename)
+SDL::TiltedGeometry::TiltedGeometry(std::string filename)
 {
     load(filename);
 }
 
-TiltedGeometry::~TiltedGeometry()
+SDL::TiltedGeometry::~TiltedGeometry()
 {
 }
 
-void TiltedGeometry::load(std::string filename)
+void SDL::TiltedGeometry::load(std::string filename)
 {
     drdzs_.clear();
     slopes_.clear();
@@ -40,7 +40,7 @@ void TiltedGeometry::load(std::string filename)
     }
 }
 
-float TiltedGeometry::getDrDz(unsigned int detid)
+float SDL::TiltedGeometry::getDrDz(unsigned int detid)
 {
     if(drdzs_.find(detid) != drdzs_.end())
     {
@@ -52,7 +52,7 @@ float TiltedGeometry::getDrDz(unsigned int detid)
     }
 }
 
-float TiltedGeometry::getSlope(unsigned int detid)
+float SDL::TiltedGeometry::getSlope(unsigned int detid)
 {
     if(slopes_.find(detid) != slopes_.end())
     {

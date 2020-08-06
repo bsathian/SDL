@@ -1,6 +1,6 @@
 # include "Module.cuh"
 
-void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules)
+void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules)
 {
     /* modules stucture object will be created in Event.cu*/
 
@@ -25,7 +25,7 @@ void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nMod
 
 }
 
-void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules)
+void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules)
 {
     detIdToIndex = new std::unordered_map<unsigned int, unsigned int>;
     cudaMallocManaged(&modulesInGPU.lowerModuleIndices,nLowerModules * sizeof(unsigned int));
@@ -41,7 +41,7 @@ void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLower
     }
 }
 
-void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, unsigned int& nLowerModules)
+void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
 {
     /*modules structure object will be created in Event.cu*/
     /* Load the whole text file into the unordered_map first*/
@@ -94,7 +94,7 @@ void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules, u
     resetObjectRanges(modulesInGPU,nModules);
 } 
 
-void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModules)
+void SDL::fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModules)
 {
     for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); ++it)
     {
@@ -109,7 +109,7 @@ void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModule
     }
 }
 
-void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side)
+void SDL::setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side)
 {
     subdet = (detId & (7 << 25)) >> 25;
     side = (subdet == Endcap) ? (detId & (3 << 23)) >> 23 : (detId & (3 << 18)) >> 18;
@@ -120,7 +120,7 @@ void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned sh
 }
 
 //auxilliary functions - will be called as needed
-bool modules::isInverted(unsigned int index)
+bool SDL::modules::isInverted(unsigned int index)
 {
     if (subdets[index] == Endcap)
     {
@@ -180,12 +180,12 @@ bool modules::isInverted(unsigned int index)
     }
 }
 
-bool modules::isLower(unsigned int index)
+bool SDL::modules::isLower(unsigned int index)
 {
     return (isInverted(index)) ? !(index & 1) : (index & 1);
 }
 
-unsigned int modules::partnerModuleIndex(unsigned int index)
+unsigned int SDL::modules::partnerModuleIndex(unsigned int index)
 {
     /*We need to ensure modules with successive det Ids are right next to each other
     or we're dead*/
@@ -199,7 +199,7 @@ unsigned int modules::partnerModuleIndex(unsigned int index)
     }
 }
 
-ModuleType modules::moduleType(unsigned int index)
+SDL::ModuleType SDL::modules::moduleType(unsigned int index)
 {
     if(subdets[index] == Barrel)
     {
@@ -239,7 +239,7 @@ ModuleType modules::moduleType(unsigned int index)
     }
 }
 
-ModuleLayerType modules::moduleLayerType(unsigned int index)
+SDL::ModuleLayerType SDL::modules::moduleLayerType(unsigned int index)
 {
     if(moduleType(index) == TwoS)
     {
@@ -269,7 +269,7 @@ ModuleLayerType modules::moduleLayerType(unsigned int index)
     }
 }
 
-void resetObjectRanges(struct modules& modulesInGPU, unsigned int nModules)
+void SDL::resetObjectRanges(struct modules& modulesInGPU, unsigned int nModules)
 {
 
 #pragma omp parallel for default(shared)

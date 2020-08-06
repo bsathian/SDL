@@ -16,47 +16,49 @@
 #include "Module.cuh"
 #include "Hit.cuh"
 
-struct miniDoublets
+namespace SDL
 {
-    unsigned int* hitIndices;
-    unsigned int* moduleIndices;
-    short* pixelModuleFlag;
-    unsigned int* nMDs; //counter per module
-    float* dphichanges;
+    struct miniDoublets
+    {
+        unsigned int* hitIndices;
+        unsigned int* moduleIndices;
+        short* pixelModuleFlag;
+        unsigned int* nMDs; //counter per module
+        float* dphichanges;
 
-    float* dzs; //will store drt if the module is endcap
-    float*dphis;
+        float* dzs; //will store drt if the module is endcap
+        float*dphis;
 
-    float* shiftedXs;
-    float* shiftedYs;
-    float* shiftedZs;
-    float* noShiftedDzs; //if shifted module
-    float* noShiftedDphis; //if shifted module
-    float* noShiftedDphiChanges; //if shifted module
+        float* shiftedXs;
+        float* shiftedYs;
+        float* shiftedZs;
+        float* noShiftedDzs; //if shifted module
+        float* noShiftedDphis; //if shifted module
+        float* noShiftedDphiChanges; //if shifted module
 
-    ~miniDoublets();
+        ~miniDoublets();
 
-};
-
-
-
-void createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDs);
-//for successful MDs
-CUDA_HOSTDEV void addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dphi, float dphichange, float shfitedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx);
-
-CUDA_HOSTDEV float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi = 0, float dz = 0);
-CUDA_HOSTDEV inline float isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex);
-CUDA_HOSTDEV inline float moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex);
-
-CUDA_HOSTDEV bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
-
-CUDA_HOSTDEV void shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords);
+    };
 
 
-CUDA_HOSTDEV bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
-CUDA_HOSTDEV bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
-CUDA_HOSTDEV bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
 
+    void createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDs,unsigned int nModules);
+    //for successful MDs
+    CUDA_HOSTDEV void addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dphi, float dphichange, float shfitedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx);
+
+    CUDA_HOSTDEV float dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi = 0, float dz = 0);
+    CUDA_HOSTDEV inline float isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex);
+    CUDA_HOSTDEV inline float moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex);
+
+    CUDA_HOSTDEV bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
+
+    CUDA_HOSTDEV void shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords);
+
+
+    CUDA_HOSTDEV bool runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
+    CUDA_HOSTDEV bool runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
+    CUDA_HOSTDEV bool runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dphi, float& dphichange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange);
+}
 
 #endif
 

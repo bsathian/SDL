@@ -1,6 +1,6 @@
 # include "Event.cuh"
 
-Event::Event()
+SDL::Event::Event()
 {
     //reset the arrays
     for(int i = 0; i<6; i++)
@@ -15,11 +15,11 @@ Event::Event()
     }
 }
 
-Event::~Event()
+SDL::Event::~Event()
 {
 }
 
-void initModules()
+void SDL::initModules()
 {
     if(modulesInGPU.detIds == nullptr) //check for nullptr and create memory
     {
@@ -28,12 +28,12 @@ void initModules()
     resetObjectRanges(modulesInGPU,nModules);
 }
 
-void Event::resetObjectsInModule()
+void SDL::Event::resetObjectsInModule()
 {
     resetObjectRanges(modulesInGPU,nModules);
 }
 
-void Event::addHitToEvent(float x, float y, float z, unsigned int detId)
+void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 {
     const int HIT_MAX = 1000000;
     const int HIT_2S_MAX = 100000;
@@ -59,7 +59,7 @@ void Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 
 }
 
-void Event::addMiniDoubletsToEvent()
+void SDL::Event::addMiniDoubletsToEvent()
 {
     for(unsigned int i = 0; i<nModules; i++)
     {
@@ -77,8 +77,12 @@ void Event::addMiniDoubletsToEvent()
     }
 }
 
-void Event::createMiniDoublets()
+void SDL::Event::createMiniDoublets()
 {
+    if(mdsInGPU.hitIndices == nullptr)
+    {
+        createMDsInUnifiedMemory(mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
+    }
     unsigned int nLowerModules = *modulesInGPU.nLowerModules;
     dim3 nThreads(1,16,16);
     dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
@@ -89,7 +93,7 @@ void Event::createMiniDoublets()
 }
 
 
-__global__ void createMiniDoubletsInGPU(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU)
+__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if(lowerModuleArrayIdx > (*modulesInGPU.nLowerModules)) return; //extra precaution
@@ -119,7 +123,7 @@ __global__ void createMiniDoubletsInGPU(struct modules& modulesInGPU, struct hit
     }
 }
 
-unsigned int Event::getNumberOfHits()
+unsigned int SDL::Event::getNumberOfHits()
 {
     unsigned int hits = 0;
     for(auto &it:n_hits_by_layer_barrel_)
@@ -134,7 +138,7 @@ unsigned int Event::getNumberOfHits()
     return hits;
 }
 
-unsigned int Event::getNumberOfHitsByLayer(unsigned int layer)
+unsigned int SDL::Event::getNumberOfHitsByLayer(unsigned int layer)
 {
     if(layer == 6)
         return n_hits_by_layer_barrel_[layer];
@@ -142,17 +146,17 @@ unsigned int Event::getNumberOfHitsByLayer(unsigned int layer)
         return n_hits_by_layer_barrel_[layer] + n_hits_by_layer_endcap_[layer];
 }
 
-unsigned int Event::getNumberOfHitsByLayerBarrel(unsigned int layer)
+unsigned int SDL::Event::getNumberOfHitsByLayerBarrel(unsigned int layer)
 {
     return n_hits_by_layer_barrel_[layer];
 }
 
-unsigned int Event::getNumberOfHitsByLayerEndcap(unsigned int layer)
+unsigned int SDL::Event::getNumberOfHitsByLayerEndcap(unsigned int layer)
 {
     return n_hits_by_layer_endcap_[layer];
 }
 
-unsigned int Event::getNumberOfMiniDoublets()
+unsigned int SDL::Event::getNumberOfMiniDoublets()
 {
      unsigned int miniDoublets = 0;
     for(auto &it:n_minidoublets_by_layer_barrel_)
@@ -168,7 +172,7 @@ unsigned int Event::getNumberOfMiniDoublets()
    
 }
 
-unsigned int Event::getNumberOfMiniDoubletsByLayer(unsigned int layer)
+unsigned int SDL::Event::getNumberOfMiniDoubletsByLayer(unsigned int layer)
 {
      if(layer == 6)
         return n_minidoublets_by_layer_barrel_[layer];
@@ -176,12 +180,12 @@ unsigned int Event::getNumberOfMiniDoubletsByLayer(unsigned int layer)
         return n_minidoublets_by_layer_barrel_[layer] + n_minidoublets_by_layer_endcap_[layer];   
 }
 
-unsigned int Event::getNumberOfMiniDoubletsByLayerBarrel(unsigned int layer)
+unsigned int SDL::Event::getNumberOfMiniDoubletsByLayerBarrel(unsigned int layer)
 {
     return n_minidoublets_by_layer_barrel_[layer];
 }
 
-unsigned int Event::getNumberOfMiniDoubletsByLayerEndcap(unsigned int layer)
+unsigned int SDL::Event::getNumberOfMiniDoubletsByLayerEndcap(unsigned int layer)
 {
     return n_minidoublets_by_layer_endcap_[layer];
 }

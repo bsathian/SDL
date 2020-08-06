@@ -1,6 +1,6 @@
 # include "Hit.cuh"
 
-void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits,unsigned int nMax2SHits)
+void SDL::createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits,unsigned int nMax2SHits)
 {
     //nMaxHits and nMax2SHits are the maximum possible numbers
     cudaMallocManaged(&hitsInGPU.xs, nMaxHits * sizeof(float));
@@ -24,7 +24,7 @@ void createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits,unsi
     *hitsInGPU.n2SHits = 0;
 }
 
-void addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float x, float y, float z, unsigned int detId)
+void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float x, float y, float z, unsigned int detId)
 {
     unsigned int idx = *hitsInGPU.nHits;
     unsigned int idxEdge2S = *hitsInGPU.n2SHits;
@@ -67,7 +67,7 @@ void addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float 
     
 }
 
-inline float ATan2(float y, float x)
+inline float SDL::ATan2(float y, float x)
 {
     if (x != 0) return  atan2(y, x);
     if (y == 0) return  0;
@@ -76,13 +76,13 @@ inline float ATan2(float y, float x)
 }
 
 
-inline float phi(float x, float y, float z)
+inline float SDL::phi(float x, float y, float z)
 {
     return phi_mpi_pi(M_PI + ATan2(-y, -x)); 
 }
 
 
-inline float phi_mpi_pi(float x)
+inline float SDL::phi_mpi_pi(float x)
 {
     if (isnan(x))
     {
@@ -99,19 +99,19 @@ inline float phi_mpi_pi(float x)
     return x;
 }
 
-float deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2)
+float SDL::deltaPhi(float x1, float y1, float z1, float x2, float y2, float z2)
 {
     float phi1 = phi(x1,y1,z1);
     float phi2 = phi(x2,y2,z2);
     return phi_mpi_pi((phi2 - phi1));
 }
 
-float deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2)
+float SDL::deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2)
 {
     return deltaPhi(x1,y1,z1,x2-x1, y2-y1, z2-z1);
 }
 
-void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh, float& xlow, float& ylow)
+void SDL::getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh, float& xlow, float& ylow)
 {
     float phi = endcapGeometry.getCentroidPhi(detId);
     xhigh = x + 2.5 * cos(phi);
@@ -120,7 +120,7 @@ void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh
     ylow = x - 2.5 * sin(phi);
 }
 
-hits::~hits()
+SDL::hits::~hits()
 {
     cudaFree(nHits);
     cudaFree(n2SHits);
