@@ -34,7 +34,8 @@ namespace SDL
         float *highEdgeYs;
         float *lowEdgeXs;
         float *lowEdgeYs;
-
+        
+        hits();
         ~hits();
 
     };

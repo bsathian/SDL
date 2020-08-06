@@ -678,6 +678,25 @@ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, u
 
 }
 
+SDL::miniDoublets::miniDoublets()
+{
+    hitIndices = nullptr;
+    moduleIndices = nullptr;
+    pixelModuleFlag = nullptr;
+    nMDs = nullptr;
+    dphichanges = nullptr;
+
+    dzs = nullptr;
+    dphis = nullptr;
+
+    shiftedXs = nullptr;
+    shiftedYs = nullptr;
+    shiftedZs = nullptr;
+    noShiftedDzs = nullptr;
+    noShiftedDphis = nullptr;
+    noShiftedDphiChanges = nullptr;
+}
+
 SDL::miniDoublets::~miniDoublets()
 {
     cudaFree(hitIndices);

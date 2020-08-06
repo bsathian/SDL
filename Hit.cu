@@ -1,5 +1,22 @@
 # include "Hit.cuh"
 
+SDL::hits::hits()
+{
+    nHits = nullptr;
+    n2SHits = nullptr;
+    xs = nullptr;
+    ys = nullptr;
+    zs = nullptr;
+    moduleIndices = nullptr;
+    rts = nullptr;
+    phis = nullptr;
+    edge2SMap = nullptr;
+    highEdgeXs = nullptr;
+    highEdgeYs = nullptr;
+    lowEdgeXs = nullptr;
+    lowEdgeYs = nullptr;
+}
+
 void SDL::createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits,unsigned int nMax2SHits)
 {
     //nMaxHits and nMax2SHits are the maximum possible numbers
@@ -26,8 +43,8 @@ void SDL::createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits
 
 void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float x, float y, float z, unsigned int detId)
 {
-    unsigned int idx = *hitsInGPU.nHits;
-    unsigned int idxEdge2S = *hitsInGPU.n2SHits;
+    unsigned int idx = *(hitsInGPU.nHits);
+    unsigned int idxEdge2S = *(hitsInGPU.n2SHits);
 
     hitsInGPU.xs[idx] = x;
     hitsInGPU.ys[idx] = y;
