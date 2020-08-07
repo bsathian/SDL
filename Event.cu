@@ -117,6 +117,8 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules modulesInGPU, struct
     int lowerHitIdx = blockIdx.y * blockDim.y + threadIdx.y;
     int upperHitIdx = blockIdx.z * blockDim.z + threadIdx.z;
 
+    if(modulesInGPU.hitRanges[lowerModuleIdx * 2] == -1) return;
+
     unsigned int nLowerHits = modulesInGPU.hitRanges[lowerModuleIdx * 2 + 1] - modulesInGPU.hitRanges[lowerModuleIdx * 2] + 1;
     unsigned int nUpperHits = modulesInGPU.hitRanges[upperModuleIdx * 2 + 1] - modulesInGPU.hitRanges[upperModuleIdx * 2] + 1;
     //consider assigining a dummy computation function for these
