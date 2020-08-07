@@ -68,18 +68,29 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 
 void SDL::Event::addMiniDoubletsToEvent()
 {
-    for(unsigned int i = 0; i<nModules; i++)
+    unsigned int idx;
+    for(unsigned int i = 0; i<*SDL::modulesInGPU.nLowerModules; i++)
     {
-        modulesInGPU.mdRanges[i * 2] = i * N_MAX_MD_PER_MODULES;
-        modulesInGPU.mdRanges[i * 2 + 1] = (i * N_MAX_MD_PER_MODULES) + mdsInGPU.nMDs[i];
-     
-        if(modulesInGPU.subdets[i] == Barrel)
+        idx = SDL::modulesInGPU.lowerModuleIndices[i];
+        if(modulesInGPU.hitRanges[idx * 2] == -1)
         {
-            n_minidoublets_by_layer_barrel_[modulesInGPU.layers[i] -1] ++;
+            modulesInGPU.mdRanges[idx * 2] = -1;
+            modulesInGPU.mdRanges[idx * 2 + 1] = -1;
         }
         else
         {
-            n_minidoublets_by_layer_endcap_[modulesInGPU.layers[i] - 1] ++;
+            modulesInGPU.mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
+            modulesInGPU.mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU.nMDs[idx];
+     
+            if(modulesInGPU.subdets[idx] == Barrel)
+            {
+                n_minidoublets_by_layer_barrel_[modulesInGPU.layers[idx] -1] += mdsInGPU.nMDs[idx];
+            }
+            else
+            {
+                n_minidoublets_by_layer_endcap_[modulesInGPU.layers[idx] - 1] += mdsInGPU.nMDs[idx];
+            }
+
         }
     }
 }
