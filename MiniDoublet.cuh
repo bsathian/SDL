@@ -36,8 +36,9 @@ namespace SDL
         float* noShiftedDphis; //if shifted module
         float* noShiftedDphiChanges; //if shifted module
 
-        ~miniDoublets();
         miniDoublets();
+
+        ~miniDoublets();
 
     };
 

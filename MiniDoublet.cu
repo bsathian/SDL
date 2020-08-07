@@ -8,7 +8,10 @@ void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int m
     cudaMallocManaged(&mdsInGPU.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short));
     cudaMallocManaged(&mdsInGPU.dphichanges, maxMDsPerModule * nModules * sizeof(float));
 
-    cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(int));
+    cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(unsigned int));
+#pragma omp parallel for default(shared)
+    for(size_t i = 0; i< nModules; i++)
+        mdsInGPU.nMDs[i] = 0;
 
     cudaMallocManaged(&mdsInGPU.dzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMallocManaged(&mdsInGPU.dphis, maxMDsPerModule * nModules * sizeof(float));
@@ -312,7 +315,7 @@ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct h
 
 bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
-    bool pass;
+   bool pass;
    if(modulesInGPU.subdets[lowerModuleIndex] == Barrel)
    {
         pass = runMiniDoubletDefaultAlgoBarrel(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange);
