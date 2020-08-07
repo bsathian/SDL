@@ -79,9 +79,7 @@ void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, f
     }
     //always update the end index
     modulesInGPU.hitRanges[moduleIndex * 2 + 1] = idx;
-
     (*hitsInGPU.nHits)++;
-    
 }
 
 inline float SDL::ATan2(float y, float x)

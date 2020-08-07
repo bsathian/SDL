@@ -4,8 +4,7 @@ std::unordered_map <unsigned int, unsigned int> *SDL::detIdToIndex;
 void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules)
 {
     /* modules stucture object will be created in Event.cu*/
-
-    cudaMallocManaged(&modulesInGPU.detIds,nModules * sizeof(unsigned int));
+    cudaMallocManaged(&(modulesInGPU.detIds),nModules * sizeof(unsigned int));
     cudaMallocManaged(&modulesInGPU.moduleMap,nModules * 40 * sizeof(unsigned int));
     cudaMallocManaged(&modulesInGPU.nConnectedModules,nModules * sizeof(unsigned int));
     cudaMallocManaged(&modulesInGPU.drdzs,nModules * sizeof(float));
@@ -28,7 +27,6 @@ void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int
 
 void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules)
 {
-    detIdToIndex = new std::unordered_map<unsigned int, unsigned int>;
     cudaMallocManaged(&modulesInGPU.lowerModuleIndices,nLowerModules * sizeof(unsigned int));
     unsigned int lowerModuleCounter = 0;
     for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); it++)
@@ -44,11 +42,17 @@ void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int n
 
 void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
 {
+    detIdToIndex = new std::unordered_map<unsigned int, unsigned int>;
+
     /*modules structure object will be created in Event.cu*/
     /* Load the whole text file into the unordered_map first*/
 
     std::ifstream ifile;
     ifile.open("data/centroid.txt");
+    if(!ifile.is_open())
+    {
+        std::cout<<"ERROR! module list file not present!"<<std::endl;
+    }
     std::string line;
     unsigned int counter = 0;
     unsigned int lowerModuleCounter = 0;
@@ -62,12 +66,13 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
         while(std::getline(ss,token,','))
         {
             if(flag == 1) break;
-            (*detIdToIndex)[counter] = stoi(token);
+            (*detIdToIndex)[stoi(token)] = counter;
             flag = 1;
             counter++;
         }
     }
     nModules = counter;
+    std::cout<<"Number of modules = "<<nModules<<std::endl;
 
     createModulesInUnifiedMemory(modulesInGPU,nModules);
 

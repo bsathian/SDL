@@ -57,12 +57,12 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 
     if(subdet == Barrel)
     {
-        n_hits_by_layer_barrel_[moduleLayer]++;
+        n_hits_by_layer_barrel_[moduleLayer-1]++;
     }
     else
     {
-        n_hits_by_layer_endcap_[moduleLayer]++;
-    }
+        n_hits_by_layer_endcap_[moduleLayer-1]++;
+    } 
 
 }
 
@@ -96,6 +96,8 @@ void SDL::Event::createMiniDoublets()
     std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
     
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU);
+
+    cudaDeviceSynchronize();
 
 }
 
