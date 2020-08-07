@@ -95,6 +95,7 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
     }
 
     *modulesInGPU.nLowerModules = lowerModuleCounter;
+    std::cout<<"number of lower modules = "<<*modulesInGPU.nLowerModules<<std::endl;
     createLowerModuleIndexMap(modulesInGPU,lowerModuleCounter);
     fillConnectedModuleArray(modulesInGPU,nModules);
     resetObjectRanges(modulesInGPU,nModules);

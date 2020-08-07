@@ -82,7 +82,6 @@ void SDL::Event::addMiniDoubletsToEvent()
             n_minidoublets_by_layer_endcap_[modulesInGPU.layers[i] - 1] ++;
         }
     }
-    addMiniDoubletsToEvent();
 }
 
 void SDL::Event::createMiniDoublets()
@@ -103,6 +102,8 @@ void SDL::Event::createMiniDoublets()
     {
         std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
     }
+    addMiniDoubletsToEvent();
+
 
 }
 
@@ -118,6 +119,7 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules modulesInGPU, struct
     int upperHitIdx = blockIdx.z * blockDim.z + threadIdx.z;
 
     if(modulesInGPU.hitRanges[lowerModuleIdx * 2] == -1) return;
+    if(modulesInGPU.hitRanges[upperModuleIdx * 2] == -1) return;
 
     unsigned int nLowerHits = modulesInGPU.hitRanges[lowerModuleIdx * 2 + 1] - modulesInGPU.hitRanges[lowerModuleIdx * 2] + 1;
     unsigned int nUpperHits = modulesInGPU.hitRanges[upperModuleIdx * 2 + 1] - modulesInGPU.hitRanges[upperModuleIdx * 2] + 1;
