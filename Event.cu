@@ -82,6 +82,7 @@ void SDL::Event::addMiniDoubletsToEvent()
             n_minidoublets_by_layer_endcap_[modulesInGPU.layers[i] - 1] ++;
         }
     }
+    addMiniDoubletsToEvent();
 }
 
 void SDL::Event::createMiniDoublets()
@@ -97,7 +98,11 @@ void SDL::Event::createMiniDoublets()
     
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU);
 
-    cudaDeviceSynchronize();
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if(cudaerr != cudaSuccess)
+    {
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
+    }
 
 }
 
