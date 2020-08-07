@@ -3,7 +3,7 @@
 
 const unsigned int N_MAX_HITS_PER_MODULE = 100;
 const unsigned int N_MAX_MD_PER_MODULES = 100;
-struct SDL::modules SDL::modulesInGPU;
+struct SDL::modules* SDL::modulesInGPU;
 unsigned int SDL::nModules;
 
 SDL::Event::Event()
@@ -28,16 +28,17 @@ SDL::Event::~Event()
 
 void SDL::initModules()
 {
-    if(modulesInGPU.detIds == nullptr) //check for nullptr and create memory
+    cudaMallocManaged(&modulesInGPU, sizeof(struct SDL::modules));
+    if((modulesInGPU->detIds) == nullptr) //check for nullptr and create memory
     {
-        loadModulesFromFile(modulesInGPU,nModules); //nModules gets filled here
+        loadModulesFromFile(*modulesInGPU,nModules); //nModules gets filled here
     }
-    resetObjectRanges(modulesInGPU,nModules);
+    resetObjectRanges(*modulesInGPU,nModules);
 }
 
 void SDL::Event::resetObjectsInModule()
 {
-    resetObjectRanges(modulesInGPU,nModules);
+    resetObjectRanges(*modulesInGPU,nModules);
 }
 
 void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
@@ -45,15 +46,16 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
     const int HIT_MAX = 1000000;
     const int HIT_2S_MAX = 100000;
 
-    if(hitsInGPU.xs == nullptr)
+    if(hitsInGPU == nullptr)
     {
-        createHitsInUnifiedMemory(hitsInGPU,HIT_MAX,HIT_2S_MAX);
+        cudaMallocManaged(&hitsInGPU, sizeof(SDL::hits));
+        createHitsInUnifiedMemory(*hitsInGPU,HIT_MAX,HIT_2S_MAX);
     }
     //calls the addHitToMemory function
-    addHitToMemory(hitsInGPU, modulesInGPU, x, y, z, detId);
+    addHitToMemory(*hitsInGPU, *modulesInGPU, x, y, z, detId);
 
-    unsigned int moduleLayer = modulesInGPU.layers[(*detIdToIndex)[detId]];
-    unsigned int subdet = modulesInGPU.subdets[(*detIdToIndex)[detId]];
+    unsigned int moduleLayer = modulesInGPU->layers[(*detIdToIndex)[detId]];
+    unsigned int subdet = modulesInGPU->subdets[(*detIdToIndex)[detId]];
 
     if(subdet == Barrel)
     {
@@ -69,26 +71,26 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 void SDL::Event::addMiniDoubletsToEvent()
 {
     unsigned int idx;
-    for(unsigned int i = 0; i<*SDL::modulesInGPU.nLowerModules; i++)
+    for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
     {
-        idx = SDL::modulesInGPU.lowerModuleIndices[i];
-        if(modulesInGPU.hitRanges[idx * 2] == -1)
+        idx = SDL::modulesInGPU->lowerModuleIndices[i];
+        if(modulesInGPU->hitRanges[idx * 2] == -1)
         {
-            modulesInGPU.mdRanges[idx * 2] = -1;
-            modulesInGPU.mdRanges[idx * 2 + 1] = -1;
+            modulesInGPU->mdRanges[idx * 2] = -1;
+            modulesInGPU->mdRanges[idx * 2 + 1] = -1;
         }
         else
         {
-            modulesInGPU.mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
-            modulesInGPU.mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU.nMDs[idx];
+            modulesInGPU->mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
+            modulesInGPU->mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU->nMDs[idx];
      
-            if(modulesInGPU.subdets[idx] == Barrel)
+            if(modulesInGPU->subdets[idx] == Barrel)
             {
-                n_minidoublets_by_layer_barrel_[modulesInGPU.layers[idx] -1] += mdsInGPU.nMDs[idx];
+                n_minidoublets_by_layer_barrel_[modulesInGPU->layers[idx] -1] += mdsInGPU->nMDs[idx];
             }
             else
             {
-                n_minidoublets_by_layer_endcap_[modulesInGPU.layers[idx] - 1] += mdsInGPU.nMDs[idx];
+                n_minidoublets_by_layer_endcap_[modulesInGPU->layers[idx] - 1] += mdsInGPU->nMDs[idx];
             }
 
         }
@@ -97,16 +99,17 @@ void SDL::Event::addMiniDoubletsToEvent()
 
 void SDL::Event::createMiniDoublets()
 {
-    if(mdsInGPU.hitIndices == nullptr)
+    cudaMallocManaged(&mdsInGPU, sizeof(SDL::miniDoublets));
+    if(mdsInGPU->hitIndices == nullptr)
     {
-        createMDsInUnifiedMemory(mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
+        createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
     }
-    unsigned int nLowerModules = *modulesInGPU.nLowerModules;
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
     dim3 nThreads(1,16,16);
     dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nModules/nThreads.x : nModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
     std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
     
-    createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU);
+    createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU,*hitsInGPU,*mdsInGPU);
 
     cudaError_t cudaerr = cudaDeviceSynchronize();
     if(cudaerr != cudaSuccess)
@@ -119,7 +122,7 @@ void SDL::Event::createMiniDoublets()
 }
 
 
-__global__ void createMiniDoubletsInGPU(struct SDL::modules modulesInGPU, struct SDL::hits hitsInGPU, struct SDL::miniDoublets mdsInGPU)
+__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if(lowerModuleArrayIdx > (*modulesInGPU.nLowerModules)) return; //extra precaution

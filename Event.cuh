@@ -28,8 +28,8 @@ namespace SDL
         void incrementNumberOfMiniDoublets();
 
         //CUDA stuff
-        struct hits hitsInGPU;
-        struct miniDoublets mdsInGPU;
+        struct hits* hitsInGPU;
+        struct miniDoublets* mdsInGPU;
         int nHits;
         int nMiniDoublets;
 
@@ -56,13 +56,13 @@ namespace SDL
 
     //global stuff
 
-    extern struct modules modulesInGPU;
+    extern struct modules* modulesInGPU;
     extern unsigned int nModules;
     void initModules(); //read from file and init
 
 }
 
-__global__ void createMiniDoubletsInGPU(struct SDL::modules modulesInGPU, struct SDL::hits hitsInGPU, struct SDL::miniDoublets mdsInGPU);
+__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU);
 
 
 
