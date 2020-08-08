@@ -101,18 +101,15 @@ void SDL::Event::addMiniDoubletsToEvent()
 
 void SDL::Event::createMiniDoublets()
 {
-    std::cout<<"in createMiniDoublets() : nModules = "<<nModules<<std::endl;
     if(mdsInGPU == nullptr)
     {
         cudaMallocManaged(&mdsInGPU, sizeof(SDL::miniDoublets));
     	createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
     }
+
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+
     dim3 nThreads(1,16,16);
-/*    for(int i = 0; i< nLowerModules; i++)
-    {
-        std::cout<<modulesInGPU->lowerModuleIndices[i]<<" "<<modulesInGPU->partnerModuleIndex(modulesInGPU->lowerModuleIndices[i])<<std::endl;
-    }*/
     dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nLowerModules/nThreads.x : nLowerModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
     std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
     

@@ -372,8 +372,7 @@ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, u
         else
         {
             drdz = modulesInGPU.drdzs[modulesInGPU.partnerModuleIndex(moduleIndex)];
-        }
-        
+        }  
     }
     else
     {
