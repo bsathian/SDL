@@ -11,7 +11,9 @@ void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int m
     cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(unsigned int));
 #pragma omp parallel for default(shared)
     for(size_t i = 0; i< nModules; i++)
+    {
         mdsInGPU.nMDs[i] = 0;
+    }
 
     cudaMallocManaged(&mdsInGPU.dzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMallocManaged(&mdsInGPU.dphis, maxMDsPerModule * nModules * sizeof(float));
@@ -358,7 +360,25 @@ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, u
     const bool isTilted = modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center;
     const bool tiltedOT123 = true;
     const float pixelPSZpitch = 0.15;
-    const float drdz = isTilted && tiltedOT123 ? modulesInGPU.drdzs[moduleIndex] : 0;
+    //the lower module is sent in irrespective of its layer type. We need to fetch the drdz properly
+
+    float drdz;
+    if(isTilted && tiltedOT123)
+    {
+        if(modulesInGPU.moduleType(moduleIndex) == PS and modulesInGPU.moduleLayerType(moduleIndex) == Strip)
+        {
+            drdz = modulesInGPU.drdzs[moduleIndex];
+        }
+        else
+        {
+            drdz = modulesInGPU.drdzs[modulesInGPU.partnerModuleIndex(moduleIndex)];
+        }
+        
+    }
+    else
+    {
+        drdz = 0;
+    }
     const float miniTilt = ((isTilted && tiltedOT123) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
 
     // Compute luminous region requirement for endcap
@@ -528,7 +548,7 @@ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, u
     float angleM; // the angle M is the angle of rotation of the module in x-y plane if the possible strip hits are along the x-axis, then angleM = 0, and if the possible strip hits are along y-axis angleM = 90 degrees
     float absdzprime; // The distance between the two points after shifting
     float drdz_;
-
+    unsigned int upperModuleIndex = modulesInGPU.partnerModuleIndex(lowerModuleIndex);
     // Assign hit pointers based on their hit type
     if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
     {
@@ -560,7 +580,16 @@ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, u
 
     angleA = fabs(std::atan(hitsInGPU.rts[pixelHitIndex] / hitsInGPU.zs[pixelHitIndex]));
     // angleB = isEndcap ? M_PI / 2. : -std::atan(tiltedGeometry.getDrDz(detid) * (lowerModule.side() == SDL::Module::PosZ ? -1 : 1)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
-    drdz_ = modulesInGPU.drdzs[lowerModuleIndex];
+    if(modulesInGPU.moduleType(lowerModuleIndex) == PS and modulesInGPU.moduleLayerType(upperModuleIndex) == Strip)
+    {
+        drdz_ = modulesInGPU.drdzs[upperModuleIndex];
+        slope = modulesInGPU.slopes[upperModuleIndex];
+    }
+    else
+    {
+        drdz_ = modulesInGPU.drdzs[lowerModuleIndex];
+        slope = modulesInGPU.slopes[lowerModuleIndex];
+    }
     angleB = ((isEndcap) ? M_PI / 2. : atan(drdz_)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
 
 
@@ -573,8 +602,7 @@ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, u
     }
 
     drprime = (moduleSeparation / std::sin(angleA + angleB)) * std::sin(angleA);
-    slope = modulesInGPU.slopes[lowerModuleIndex];
-
+    
     // Compute arctan of the slope and take care of the slope = infinity case
     absArctanSlope = ((slope != SDL_INF) ? fabs(std::atan(slope)) : M_PI / 2); // Since C++ can't represent infinity, SDL_INF = 123456789 was used to represent infinity in the data table
 

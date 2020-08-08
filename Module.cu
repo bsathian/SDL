@@ -1,5 +1,5 @@
 # include "Module.cuh"
-std::unordered_map <unsigned int, unsigned int> *SDL::detIdToIndex;
+std::map <unsigned int, unsigned int> *SDL::detIdToIndex;
 
 void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules)
 {
@@ -31,7 +31,8 @@ void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int n
     unsigned int lowerModuleCounter = 0;
     for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); it++)
     {
-        unsigned int index = it->second; 
+        unsigned int index = it->second;
+        unsigned int detId = it->first;
         if(modulesInGPU.isLower(index))
         {
             modulesInGPU.lowerModuleIndices[lowerModuleCounter] = index;
@@ -42,7 +43,7 @@ void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int n
 
 void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
 {
-    detIdToIndex = new std::unordered_map<unsigned int, unsigned int>;
+    detIdToIndex = new std::map<unsigned int, unsigned int>;
 
     /*modules structure object will be created in Event.cu*/
     /* Load the whole text file into the unordered_map first*/
@@ -90,7 +91,8 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
         modulesInGPU.subdets[index] = subdet;
         modulesInGPU.sides[index] = side; 
 
-        modulesInGPU.drdzs[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+        modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+        modulesInGPU.drdzs[index] = (subdet == Barrel) ? tiltedGeometry.getDrDz(detId) : 0;
         if(modulesInGPU.isLower(index)) lowerModuleCounter++;
     }
 
@@ -189,7 +191,7 @@ bool SDL::modules::isInverted(unsigned int index)
 
 bool SDL::modules::isLower(unsigned int index)
 {
-    return (isInverted(index)) ? !(index & 1) : (index & 1);
+    return (isInverted(index)) ? !(detIds[index] & 1) : (detIds[index] & 1);
 }
 
 unsigned int SDL::modules::partnerModuleIndex(unsigned int index)
@@ -264,7 +266,7 @@ SDL::ModuleLayerType SDL::modules::moduleLayerType(unsigned int index)
         }
     }
     else
-    {
+   {
         if(isLower(index))
         {
             return Pixel;

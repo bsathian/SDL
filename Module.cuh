@@ -8,7 +8,7 @@
 #endif
 
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include "MiniDoublet.cuh"
 #include "Hit.cuh"
 #include "TiltedGeometry.h"
@@ -72,7 +72,7 @@ namespace SDL
 
     };
 
-    extern std::unordered_map <unsigned int,unsigned int>* detIdToIndex;
+    extern std::map <unsigned int,unsigned int>* detIdToIndex;
 
 
     //functions
