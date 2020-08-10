@@ -135,6 +135,12 @@ void SDL::getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& 
     ylow = x - 2.5 * sin(phi);
 }
 
+void SDL::printHit(struct hits& hitsInGPU, unsigned int hitIndex) 
+{
+    std::cout << "Hit(x=" << hitsInGPU.xs[hitIndex] << ", y=" << hitsInGPU.ys[hitIndex] << ", z=" << hitsInGPU.zs[hitIndex] << ", rt=" << hitsInGPU.rts[hitIndex] << ", phi=" << hitsInGPU.phis[hitIndex] << ")"<<std::endl;
+}
+
+
 SDL::hits::~hits()
 {
     cudaFree(nHits);

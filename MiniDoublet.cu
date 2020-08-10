@@ -671,41 +671,10 @@ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, u
 
     zn = abszn * ((hitsInGPU.zs[pixelHitIndex] > 0) ? 1 : -1); // Apply the sign of the zn
 
-/*    if (logLevel == SDL::Log_Debug3)
-    {
-        SDL::cout << upperHit << std::endl;
-        SDL::cout << lowerHit << std::endl;
-        SDL::cout <<  " lowerModule.moduleType()==SDL::Module::PS: " << (lowerModule.moduleType()==SDL::Module::PS) <<  std::endl;
-        SDL::cout <<  " lowerModule.moduleLayerType()==SDL::Module::Pixel: " << (lowerModule.moduleLayerType()==SDL::Module::Pixel) <<  std::endl;
-        SDL::cout <<  " pixelHitPtr: " << pixelHitPtr <<  std::endl;
-        SDL::cout <<  " stripHitPtr: " << stripHitPtr <<  std::endl;
-        SDL::cout <<  " detid: " << detid <<  std::endl;
-        SDL::cout <<  " isEndcap: " << isEndcap <<  std::endl;
-        SDL::cout <<  " pixelHitPtr->rt(): " << pixelHitPtr->rt() <<  std::endl;
-        SDL::cout <<  " pixelHitPtr->z(): " << pixelHitPtr->z() <<  std::endl;
-        SDL::cout <<  " angleA: " << angleA <<  std::endl;
-        SDL::cout <<  " angleB: " << angleB <<  std::endl;
-        SDL::cout <<  " moduleSeparation: " << moduleSeparation <<  std::endl;
-        SDL::cout <<  " drprime: " << drprime <<  std::endl;
-        SDL::cout <<  " slope: " << slope <<  std::endl;
-        SDL::cout <<  " absArctanSlope: " << absArctanSlope <<  std::endl;
-        SDL::cout <<  " angleM: " << angleM <<  std::endl;
-        SDL::cout <<  " drprime_x: " << drprime_x <<  std::endl;
-        SDL::cout <<  " drprime_y: " << drprime_y <<  std::endl;
-        SDL::cout <<  " xa: " << xa <<  std::endl;
-        SDL::cout <<  " ya: " << ya <<  std::endl;
-        SDL::cout <<  " xo: " << xo <<  std::endl;
-        SDL::cout <<  " yo: " << yo <<  std::endl;
-        SDL::cout <<  " xn: " << xn <<  std::endl;
-        SDL::cout <<  " yn: " << yn <<  std::endl;
-        SDL::cout <<  " absdzprime: " << absdzprime <<  std::endl;
-        SDL::cout <<  " zn: " << zn <<  std::endl;
-    }*/
 
     shiftedCoords[0] = xn;
     shiftedCoords[1] = yn;
     shiftedCoords[2] = zn;
-
 }
 
 SDL::miniDoublets::miniDoublets()
@@ -744,4 +713,23 @@ SDL::miniDoublets::~miniDoublets()
     cudaFree(noShiftedDzs);
     cudaFree(noShiftedDphis);
     cudaFree(noShiftedDphiChanges);
+}
+
+void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, unsigned int mdIndex)
+{
+    std::cout << "dz " << mdsInGPU.dzs[mdIndex] << std::endl;
+    std::cout << "noshiftedDz " << mdsInGPU.noShiftedDzs[mdIndex] << std::endl;   
+    std::cout << "dphi " << mdsInGPU.dphis[mdIndex] << std::endl;
+    std::cout << "dphinoshift " << mdsInGPU.noShiftedDphis[mdIndex] << std::endl;
+    std::cout << "dphichange " << mdsInGPU.dphichanges[mdIndex] << std::endl;
+    std::cout << "dphichangenoshift " << mdsInGPU.noShiftedDphiChanges[mdIndex] << std::endl;
+    std::cout << std::endl;
+    std::cout << "Lower Hit " << std::endl;
+    std::cout << "------------------------------" << std::endl;
+    unsigned int lowerHitIndex = mdsInGPU.hitIndices[mdIndex * 2];
+    unsigned int upperHitIndex = mdsInGPU.hitIndices[mdIndex * 2  + 1];
+    printHit(hitsInGPU, lowerHitIndex);
+    std::cout << "Upper Hit " << std::endl;
+    std::cout << "------------------------------" << std::endl;
+    printHit(hitsInGPU, upperHitIndex);
 }
