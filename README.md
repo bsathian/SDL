@@ -1,7 +1,7 @@
 ### SDL Refactored code
 
 Instructions
-1. Clone the `balajiCUDA` branch of the `TrackLooper` repository (https://github.com/bsathian/TrackLooper) recursively. This usually pulls the latest commit from this `SDL` repository. If not, clone this repository separately
+1. Clone the `balajiCUDA` branch of the `TrackLooper` repository (https://github.com/bsathian/TrackLooper) recursively. This usually pulls the latest commit from this `SDL` repository. If not, clone this repository separately, replacing the `SDL` folder in the TrackLooper repository
 2. Run `source setup.sh` in the TrackLooper folder (one level above after cloning). This sets up the environment.
 3. `make` once inside the `SDL` folder to create the `sdl.so` shared object
 4. `make` outside in the parent `TrackLooper` folder to create the executable called `doAnalysis` inside the `bin` folder
