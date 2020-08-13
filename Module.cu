@@ -17,6 +17,8 @@ void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int
     cudaMallocManaged(&modulesInGPU.rods,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.subdets,nModules * sizeof(short));
     cudaMallocManaged(&modulesInGPU.sides,nModules * sizeof(short));
+    cudaMallocManaged(&modulesInGPU.isInverted, nModules * sizeof(bool));
+    cudaMallocManaged(&modulesInGPU.isLower, nModules * sizeof(bool));
 
     cudaMallocManaged(&modulesInGPU.hitRanges,nModules * 2 * sizeof(int));
     cudaMallocManaged(&modulesInGPU.mdRanges,nModules * 2 * sizeof(int));
@@ -33,7 +35,7 @@ void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int n
     {
         unsigned int index = it->second;
         unsigned int detId = it->first;
-        if(modulesInGPU.isLower(index))
+        if(modulesInGPU.isLower[index])
         {
             modulesInGPU.lowerModuleIndices[lowerModuleCounter] = index;
             lowerModuleCounter++;
@@ -89,11 +91,14 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
         modulesInGPU.rods[index] = rod;
         modulesInGPU.modules[index] = module;
         modulesInGPU.subdets[index] = subdet;
-        modulesInGPU.sides[index] = side; 
+        modulesInGPU.sides[index] = side;
+
+        modulesInGPU.isInverted[index] = modulesInGPU.parseIsInverted(index);
+        modulesInGPU.isLower[index] = modulesInGPU.parseIsLower(index);
 
         modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
         modulesInGPU.drdzs[index] = (subdet == Barrel) ? tiltedGeometry.getDrDz(detId) : 0;
-        if(modulesInGPU.isLower(index)) lowerModuleCounter++;
+        if(modulesInGPU.isLower[index]) lowerModuleCounter++;
     }
 
     *modulesInGPU.nLowerModules = lowerModuleCounter;
@@ -129,7 +134,7 @@ void SDL::setDerivedQuantities(unsigned int detId, unsigned short& layer, unsign
 }
 
 //auxilliary functions - will be called as needed
-bool SDL::modules::isInverted(unsigned int index)
+bool SDL::modules::parseIsInverted(unsigned int index)
 {
     if (subdets[index] == Endcap)
     {
@@ -189,22 +194,22 @@ bool SDL::modules::isInverted(unsigned int index)
     }
 }
 
-bool SDL::modules::isLower(unsigned int index)
+bool SDL::modules::parseIsLower(unsigned int index)
 {
-    return (isInverted(index)) ? !(detIds[index] & 1) : (detIds[index] & 1);
+    return (isInverted[index]) ? !(detIds[index] & 1) : (detIds[index] & 1);
 }
 
 unsigned int SDL::modules::partnerModuleIndex(unsigned int index)
 {
     /*We need to ensure modules with successive det Ids are right next to each other
     or we're dead*/
-    if(isLower(index))
+    if(isLower[index])
     {
-        return (isInverted(index) ? index - 1: index + 1);
+        return (isInverted[index] ? index - 1: index + 1);
     }
     else
     {
-        return (isInverted(index) ? index + 1 : index - 1);
+        return (isInverted[index] ? index + 1 : index - 1);
     }
 }
 
@@ -254,9 +259,9 @@ SDL::ModuleLayerType SDL::modules::moduleLayerType(unsigned int index)
     {
         return Strip;
     }
-    if(isInverted(index))
+    if(isInverted[index])
     {
-        if(isLower(index))
+        if(isLower[index])
         {
             return Strip;
         }
@@ -267,7 +272,7 @@ SDL::ModuleLayerType SDL::modules::moduleLayerType(unsigned int index)
     }
     else
    {
-        if(isLower(index))
+        if(isLower[index])
         {
             return Pixel;
         }

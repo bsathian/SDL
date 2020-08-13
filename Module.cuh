@@ -59,12 +59,17 @@ namespace SDL
         short* rods;
         short* subdets;
         short* sides;
+        bool* isInverted;
+        bool* isLower;
         
-        CUDA_HOSTDEV bool isInverted(unsigned int index);
-        CUDA_HOSTDEV bool isLower(unsigned int index);
+//        CUDA_HOSTDEV bool isInverted(unsigned int index);
+//        CUDA_HOSTDEV bool isLower(unsigned int index);
         CUDA_HOSTDEV unsigned int partnerModuleIndex(unsigned int index);
         CUDA_HOSTDEV ModuleType moduleType(unsigned int index);
         CUDA_HOSTDEV ModuleLayerType moduleLayerType(unsigned int index);
+
+        bool parseIsInverted(unsigned int index);
+        bool parseIsLower(unsigned int index);
 
         int* hitRanges;
         int* mdRanges;
