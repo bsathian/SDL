@@ -1,5 +1,23 @@
+#ifdef __CUDACC__
+#define CUDA_CONST_VAR __device__ __constant__
+#endif
+
 # include "MiniDoublet.cuh"
 #define SDL_INF 123456789
+
+//defining the constant host device variables right up here
+CUDA_CONST_VAR float SDL::miniMulsPtScaleBarrel[6] = {0.0052, 0.0038, 0.0034, 0.0034, 0.0032, 0.0034};
+CUDA_CONST_VAR float SDL::miniMulsPtScaleEndcap[5] = {0.006, 0.006, 0.006, 0.006, 0.006}; 
+CUDA_CONST_VAR float SDL::miniRminMeanBarrel[6];
+CUDA_CONST_VAR float SDL::miniRminMeanEndcap[5];
+CUDA_CONST_VAR float SDL::miniDeltaTilted[3];
+CUDA_CONST_VAR float SDL::miniDeltaFlat[6] ={0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
+CUDA_CONST_VAR float SDL::miniDeltaLooseTilted[3] = {0.4,0.4,0.4};
+CUDA_CONST_VAR float SDL::miniDeltaEndcap[5][15];
+CUDA_CONST_VAR float SDL::k2Rinv1GeVf = (2.99792458e-3 * 3.8) / 2;
+CUDA_CONST_VAR float SDL::sinAlphaMax = 0.95;
+CUDA_CONST_VAR float SDL::ptCut = 1.0;
+CUDA_CONST_VAR float SDL::deltaZLum = 15.0;
 
 void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules)
 {
@@ -9,6 +27,7 @@ void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int m
     cudaMallocManaged(&mdsInGPU.dphichanges, maxMDsPerModule * nModules * sizeof(float));
 
     cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(unsigned int));
+
 #pragma omp parallel for default(shared)
     for(size_t i = 0; i< nModules; i++)
     {
@@ -25,7 +44,7 @@ void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int m
     cudaMallocManaged(&mdsInGPU.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
 }
 
-void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
+__device__ void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
 {
     //the index into which this MD needs to be written will be computed in the kernel
     //nMDs variable will be incremented in the kernel, no need to worry about that here
@@ -62,7 +81,7 @@ void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, s
     mdsInGPU.noShiftedDphiChanges[idx] = noShiftedDPhiChange;
 }
 
-bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+__device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
     float xLower = hitsInGPU.xs[lowerHitIndex];
     float yLower = hitsInGPU.ys[lowerHitIndex];
@@ -90,13 +109,16 @@ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct h
 
     float miniCut = 0;
 
+    float miniCutLower = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
+    float miniCutUpper = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
+
     if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
     {
-        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
+        miniCut = miniCutLower;    
     }
     else
     {
-        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
+        miniCut = miniCutUpper; 
     }
 
     // Cut #2: dphi difference
@@ -189,7 +211,7 @@ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGPU, struct h
     return pass;
 }
 
-bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
+__device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
 {
     float xLower = hitsInGPU.xs[lowerHitIndex];
     float yLower = hitsInGPU.ys[lowerHitIndex];
@@ -315,7 +337,7 @@ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct h
     return pass;
 }
 
-bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
+__device__ bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange)
 {
    bool pass;
    if(modulesInGPU.subdets[lowerModuleIndex] == Barrel)
@@ -330,22 +352,16 @@ bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& h
    return pass;
 }
 
-float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
+__device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
 {
     // =================================================================
     // Various constants
     // =================================================================
-    const float kRinv1GeVf = (2.99792458e-3 * 3.8);
-    const float k2Rinv1GeVf = kRinv1GeVf / 2.;
     // const float ptCut = PTCUT;
     // const float sinAlphaMax = 0.95;
-    float ptCut = 1;
-    float sinAlphaMax = 0.95;
-    float miniMulsPtScaleBarrel[] = {0.0052, 0.0038, 0.0034, 0.0034, 0.0032, 0.0034};
-    float miniMulsPtScaleEndcap[] =  {0.006, 0.006, 0.006, 0.006, 0.006}; //inter/extra-polated from L11 and L13 both roughly 0.006 [larger R have smaller value by ~50%]
     //mean of the horizontal layer position in y; treat this as R below
-    float miniRminMeanBarrel[] = {21.8, 34.6, 49.6, 67.4, 87.6, 106.8}; // TODO: Update this with newest geometry
-    float miniRminMeanEndcap[] = {131.4, 156.2, 185.6, 220.3, 261.5};// use z for endcaps // TODO: Update this with newest geometry
+/*    __device__ __constant__ float miniRminMeanBarrel[] = {21.8, 34.6, 49.6, 67.4, 87.6, 106.8}; // TODO: Update this with newest geometry
+    __device__ __constant__ float miniRminMeanEndcap[] = {131.4, 156.2, 185.6, 220.3, 261.5};// use z for endcaps // TODO: Update this with newest geometry*/
 
     // =================================================================
     // Computing some components that make up the cut threshold
@@ -358,12 +374,11 @@ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, u
     const float miniPVoff = 0.1 / rLayNominal;
     const float miniMuls = ((modulesInGPU.subdets[moduleIndex] == Barrel) ? miniMulsPtScaleBarrel[iL] * 3.f / ptCut : miniMulsPtScaleEndcap[iL] * 3.f / ptCut);
     const bool isTilted = modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center;
-    const bool tiltedOT123 = true;
     const float pixelPSZpitch = 0.15;
     //the lower module is sent in irrespective of its layer type. We need to fetch the drdz properly
 
     float drdz;
-    if(isTilted && tiltedOT123)
+    if(isTilted)
     {
         if(modulesInGPU.moduleType(moduleIndex) == PS and modulesInGPU.moduleLayerType(moduleIndex) == Strip)
         {
@@ -378,10 +393,9 @@ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, u
     {
         drdz = 0;
     }
-    const float miniTilt = ((isTilted && tiltedOT123) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
+    const float miniTilt = ((isTilted) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
 
     // Compute luminous region requirement for endcap
-    const float deltaZLum = 15.f;
     const float miniLum = fabs(dPhi * deltaZLum/dz); // Balaji's new error
     // const float miniLum = abs(deltaZLum / lowerHit.z()); // Old error
 
@@ -407,7 +421,7 @@ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, u
 
 }
 
-inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex)
+__device__ inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU, unsigned int moduleIndex)
 {
     // The "tighter" tilted modules are the subset of tilted modules that have smaller spacing
     // This is the same as what was previously considered as"isNormalTiltedModules"
@@ -430,12 +444,10 @@ inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU, unsigned 
 
 }
 
-inline float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
+__device__ inline void SDL::initModuleGapSize()
 {
-    float miniDeltaTilted[] = {0.26, 0.26, 0.26};
-    float miniDeltaLooseTilted[] =  {0.4,0.4,0.4};
-    float miniDeltaFlat[] =  {0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
-    float miniDeltaEndcap[5][15];
+
+//    miniDeltaTilted = {0.26, 0.26, 0.26};
 
     for (size_t i = 0; i < 5; i++)
     {
@@ -476,6 +488,10 @@ inline float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int modul
             }
         }
     }
+}
+
+__device__ float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
+{
 
     unsigned int iL = modulesInGPU.layers[moduleIndex]-1;
     unsigned int iR = modulesInGPU.rings[moduleIndex] - 1;
@@ -504,7 +520,7 @@ inline float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int modul
     return moduleSeparation;
 }
 
-void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords)
+__device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float* shiftedCoords)
 {
 
     // This is the strip shift scheme that is explained in http://uaf-10.t2.ucsd.edu/~phchang/talks/PhilipChang20190607_SDL_Update.pdf (see backup slides)
@@ -694,6 +710,7 @@ SDL::miniDoublets::miniDoublets()
     noShiftedDzs = nullptr;
     noShiftedDphis = nullptr;
     noShiftedDphiChanges = nullptr;
+
 }
 
 SDL::miniDoublets::~miniDoublets()
