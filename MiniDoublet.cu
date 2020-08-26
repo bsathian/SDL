@@ -8,9 +8,9 @@
 //defining the constant host device variables right up here
 CUDA_CONST_VAR float SDL::miniMulsPtScaleBarrel[6] = {0.0052, 0.0038, 0.0034, 0.0034, 0.0032, 0.0034};
 CUDA_CONST_VAR float SDL::miniMulsPtScaleEndcap[5] = {0.006, 0.006, 0.006, 0.006, 0.006}; 
-CUDA_CONST_VAR float SDL::miniRminMeanBarrel[6];
-CUDA_CONST_VAR float SDL::miniRminMeanEndcap[5];
-CUDA_CONST_VAR float SDL::miniDeltaTilted[3];
+CUDA_CONST_VAR float SDL::miniRminMeanBarrel[6] = {21.8, 34.6, 49.6, 67.4, 87.6, 106.8};
+CUDA_CONST_VAR float SDL::miniRminMeanEndcap[5] = {131.4, 156.2, 185.6, 220.3, 261.5};
+CUDA_CONST_VAR float SDL::miniDeltaTilted[3] = {0.26, 0.26, 0.26};
 CUDA_CONST_VAR float SDL::miniDeltaFlat[6] ={0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
 CUDA_CONST_VAR float SDL::miniDeltaLooseTilted[3] = {0.4,0.4,0.4};
 CUDA_CONST_VAR float SDL::miniDeltaEndcap[5][15];
@@ -444,10 +444,8 @@ __device__ inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU
 
 }
 
-__device__ inline void SDL::initModuleGapSize()
+__device__ void SDL::initModuleGapSize()
 {
-
-//    miniDeltaTilted = {0.26, 0.26, 0.26};
 
     for (size_t i = 0; i < 5; i++)
     {

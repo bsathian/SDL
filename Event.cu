@@ -184,6 +184,7 @@ void SDL::Event::createSegmentsWithModuleMap()
 
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
+    SDL::initModuleGapSize();
     int lowerModuleArrayIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if(lowerModuleArrayIdx >= (*modulesInGPU.nLowerModules)) return; //extra precaution
 
