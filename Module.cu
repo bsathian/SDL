@@ -22,6 +22,7 @@ void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int
 
     cudaMallocManaged(&modulesInGPU.hitRanges,nModules * 2 * sizeof(int));
     cudaMallocManaged(&modulesInGPU.mdRanges,nModules * 2 * sizeof(int));
+    cudaMallocManaged(&modulesInGPU.segmentRanges,nModules * 2 * sizeof(int));
 
     *modulesInGPU.nModules = nModules;
 
@@ -291,6 +292,7 @@ void SDL::resetObjectRanges(struct modules& modulesInGPU, unsigned int nModules)
     {
         modulesInGPU.hitRanges[i] = -1;
         modulesInGPU.mdRanges[i] = -1;
+        modulesInGPU.segmentRanges[i] = -1;
     }
 
 }

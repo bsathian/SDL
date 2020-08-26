@@ -73,6 +73,7 @@ namespace SDL
 
         int* hitRanges;
         int* mdRanges;
+        int* segmentRanges;
         //others will be added later
 
     };
