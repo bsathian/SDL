@@ -2,11 +2,11 @@
 
 void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned int maxSegments, unsigned int nModules)
 {
-    cudaMallocManaged(&segmentsInGPU.mdIndices, maxSegments * 2 * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.innerLowerModuleIndices, maxSegments * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.outerLowerModuleIndices, maxSegments * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.innerMiniDoubletAnchorHitIndices, maxSegments * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.outerMiniDoubletAnchorHitIndices, maxSegments * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.mdIndices, maxSegments * nModules * 2 * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.innerLowerModuleIndices, maxSegments * nModules * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.outerLowerModuleIndices, maxSegments * nModules * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.innerMiniDoubletAnchorHitIndices, maxSegments * nModules *sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.outerMiniDoubletAnchorHitIndices, maxSegments * nModules * sizeof(unsigned int));
     cudaMallocManaged(&segmentsInGPU.nSegments, nModules * sizeof(unsigned int));
 #pragma omp parallel for default(shared)
     for(size_t i = 0; i < nModules; i++)
@@ -14,20 +14,20 @@ void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned
         segmentsInGPU.nSegments[i] = 0;
     }
 
-    cudaMallocManaged(&segmentsInGPU.dPhis, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiMins, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiMaxs, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChanges, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChangeMins, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChangeMaxs, maxSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhis, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiMins, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiMaxs, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChanges, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChangeMins, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChangeMaxs, maxSegments * nModules * sizeof(float));
 
-    cudaMallocManaged(&segmentsInGPU.zIns, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.zOuts, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.rtIns, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.rtOuts, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDSegments, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegments, maxSegments * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDOuterMDs, maxSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.zIns, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.zOuts, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtIns, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtOuts, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDSegments, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegments, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDOuterMDs, maxSegments * nModules * sizeof(float));
 }
 
 SDL::segments::segments()
@@ -207,12 +207,13 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
 }
 
-__device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float& dAlphaInnerMDOuterMD)
+__device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float&
+        dAlphaInnerMDOuterMD, unsigned int& innerMiniDoubletAnchorHitIndex, unsigned int& outerMiniDoubletAnchorHitIndex)
 {
     bool pass = true;
     
-    unsigned int innerMiniDoubletAnchorHitIndex;
-    unsigned int outerMiniDoubletAnchorHitIndex;
+//    unsigned int innerMiniDoubletAnchorHitIndex;
+//    unsigned int outerMiniDoubletAnchorHitIndex;
 
     if(mdsInGPU.pixelModuleFlag[innerMDIndex] >= 0)
     {
@@ -346,15 +347,16 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     return pass;
 }
 
-__device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float& dAlphaInnerMDOuterMD)
+__device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float&
+        dAlphaInnerMDOuterMD, unsigned int& innerMiniDoubletAnchorHitIndex, unsigned int& outerMiniDoubletAnchorHitIndex)
 {
     bool pass = true;
    
     float sdMuls = (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel) ? miniMulsPtScaleBarrel[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut : miniMulsPtScaleEndcap[modulesInGPU.layers[innerLowerModuleIndex]-1];
 
 
-    unsigned int innerMiniDoubletAnchorHitIndex;
-    unsigned int outerMiniDoubletAnchorHitIndex;
+//    unsigned int innerMiniDoubletAnchorHitIndex;
+//    unsigned int outerMiniDoubletAnchorHitIndex;
 
     if(mdsInGPU.pixelModuleFlag[innerMDIndex] >= 0)
     {
@@ -455,18 +457,19 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
     return pass;
 }
 
-__device__ bool SDL::runSegmentDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float& dAlphaInnerMDOuterMD)
+__device__ bool SDL::runSegmentDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex, float& zIn, float& zOut, float& rtIn, float& rtOut, float& dPhi, float& dPhiMin, float& dPhiMax, float& dPhiChange, float& dPhiChangeMin, float& dPhiChangeMax, float& dAlphaInnerMDSegment, float& dAlphaOuterMDSegment, float&
+        dAlphaInnerMDOuterMD, unsigned int& innerMiniDoubletAnchorHitIndex, unsigned int& outerMiniDoubletAnchorHitIndex)
 {
     bool pass = true;
 
     if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel)
     {
-        pass = runSegmentDefaultAlgoBarrel(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD);
+        pass = runSegmentDefaultAlgoBarrel(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex);
     }
 
     else
     {
-        pass = runSegmentDefaultAlgoEndcap(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD);
+        pass = runSegmentDefaultAlgoEndcap(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex);
     }
 
     return pass;
