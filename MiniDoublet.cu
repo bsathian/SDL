@@ -1,5 +1,5 @@
 #ifdef __CUDACC__
-#define CUDA_CONST_VAR __device__ __constant__
+#define CUDA_CONST_VAR __device__
 #endif
 
 # include "MiniDoublet.cuh"
@@ -109,16 +109,17 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
 
     float miniCut = 0;
 
-    float miniCutLower = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
-    float miniCutUpper = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
+//    float miniCutLower = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
+//    float miniCutUpper = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
 
     if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
     {
-        miniCut = miniCutLower;    
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex); 
     }
     else
     {
-        miniCut = miniCutUpper; 
+        miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
+ 
     }
 
     // Cut #2: dphi difference
@@ -490,6 +491,51 @@ __device__ void SDL::initModuleGapSize()
 
 __device__ float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
 {
+    float miniDeltaTilted[3] = {0.26, 0.26, 0.26};
+    float miniDeltaFlat[6] ={0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
+    float miniDeltaLooseTilted[3] = {0.4,0.4,0.4};
+    float miniDeltaEndcap[5][15];
+
+    for (size_t i = 0; i < 5; i++)
+    {
+        for (size_t j = 0; j < 15; j++)
+        {
+            if (i == 0 || i == 1)
+            {
+                if (j < 10)
+                {
+                    miniDeltaEndcap[i][j] = 0.4;
+                }
+                else
+                {
+                    miniDeltaEndcap[i][j] = 0.18;
+                }
+            }
+            else if (i == 2 || i == 3)
+            {
+                if (j < 8)
+                {
+                    miniDeltaEndcap[i][j] = 0.4;
+                }
+                else
+                {
+                    miniDeltaEndcap[i][j]  = 0.18;
+                }
+            }
+            else
+            {
+                if (j < 9)
+                {
+                    miniDeltaEndcap[i][j] = 0.4;
+                }
+                else
+                {
+                    miniDeltaEndcap[i][j] = 0.18;
+                }
+            }
+        }
+    }
+
 
     unsigned int iL = modulesInGPU.layers[moduleIndex]-1;
     unsigned int iR = modulesInGPU.rings[moduleIndex] - 1;

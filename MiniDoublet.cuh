@@ -4,7 +4,7 @@
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV  __host__ __device__
 #define CUDA_DEV __device__
-#define CUDA_CONST_VAR __device__ __constant__
+#define CUDA_CONST_VAR __device__
 #else
 #define CUDA_HOSTDEV
 #define CUDA_CONST_VAR
