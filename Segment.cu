@@ -112,7 +112,7 @@ __device__ void SDL::addSegmentToMemory(struct segments& segmentsInGPU, unsigned
 
 __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& hitsInGPU, struct modules& modulesInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerMiniDoubletAnchorHitIndex, unsigned int& outerMiniDoubletAnchorHitIndex, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex)
 {
-    float sdMuls = (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel) ? miniMulsPtScaleBarrel[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut : miniMulsPtScaleEndcap[modulesInGPU.layers[innerLowerModuleIndex]-1];
+    float sdMuls = (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel) ? miniMulsPtScaleBarrel[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut : miniMulsPtScaleEndcap[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut;
 
     // BField dAlpha
 
@@ -173,12 +173,12 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     if(modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Endcap)
     {
-        dAlpha_res_inner *= abs(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt);
+        dAlpha_res_inner *= fabs(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt);
     }
 
     if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Endcap)
     {
-        dAlpha_res_outer *= abs(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt);
+        dAlpha_res_outer *= fabs(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt);
     }
 
 
@@ -352,7 +352,7 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
 {
     bool pass = true;
    
-    float sdMuls = (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel) ? miniMulsPtScaleBarrel[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut : miniMulsPtScaleEndcap[modulesInGPU.layers[innerLowerModuleIndex]-1];
+    float sdMuls = (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel) ? miniMulsPtScaleBarrel[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut : miniMulsPtScaleEndcap[modulesInGPU.layers[innerLowerModuleIndex]-1] * 3.f/ptCut;
 
 
 //    unsigned int innerMiniDoubletAnchorHitIndex;
