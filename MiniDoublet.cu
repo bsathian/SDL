@@ -124,7 +124,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
 
     // Cut #2: dphi difference
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3085
-    float xn = 0, yn = 0 , zn = 0;
+    float xn = 0, yn = 0;// , zn = 0;
     float shiftedRt;
     if (modulesInGPU.sides[lowerModuleIndex] != Center) // If barrel and not center it is tilted
     {
@@ -133,7 +133,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
         shiftStripHits(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, shiftedCoords);
         xn = shiftedCoords[0];
         yn = shiftedCoords[1];
-        zn = shiftedCoords[2];
+//        zn = shiftedCoords[2];
 
         // Lower or the upper hit needs to be modified depending on which one was actually shifted
         if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
@@ -250,7 +250,6 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
 
     // The new scheme shifts strip hits to be "aligned" along the line of sight from interaction point to the pixel hit (if it is PS modules)
     float xn = 0, yn = 0, zn = 0;
-    float shiftedRt;
 
     float shiftedCoords[3];
     shiftStripHits(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, shiftedCoords);
@@ -407,17 +406,17 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
     // Following condition is met if the module is central and flatly lying
     if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] == Center)
     {
-        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2));
+        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff);
     }
     // Following condition is met if the module is central and tilted
     else if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center) //all types of tilted modules
     {
-        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2) + pow(miniTilt * miniSlope, 2));
+        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff + miniTilt * miniTilt * miniSlope * miniSlope);
     }
     // If not barrel, it is Endcap
     else
     {
-        return miniSlope + sqrt(pow(miniMuls, 2) + pow(miniPVoff, 2) + pow(miniLum, 2));
+        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff + miniLum * miniLum);
     }
 
 }

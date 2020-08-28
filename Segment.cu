@@ -122,8 +122,9 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
     float outerMiniDoubletAnchorHitZ = hitsInGPU.zs[outerMiniDoubletAnchorHitIndex];
 
     //more accurate then outer rt - inner rt
-
-    float segmentDr = sqrt(pow(hitsInGPU.ys[outerMiniDoubletAnchorHitIndex] - hitsInGPU.ys[innerMiniDoubletAnchorHitIndex],2) + pow(hitsInGPU.xs[outerMiniDoubletAnchorHitIndex]- hitsInGPU.xs[innerMiniDoubletAnchorHitIndex],2));
+    float segmentY = hitsInGPU.ys[outerMiniDoubletAnchorHitIndex] - hitsInGPU.ys[innerMiniDoubletAnchorHitIndex];
+    float segmentX = hitsInGPU.xs[outerMiniDoubletAnchorHitIndex]- hitsInGPU.xs[innerMiniDoubletAnchorHitIndex]; 
+    float segmentDr = sqrt((segmentY * segmentY) + (segmentX * segmentX));
     
 
     const float dAlpha_Bfield = asin(min(segmentDr * k2Rinv1GeVf/ptCut, sinAlphaMax));
@@ -184,24 +185,24 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     if (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[innerLowerModuleIndex] == SDL::Center)
     {
-        dAlphaThresholdValues[0] = dAlpha_Bfield + sqrt(pow(dAlpha_res,2) + pow(sdMuls,2));
+        dAlphaThresholdValues[0] = dAlpha_Bfield + sqrt(dAlpha_res * dAlpha_res + sdMuls * sdMuls);       
     }
     else
     {
-        dAlphaThresholdValues[0] = dAlpha_Bfield + sqrt(pow(dAlpha_res,2) + pow(sdMuls,2) + pow(sdLumForInnerMini,2));
+        dAlphaThresholdValues[0] = dAlpha_Bfield + sqrt(dAlpha_res * dAlpha_res + sdMuls * sdMuls + sdLumForInnerMini * sdLumForInnerMini);    
     }
 
     if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[outerLowerModuleIndex] == SDL::Center)
     {
-        dAlphaThresholdValues[1] = dAlpha_Bfield + sqrt(pow(dAlpha_res,2) + pow(sdMuls,2));
+        dAlphaThresholdValues[1] = dAlpha_Bfield + sqrt(dAlpha_res * dAlpha_res + sdMuls * sdMuls);    
     }
     else
     {
-        dAlphaThresholdValues[1] = dAlpha_Bfield + sqrt(pow(dAlpha_res,2) + pow(sdMuls,2) + pow(sdLumForOuterMini,2));
+        dAlphaThresholdValues[1] = dAlpha_Bfield + sqrt(dAlpha_res * dAlpha_res + sdMuls * sdMuls + sdLumForOuterMini * sdLumForOuterMini);
     }
 
     //Inner to outer 
-    dAlphaThresholdValues[2] = dAlpha_Bfield + sqrt(pow(dAlpha_res,2) + pow(sdMuls,2));
+    dAlphaThresholdValues[2] = dAlpha_Bfield + sqrt(dAlpha_res * dAlpha_res + sdMuls * sdMuls);
 
 }
 
