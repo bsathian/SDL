@@ -32,6 +32,9 @@ SDL::Event::Event()
 
 SDL::Event::~Event()
 {
+    cudaFree(mdsInGPU);
+    cudaFree(hitsInGPU);
+    cudaFree(segmentsInGPU);
 }
 
 void SDL::initModules()
@@ -82,7 +85,7 @@ void SDL::Event::addMiniDoubletsToEvent()
     for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
     {
         idx = SDL::modulesInGPU->lowerModuleIndices[i];
-        if(modulesInGPU->hitRanges[idx * 2] == -1)
+        if(mdsInGPU->nMDs[idx] == 0 or modulesInGPU->hitRanges[idx * 2] == -1)
         {
             modulesInGPU->mdRanges[idx * 2] = -1;
             modulesInGPU->mdRanges[idx * 2 + 1] = -1;
@@ -90,7 +93,7 @@ void SDL::Event::addMiniDoubletsToEvent()
         else
         {
             modulesInGPU->mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
-            modulesInGPU->mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU->nMDs[idx];
+            modulesInGPU->mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU->nMDs[idx] - 1;
      
             if(modulesInGPU->subdets[idx] == Barrel)
             {
@@ -111,7 +114,7 @@ void SDL::Event::addSegmentsToEvent()
     for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
     {
         idx = SDL::modulesInGPU->lowerModuleIndices[i];
-        if(modulesInGPU->mdRanges[idx * 2] == -1)
+        if(segmentsInGPU->nSegments[idx] == 0)
         {
             modulesInGPU->segmentRanges[idx * 2] = -1;
             modulesInGPU->segmentRanges[idx * 2 + 1] = -1;
@@ -119,7 +122,7 @@ void SDL::Event::addSegmentsToEvent()
         else
         {
             modulesInGPU->segmentRanges[idx * 2] = idx * N_MAX_SEGMENTS_PER_MODULE;
-            modulesInGPU->segmentRanges[idx * 2 + 1] = idx * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[idx];
+            modulesInGPU->segmentRanges[idx * 2 + 1] = idx * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[idx] - 1;
 
             if(modulesInGPU->subdets[idx] == Barrel)
             {
@@ -236,11 +239,8 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
 
     unsigned int outerLowerModuleIndex = modulesInGPU.moduleMap[innerLowerModuleIndex * MAX_CONNECTED_MODULES + outerLowerModuleArrayIdx];
 
-    if(modulesInGPU.mdRanges[innerLowerModuleIndex * 2] == -1) return;
-    if(modulesInGPU.mdRanges[outerLowerModuleIndex * 2] == -1) return;
-
-    unsigned int nInnerMDs = modulesInGPU.mdRanges[innerLowerModuleIndex * 2 + 1] - modulesInGPU.mdRanges[innerLowerModuleIndex * 2] + 1;
-    unsigned int nOuterMDs = modulesInGPU.mdRanges[outerLowerModuleIndex * 2 + 1] - modulesInGPU.mdRanges[outerLowerModuleIndex * 2] + 1;
+    unsigned int nInnerMDs = mdsInGPU.nMDs[innerLowerModuleIndex];
+    unsigned int nOuterMDs = mdsInGPU.nMDs[outerLowerModuleIndex];
 
     if(innerMDArrayIdx >= nInnerMDs) return;
     if(outerMDArrayIdx >= nOuterMDs) return;
