@@ -153,7 +153,7 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
     }
     else
     {
-        sdLumForInnerMini = mdsInGPU.dphis[innerMDIndex] * 15.0 / mdsInGPU.dzs[innerMDIndex];
+        sdLumForInnerMini = mdsInGPU.dphis[innerMDIndex] * 15.0f / mdsInGPU.dzs[innerMDIndex];
     }
 
     if (modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel)
@@ -162,7 +162,7 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
     }
     else
     {
-        sdLumForOuterMini = mdsInGPU.dphis[outerMDIndex] * 15.0 / mdsInGPU.dzs[outerMDIndex];
+        sdLumForOuterMini = mdsInGPU.dphis[outerMDIndex] * 15.0f / mdsInGPU.dzs[outerMDIndex];
     }
 
 
@@ -256,7 +256,7 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     float sdSlope = std::asin(min(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
     float sdPVoff = 0.1/rtOut;
     float pixelPSZpitch = 0.15;
-    float strip2SZpitch = 5.0;
+    float strip2SZpitch = 5.0f;
     float disks2SMinRadius = 60.f;
 
     float rtGeom =  ((rtIn < disks2SMinRadius && rtOut < disks2SMinRadius) ? (2.f * pixelPSZpitch)
@@ -401,7 +401,7 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
     float sdPVoff = 0.1f/rtOut;
     float dzDrtScale = std::tan(sdSlope)/sdSlope; //FIXME: need appropriate value
     float pixelPSZpitch = 0.15;
-    float strip2SZpitch = 5.0;
+    float strip2SZpitch = 5.0f;
 
     const float zGeom = modulesInGPU.layers[innerLowerModuleIndex] <= 2 ? 2.f * pixelPSZpitch : 2.f * strip2SZpitch;
 
