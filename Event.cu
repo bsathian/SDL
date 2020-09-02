@@ -272,7 +272,7 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struc
 }*/
 
 
-__global__ void createSegmentsFromInnerLowerModule(struct SDL::modules&modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, unsigned int innerLowerModuleIndex)
+__global__ void createSegmentsFromInnerLowerModule(struct SDL::modules&modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, unsigned int innerLowerModuleIndex, unsigned int nInnerMDs)
 {
     unsigned int outerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int innerMDArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
@@ -281,7 +281,6 @@ __global__ void createSegmentsFromInnerLowerModule(struct SDL::modules&modulesIn
     unsigned int outerLowerModuleIndex = modulesInGPU.moduleMap[innerLowerModuleIndex * MAX_CONNECTED_MODULES + outerLowerModuleArrayIndex];
 
     unsigned int nOuterMDs = mdsInGPU.nMDs[outerLowerModuleIndex];
-    unsigned int nInnerMDs = mdsInGPU.nMDs[innerLowerModuleIndex];
     if(innerMDArrayIndex >= nInnerMDs) return;
     if(outerMDArrayIndex >= nOuterMDs) return;
 
@@ -319,7 +318,7 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
     if(nInnerMDs == 0) return;
     dim3 nThreads(1,16,16);
     dim3 nBlocks((nConnectedModules % nThreads.x == 0 ? nConnectedModules/nThreads.x : nConnectedModules/nThreads.x + 1), (nInnerMDs % nThreads.y == 0 ? nInnerMDs/nThreads.y : nInnerMDs/nThreads.y + 1), (N_MAX_MD_PER_MODULES % nThreads.z == 0 ? N_MAX_MD_PER_MODULES/nThreads.z : N_MAX_MD_PER_MODULES/nThreads.z + 1));
-    createSegmentsFromInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerLowerModuleIndex);
+    createSegmentsFromInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerLowerModuleIndex,nInnerMDs);
    
 }
 
