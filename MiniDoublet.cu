@@ -52,9 +52,9 @@ __device__ void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& h
     mdsInGPU.hitIndices[idx * 2] = lowerHitIdx;
     mdsInGPU.hitIndices[idx * 2 + 1] = upperHitIdx;
     mdsInGPU.moduleIndices[idx] = lowerModuleIdx;
-    if(modulesInGPU.moduleType(lowerModuleIdx) == PS)
+    if(modulesInGPU.moduleType[lowerModuleIdx] == PS)
     {
-        if(modulesInGPU.moduleLayerType(lowerModuleIdx) == Pixel)
+        if(modulesInGPU.moduleLayerType[lowerModuleIdx] == Pixel)
         {
             mdsInGPU.pixelModuleFlag[idx] = 0;
         }
@@ -93,7 +93,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
 
     bool pass = true; 
     dz = zLower - zUpper;     
-    const float dzCut = modulesInGPU.moduleType(lowerModuleIndex) == PS ? 2.f : 10.f;
+    const float dzCut = modulesInGPU.moduleType[lowerModuleIndex] == PS ? 2.f : 10.f;
     const float sign = ((dz > 0) - (dz < 0)) * ((hitsInGPU.zs[lowerHitIndex] > 0) - (hitsInGPU.zs[lowerHitIndex] < 0));
     const float invertedcrossercut = (fabs(dz) > 2) * sign;
 
@@ -112,7 +112,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
 //    float miniCutLower = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex);
 //    float miniCutUpper = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex);
 
-    if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+    if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
     {
         miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex); 
     }
@@ -136,7 +136,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
 //        zn = shiftedCoords[2];
 
         // Lower or the upper hit needs to be modified depending on which one was actually shifted
-        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
         {
             shiftedX = xn;
             shiftedY = yn;
@@ -174,7 +174,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
     if (modulesInGPU.sides[lowerModuleIndex]!= Center)
     {
         // When it is tilted, use the new shifted positions
-        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
         {
             // dPhi Change should be calculated so that the upper hit has higher rt.
             // In principle, this kind of check rt_lower < rt_upper should not be necessary because the hit shifting should have taken care of this.
@@ -241,7 +241,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
 
     // Cut #2 : drt cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3100
-    const float drtCut = modulesInGPU.moduleType(lowerModuleIndex) == PS ? 2.f : 10.f;
+    const float drtCut = modulesInGPU.moduleType[lowerModuleIndex] == PS ? 2.f : 10.f;
     drt = hitsInGPU.rts[lowerHitIndex] - hitsInGPU.rts[upperHitIndex];
     if (not (fabs(drt) < drtCut)) // If cut fails continue
     {
@@ -258,10 +258,10 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     yn = shiftedCoords[1];
     zn = shiftedCoords[2];
 
-    if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
+    if (modulesInGPU.moduleType[lowerModuleIndex] == PS)
     {
         // Appropriate lower or upper hit is modified after checking which one was actually shifted
-        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
         {
             // SDL::Hit upperHitMod(upperHit);
             // upperHitMod.setXYZ(xn, yn, upperHit.z());
@@ -295,9 +295,9 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
 
     // dz needs to change if it is a PS module where the strip hits are shifted in order to properly account for the case when a tilted module falls under "endcap logic"
     // if it was an endcap it will have zero effect
-    if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
+    if (modulesInGPU.moduleType[lowerModuleIndex] == PS)
     {
-        if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+        if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
         {
             dz = zLower - zn;
         }
@@ -308,7 +308,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     }
 
     float miniCut = 0;
-    if(modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+    if(modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
     {
         miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, lowerHitIndex, lowerModuleIndex,dPhi, dz);
     }
@@ -380,7 +380,7 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
     float drdz;
     if(isTilted)
     {
-        if(modulesInGPU.moduleType(moduleIndex) == PS and modulesInGPU.moduleLayerType(moduleIndex) == Strip)
+        if(modulesInGPU.moduleType[moduleIndex] == PS and modulesInGPU.moduleLayerType[moduleIndex] == Strip)
         {
             drdz = modulesInGPU.drdzs[moduleIndex];
         }
@@ -608,9 +608,9 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     float drdz_;
     unsigned int upperModuleIndex = modulesInGPU.partnerModuleIndex(lowerModuleIndex);
     // Assign hit pointers based on their hit type
-    if (modulesInGPU.moduleType(lowerModuleIndex) == PS)
+    if (modulesInGPU.moduleType[lowerModuleIndex] == PS)
     {
-        if (modulesInGPU.moduleLayerType(lowerModuleIndex)== Pixel)
+        if (modulesInGPU.moduleLayerType[lowerModuleIndex]== Pixel)
         {
             pixelHitIndex = lowerHitIndex;
             stripHitIndex = upperHitIndex;
@@ -638,7 +638,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
 
     angleA = fabs(std::atan(hitsInGPU.rts[pixelHitIndex] / hitsInGPU.zs[pixelHitIndex]));
     // angleB = isEndcap ? M_PI / 2. : -std::atan(tiltedGeometry.getDrDz(detid) * (lowerModule.side() == SDL::Module::PosZ ? -1 : 1)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
-    if(modulesInGPU.moduleType(lowerModuleIndex) == PS and modulesInGPU.moduleLayerType(upperModuleIndex) == Strip)
+    if(modulesInGPU.moduleType[lowerModuleIndex] == PS and modulesInGPU.moduleLayerType[upperModuleIndex] == Strip)
     {
         drdz_ = modulesInGPU.drdzs[upperModuleIndex];
         slope = modulesInGPU.slopes[upperModuleIndex];
@@ -654,7 +654,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     moduleSeparation = moduleGapSize(modulesInGPU, lowerModuleIndex);
 
     // Sign flips if the pixel is later layer
-    if (modulesInGPU.moduleType(lowerModuleIndex) == PS and modulesInGPU.moduleLayerType(lowerModuleIndex) != Pixel)
+    if (modulesInGPU.moduleType[lowerModuleIndex] == PS and modulesInGPU.moduleLayerType[lowerModuleIndex] != Pixel)
     {
         moduleSeparation *= -1;
     }
@@ -719,7 +719,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     absdzprime = fabs(moduleSeparation / std::sin(angleA + angleB) * std::cos(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign later
 
     // Depending on which one as closer to the interactin point compute the new z wrt to the pixel properly
-    if (modulesInGPU.moduleLayerType(lowerModuleIndex) == Pixel)
+    if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
     {
         abszn = std::abs(hitsInGPU.zs[pixelHitIndex]) + absdzprime;
     }

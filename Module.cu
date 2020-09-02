@@ -97,6 +97,9 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
         modulesInGPU.isInverted[index] = modulesInGPU.parseIsInverted(index);
         modulesInGPU.isLower[index] = modulesInGPU.parseIsLower(index);
 
+        modulesInGPU.moduleType[index] = modulesInGPU.parseModuleType(index);
+        modulesInGPU.moduleLayerType[index] = modulesInGPU.parseModuleLayerType(index);
+
         modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
         modulesInGPU.drdzs[index] = (subdet == Barrel) ? tiltedGeometry.getDrDz(detId) : 0;
         if(modulesInGPU.isLower[index]) lowerModuleCounter++;
@@ -214,7 +217,7 @@ unsigned int SDL::modules::partnerModuleIndex(unsigned int index)
     }
 }
 
-SDL::ModuleType SDL::modules::moduleType(unsigned int index)
+SDL::ModuleType SDL::modules::parseModuleType(unsigned int index)
 {
     if(subdets[index] == Barrel)
     {
@@ -254,9 +257,9 @@ SDL::ModuleType SDL::modules::moduleType(unsigned int index)
     }
 }
 
-SDL::ModuleLayerType SDL::modules::moduleLayerType(unsigned int index)
+SDL::ModuleLayerType SDL::modules::parseModuleLayerType(unsigned int index)
 {
-    if(moduleType(index) == TwoS)
+    if(moduleType[index] == TwoS)
     {
         return Strip;
     }

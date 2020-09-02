@@ -61,12 +61,14 @@ namespace SDL
         short* sides;
         bool* isInverted;
         bool* isLower;
+        ModuleType* moduleType;
+        ModuleLayerType* moduleLayerType;
         
 //        CUDA_HOSTDEV bool isInverted(unsigned int index);
 //        CUDA_HOSTDEV bool isLower(unsigned int index);
         CUDA_HOSTDEV unsigned int partnerModuleIndex(unsigned int index);
-        CUDA_HOSTDEV ModuleType moduleType(unsigned int index);
-        CUDA_HOSTDEV ModuleLayerType moduleLayerType(unsigned int index);
+        CUDA_HOSTDEV ModuleType parseModuleType(unsigned int index);
+        CUDA_HOSTDEV ModuleLayerType parseModuleLayerType(unsigned int index);
 
         bool parseIsInverted(unsigned int index);
         bool parseIsLower(unsigned int index);
