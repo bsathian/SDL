@@ -53,7 +53,7 @@ void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, f
     hitsInGPU.phis[idx] = phi(x,y,z);
     unsigned int moduleIndex = (*detIdToIndex)[detId];
     hitsInGPU.moduleIndices[idx] = moduleIndex;
-    if(modulesInGPU.subdets[moduleIndex] == Endcap and modulesInGPU.moduleType(moduleIndex) == TwoS)
+    if(modulesInGPU.subdets[moduleIndex] == Endcap and modulesInGPU.moduleType[moduleIndex] == TwoS)
     {
         float xhigh, yhigh, xlow, ylow;
         getEdgeHits(detId,x,y,xhigh,yhigh,xlow,ylow);
