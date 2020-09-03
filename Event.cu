@@ -146,9 +146,12 @@ void SDL::Event::createMiniDoublets()
 
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
-    dim3 nThreads(1,16,16);
-    dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nLowerModules/nThreads.x : nLowerModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
-    std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
+    //dim3 nThreads(1,16,16);
+    //dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nLowerModules/nThreads.x : nLowerModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
+//    std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
+
+    int nThreads = 1;
+    int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
     
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU,*hitsInGPU,*mdsInGPU);
 
@@ -189,21 +192,64 @@ void SDL::Event::createSegmentsWithModuleMap()
 }
 
 
+__global__ void createMiniDoubletsFromLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, unsigned int lowerModuleIndex, unsigned int upperModuleIndex, unsigned int nLowerHits, unsigned int nUpperHits)
+{
+    unsigned int lowerHitIndex = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int upperHitIndex = blockIdx.z * blockDim.z + threadIdx.z;
+
+    //consider assigining a dummy computation function for these
+    if(lowerHitIndex >= nLowerHits) return;
+    if(upperHitIndex >= nUpperHits) return;
+
+    unsigned int lowerHitArrayIndex = modulesInGPU.hitRanges[lowerModuleIndex * 2] + lowerHitIndex;
+    unsigned int upperHitArrayIndex = modulesInGPU.hitRanges[upperModuleIndex * 2] + upperHitIndex;
+
+    float dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange;
+
+    bool success = runMiniDoubletDefaultAlgo(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitArrayIndex, upperHitArrayIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange);
+    
+    if(success)
+    {
+        unsigned int mdModuleIdx = atomicAdd(&mdsInGPU.nMDs[lowerModuleIndex],1);
+        unsigned int mdIdx = lowerModuleIndex * N_MAX_MD_PER_MODULES + mdModuleIdx;
+
+        addMDToMemory(mdsInGPU,hitsInGPU, modulesInGPU, lowerHitArrayIndex, upperHitArrayIndex, lowerModuleIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, mdIdx);
+    }
+}
+
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
+{
+    int lowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    if(lowerModuleArrayIndex >= (*modulesInGPU.nLowerModules)) return; //extra precaution
+
+    int lowerModuleIndex = modulesInGPU.lowerModuleIndices[lowerModuleArrayIndex];
+    int upperModuleIndex = modulesInGPU.partnerModuleIndex(lowerModuleIndex);
+
+    if(modulesInGPU.hitRanges[lowerModuleIndex * 2] == -1) return;
+    if(modulesInGPU.hitRanges[upperModuleIndex * 2] == -1) return;
+
+    unsigned int nLowerHits = modulesInGPU.hitRanges[lowerModuleIndex * 2 + 1] - modulesInGPU.hitRanges[lowerModuleIndex * 2] + 1;
+    unsigned int nUpperHits = modulesInGPU.hitRanges[upperModuleIndex * 2 + 1] - modulesInGPU.hitRanges[upperModuleIndex * 2] + 1;
+
+    dim3 nThreads(1,16,16);
+    dim3 nBlocks(1,nLowerHits % nThreads.y == 0 ? nLowerHits/nThreads.y : nLowerHits/nThreads.y + 1, nUpperHits % nThreads.z == 0 ? nUpperHits/nThreads.z : nUpperHits/nThreads.z + 1);
+
+    createMiniDoubletsFromLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, lowerModuleIndex, upperModuleIndex, nLowerHits, nUpperHits);
+
+  
+}
+
+/*__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIdx = blockIdx.x * blockDim.x + threadIdx.x;
     if(lowerModuleArrayIdx >= (*modulesInGPU.nLowerModules)) return; //extra precaution
 
     int lowerModuleIdx = modulesInGPU.lowerModuleIndices[lowerModuleArrayIdx];
     int upperModuleIdx = modulesInGPU.partnerModuleIndex(lowerModuleIdx);
-    int lowerHitIdx = blockIdx.y * blockDim.y + threadIdx.y;
-    int upperHitIdx = blockIdx.z * blockDim.z + threadIdx.z;
 
     if(modulesInGPU.hitRanges[lowerModuleIdx * 2] == -1) return;
     if(modulesInGPU.hitRanges[upperModuleIdx * 2] == -1) return;
 
-    unsigned int nLowerHits = modulesInGPU.hitRanges[lowerModuleIdx * 2 + 1] - modulesInGPU.hitRanges[lowerModuleIdx * 2] + 1;
-    unsigned int nUpperHits = modulesInGPU.hitRanges[upperModuleIdx * 2 + 1] - modulesInGPU.hitRanges[upperModuleIdx * 2] + 1;
     //consider assigining a dummy computation function for these
     if(lowerHitIdx >= nLowerHits) return;
     if(upperHitIdx >= nUpperHits) return;
@@ -223,7 +269,7 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struc
     }
 }
 
-/*__global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU)
+__global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU)
 {
     int xAxisIdx = blockIdx.x * blockDim.x + threadIdx.x;
     int innerMDArrayIdx = blockIdx.y * blockDim.y + threadIdx.y;
