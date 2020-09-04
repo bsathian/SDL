@@ -132,8 +132,31 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     bool isInnerTilted = modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[innerLowerModuleIndex] != SDL::Center;
     bool isOuterTilted = modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[outerLowerModuleIndex] != SDL::Center;
-    const float drdzInner = modulesInGPU.drdzs[innerLowerModuleIndex];
-    const float drdzOuter = modulesInGPU.drdzs[outerLowerModuleIndex];
+    float drdzInner;
+    float drdzOuter;
+    if(isInnerTilted)
+    {
+        if(modulesInGPU.moduleType[innerLowerModuleIndex] == PS and modulesInGPU.moduleLayerType[innerLowerModuleIndex] == Strip)
+        {
+            drdzInner = modulesInGPU.drdzs[innerLowerModuleIndex];
+        }
+        else
+        {
+            drdzInner = modulesInGPU.drdzs[modulesInGPU.partnerModuleIndex(innerLowerModuleIndex)];
+        }
+    }
+    if(isOuterTilted)
+    {
+        if(modulesInGPU.moduleType[outerLowerModuleIndex] == PS and modulesInGPU.moduleLayerType[outerLowerModuleIndex] == Strip)
+        {
+            drdzOuter = modulesInGPU.drdzs[outerLowerModuleIndex];
+        }
+        else
+        {
+            drdzOuter = modulesInGPU.drdzs[modulesInGPU.partnerModuleIndex(outerLowerModuleIndex)];
+        }
+
+    }
 
     float innerModuleGapSize = SDL::moduleGapSize(modulesInGPU, innerLowerModuleIndex);
     float outerModuleGapSize = SDL::moduleGapSize(modulesInGPU, outerLowerModuleIndex);
