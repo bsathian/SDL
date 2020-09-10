@@ -10,7 +10,8 @@
 #include <cmath>
 #include <cuda_runtime.h>
 #include <omp.h>
-
+#include <chrono>
+#
 #include "Module.cuh"
 #include "Hit.cuh"
 #include "MiniDoublet.cuh"
