@@ -32,8 +32,11 @@ SDL::Event::Event()
 
 SDL::Event::~Event()
 {
+    mdsInGPU->freeMemory();
     cudaFree(mdsInGPU);
+    hitsInGPU->freeMemory();
     cudaFree(hitsInGPU);
+    segmentsInGPU->freeMemory(); 
     cudaFree(segmentsInGPU);
 }
 

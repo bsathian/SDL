@@ -44,7 +44,7 @@ namespace SDL
         float* dAlphaInnerMDOuterMDs;
 
         segments();
-        ~segments();
+	void freeMemory();
     };
 
     void createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned int maxSegments, unsigned int nModules);

@@ -36,6 +36,7 @@ namespace SDL
         float *lowEdgeYs;
         
         hits();
+        void freeMemory();
         ~hits();
 
     };

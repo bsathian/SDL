@@ -141,7 +141,7 @@ void SDL::printHit(struct hits& hitsInGPU, unsigned int hitIndex)
 }
 
 
-SDL::hits::~hits()
+void SDL::hits::freeMemory()
 {
     cudaFree(nHits);
     cudaFree(n2SHits);

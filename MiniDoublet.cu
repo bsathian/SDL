@@ -756,7 +756,7 @@ SDL::miniDoublets::miniDoublets()
 
 }
 
-SDL::miniDoublets::~miniDoublets()
+void SDL::miniDoublets::freeMemory()
 {
     cudaFree(hitIndices);
     cudaFree(moduleIndices);

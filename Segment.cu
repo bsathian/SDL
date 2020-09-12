@@ -55,7 +55,7 @@ SDL::segments::segments()
     dAlphaInnerMDOuterMDs = nullptr;
 }
 
-SDL::segments::~segments()
+void SDL::segments::freeMemory()
 {
     cudaFree(mdIndices);
     cudaFree(innerLowerModuleIndices);
