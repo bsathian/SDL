@@ -16,6 +16,9 @@
 #include "Module.cuh"
 #include "Hit.cuh"
 
+//CUDA MATH API
+#include "math.h"
+
 namespace SDL
 {
     struct segments

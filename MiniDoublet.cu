@@ -18,6 +18,8 @@ CUDA_CONST_VAR float SDL::k2Rinv1GeVf = (2.99792458e-3 * 3.8) / 2;
 CUDA_CONST_VAR float SDL::sinAlphaMax = 0.95;
 CUDA_CONST_VAR float SDL::ptCut = 1.0;
 CUDA_CONST_VAR float SDL::deltaZLum = 15.0;
+CUDA_CONST_VAR float pixelPSZpitch = 0.15;
+CUDA_CONST_VAR float strip2SZpitch = 5.0;
 
 void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules)
 {
@@ -95,14 +97,14 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
     dz = zLower - zUpper;     
     const float dzCut = modulesInGPU.moduleType[lowerModuleIndex] == PS ? 2.f : 10.f;
     const float sign = ((dz > 0) - (dz < 0)) * ((hitsInGPU.zs[lowerHitIndex] > 0) - (hitsInGPU.zs[lowerHitIndex] < 0));
-    const float invertedcrossercut = (fabs(dz) > 2) * sign;
+    const float invertedcrossercut = (fabsf(dz) > 2) * sign;
 
 
     //cut convention - when a particular cut fails, the pass variable goes to false
     //but all cuts will be checked even if a previous cut has failed, this is
     //to prevent thread divergence
 
-    if (not (fabs(dz) < dzCut and invertedcrossercut <= 0)) // Adding inverted crosser rejection
+    if (not (fabsf(dz) < dzCut and invertedcrossercut <= 0)) // Adding inverted crosser rejection
     {
         pass = false;
     }
@@ -164,7 +166,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
     }
 
 
-    if (not (fabs(dPhi) < miniCut)) // If cut fails continue
+    if (not (fabsf(dPhi) < miniCut)) // If cut fails continue
     {
         pass = false;
     }
@@ -204,7 +206,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
         noShiftedDphiChange = dPhiChange;
     }
 
-    if (not (fabs(dPhiChange) < miniCut)) // If cut fails continue
+    if (not (fabsf(dPhiChange) < miniCut)) // If cut fails continue
     {
         pass = false;
     }
@@ -234,7 +236,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     float dz = zLower - zUpper; // Not const since later it might change depending on the type of module
 
     const float dzCut = ((modulesInGPU.sides[lowerModuleIndex] == Endcap) ?  1.f : 10.f);
-    if (not (fabs(dz) < dzCut)) // If cut fails continue
+    if (not (fabsf(dz) < dzCut)) // If cut fails continue
     {
         pass = false;
     }
@@ -317,7 +319,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
         miniCut = dPhiThreshold(hitsInGPU, modulesInGPU, upperHitIndex, lowerModuleIndex, dPhi, dz);
     }
 
-    if (not (fabs(dPhi) < miniCut)) // If cut fails continue
+    if (not (fabsf(dPhi) < miniCut)) // If cut fails continue
     {
         pass = false;
     }
@@ -326,10 +328,10 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3119-L3124
 
     
-    float dzFrac = fabs(dz) / fabs(zLower);
+    float dzFrac = fabsf(dz) / fabsf(zLower);
     dPhiChange = dPhi / dzFrac * (1.f + dzFrac);
     noShiftedDphichange = noShiftedDphi / dzFrac * (1.f + dzFrac);
-    if (not (fabs(dPhiChange) < miniCut)) // If cut fails continue
+    if (not (fabsf(dPhiChange) < miniCut)) // If cut fails continue
     {
         pass = false;
     }
@@ -369,12 +371,11 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
 
     float rt = hitsInGPU.rts[hitIndex];
     unsigned int iL = modulesInGPU.layers[moduleIndex] - 1;
-    const float miniSlope = std::asin(min(rt * k2Rinv1GeVf / ptCut, sinAlphaMax));
+    const float miniSlope = asinf(min(rt * k2Rinv1GeVf / ptCut, sinAlphaMax));
     const float rLayNominal = ((modulesInGPU.subdets[moduleIndex]== Barrel) ? miniRminMeanBarrel[iL] : miniRminMeanEndcap[iL]);
     const float miniPVoff = 0.1 / rLayNominal;
     const float miniMuls = ((modulesInGPU.subdets[moduleIndex] == Barrel) ? miniMulsPtScaleBarrel[iL] * 3.f / ptCut : miniMulsPtScaleEndcap[iL] * 3.f / ptCut);
     const bool isTilted = modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center;
-    const float pixelPSZpitch = 0.15;
     //the lower module is sent in irrespective of its layer type. We need to fetch the drdz properly
 
     float drdz;
@@ -396,7 +397,7 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
     const float miniTilt = ((isTilted) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
 
     // Compute luminous region requirement for endcap
-    const float miniLum = fabs(dPhi * deltaZLum/dz); // Balaji's new error
+    const float miniLum = fabsf(dPhi * deltaZLum/dz); // Balaji's new error
     // const float miniLum = abs(deltaZLum / lowerHit.z()); // Old error
 
 
@@ -634,10 +635,10 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     // I am not sure how slow sin, atan, cos, functions are in c++. If x / sqrt(1 + x^2) are faster change this later to reduce arithmetic computation time
 
     // The pixel hit is used to compute the angleA which is the theta in polar coordinate
-    // angleA = std::atan(pixelHitPtr->rt() / pixelHitPtr->z() + (pixelHitPtr->z() < 0 ? M_PI : 0)); // Shift by pi if the z is negative so that the value of the angleA stays between 0 to pi and not -pi/2 to pi/2
+    // angleA = atanf(pixelHitPtr->rt() / pixelHitPtr->z() + (pixelHitPtr->z() < 0 ? M_PI : 0)); // Shift by pi if the z is negative so that the value of the angleA stays between 0 to pi and not -pi/2 to pi/2
 
-    angleA = fabs(std::atan(hitsInGPU.rts[pixelHitIndex] / hitsInGPU.zs[pixelHitIndex]));
-    // angleB = isEndcap ? M_PI / 2. : -std::atan(tiltedGeometry.getDrDz(detid) * (lowerModule.side() == SDL::Module::PosZ ? -1 : 1)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
+    angleA = fabsf(atanf(hitsInGPU.rts[pixelHitIndex] / hitsInGPU.zs[pixelHitIndex]));
+    // angleB = isEndcap ? M_PI / 2. : -atanf(tiltedGeometry.getDrDz(detid) * (lowerModule.side() == SDL::Module::PosZ ? -1 : 1)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
     if(modulesInGPU.moduleType[lowerModuleIndex] == PS and modulesInGPU.moduleLayerType[upperModuleIndex] == Strip)
     {
         drdz_ = modulesInGPU.drdzs[upperModuleIndex];
@@ -662,7 +663,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     drprime = (moduleSeparation / std::sin(angleA + angleB)) * std::sin(angleA);
     
     // Compute arctan of the slope and take care of the slope = infinity case
-    absArctanSlope = ((slope != SDL_INF) ? fabs(std::atan(slope)) : M_PI / 2); // Since C++ can't represent infinity, SDL_INF = 123456789 was used to represent infinity in the data table
+    absArctanSlope = ((slope != SDL_INF) ? fabs(atanf(slope)) : M_PI / 2); // Since C++ can't represent infinity, SDL_INF = 123456789 was used to represent infinity in the data table
 
     // The pixel hit position
     xp = hitsInGPU.xs[pixelHitIndex];
@@ -716,16 +717,16 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     }
 
     // Computing new Z position
-    absdzprime = fabs(moduleSeparation / std::sin(angleA + angleB) * std::cos(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign later
+    absdzprime = fabsf(moduleSeparation / std::sin(angleA + angleB) * std::cos(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign later
 
     // Depending on which one as closer to the interactin point compute the new z wrt to the pixel properly
     if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
     {
-        abszn = std::abs(hitsInGPU.zs[pixelHitIndex]) + absdzprime;
+        abszn = fabsf(hitsInGPU.zs[pixelHitIndex]) + absdzprime;
     }
     else
     {
-        abszn = std::abs(hitsInGPU.zs[pixelHitIndex]) - absdzprime;
+        abszn = fabsf(hitsInGPU.zs[pixelHitIndex]) - absdzprime;
     }
 
     zn = abszn * ((hitsInGPU.zs[pixelHitIndex] > 0) ? 1 : -1); // Apply the sign of the zn

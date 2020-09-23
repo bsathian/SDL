@@ -128,7 +128,6 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
     
 
     const float dAlpha_Bfield = asin(min(segmentDr * k2Rinv1GeVf/ptCut, sinAlphaMax));
-    const float pixelPSZpitch = 0.15;
 
     bool isInnerTilted = modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[innerLowerModuleIndex] != SDL::Center;
     bool isOuterTilted = modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[outerLowerModuleIndex] != SDL::Center;
@@ -196,12 +195,12 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     if(modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Endcap)
     {
-        dAlpha_res_inner *= fabs(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt);
+        dAlpha_res_inner *= fabsf(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt);
     }
 
     if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Endcap)
     {
-        dAlpha_res_outer *= fabs(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt);
+        dAlpha_res_outer *= fabsf(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt);
     }
 
     float dAlpha_res = dAlpha_res_inner + dAlpha_res_outer;
@@ -276,10 +275,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
 
     bool outerLayerEndcapTwoS = hitsInGPU.edge2SMap[outerMiniDoubletAnchorHitIndex] >= 0;
     
-    float sdSlope = std::asin(min(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
+    float sdSlope = asinf(min(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
     float sdPVoff = 0.1/rtOut;
-    float pixelPSZpitch = 0.15;
-    float strip2SZpitch = 5.0f;
     float disks2SMinRadius = 60.f;
 
     float rtGeom =  ((rtIn < disks2SMinRadius && rtOut < disks2SMinRadius) ? (2.f * pixelPSZpitch)
@@ -294,8 +291,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     }
 
     float dz = zOut - zIn;
-    float dLum = std::copysign(deltaZLum, zIn);
-    float drtDzScale = std::tan(sdSlope)/sdSlope;
+    float dLum = copysignf(deltaZLum, zIn);
+    float drtDzScale = tanf(sdSlope)/sdSlope;
 
     float rtLo = max(rtIn * (1.f + dz / (zIn + dLum) * drtDzScale) - rtGeom,  rtIn - 0.5f * rtGeom); //rt should increase
     float rtHi = rtIn * (zOut - dLum) / (zIn - dLum) + rtGeom; //dLum for luminous; rGeom for measurement size; no tanTheta_loc(pt) correction
@@ -326,7 +323,7 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
         dPhiMin = dPhi;
     }
 
-    if(fabs(dPhi) > sdCut)
+    if(fabsf(dPhi) > sdCut)
     {
         pass = false;
     }
@@ -336,7 +333,7 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     dPhiChangeMin = dPhiMin/dzFrac * (1.f + dzFrac);
     dPhiChangeMax = dPhiMax/dzFrac * (1.f + dzFrac);
 
-    if(fabs(dPhiChange) > sdCut)
+    if(fabsf(dPhiChange) > sdCut)
     {
         pass = false;
     }
@@ -350,17 +347,17 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     dAlphaOuterMDSegment = outerMDAlpha - dPhiChange;
     dAlphaInnerMDOuterMD = innerMDAlpha - outerMDAlpha;
     
-    if(fabs(dAlphaInnerMDSegment) >= dAlphaThresholdValues[0])
+    if(fabsf(dAlphaInnerMDSegment) >= dAlphaThresholdValues[0])
     {
         pass = false;
     }
 
-    if(fabs(dAlphaOuterMDSegment) >= dAlphaThresholdValues[1])
+    if(fabsf(dAlphaOuterMDSegment) >= dAlphaThresholdValues[1])
     {
         pass = false;
     }
 
-    if(fabs(dAlphaInnerMDOuterMD) >= dAlphaThresholdValues[2])
+    if(fabsf(dAlphaInnerMDOuterMD) >= dAlphaThresholdValues[2])
     {
         pass = false;
     }
@@ -420,9 +417,9 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
     zIn = hitsInGPU.zs[innerMiniDoubletAnchorHitIndex];
     zOut = hitsInGPU.zs[outerMiniDoubletAnchorHitIndex];
 
-    float sdSlope = std::asin(min(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
+    float sdSlope = asinf(min(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
     float sdPVoff = 0.1f/rtOut;
-    float dzDrtScale = std::tan(sdSlope)/sdSlope; //FIXME: need appropriate value
+    float dzDrtScale = tanf(sdSlope)/sdSlope; //FIXME: need appropriate value
     float pixelPSZpitch = 0.15;
     float strip2SZpitch = 5.0f;
 
@@ -441,14 +438,14 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
     dPhi = deltaPhi(hitsInGPU.xs[innerMiniDoubletAnchorHitIndex], hitsInGPU.ys[innerMiniDoubletAnchorHitIndex], hitsInGPU.zs[innerMiniDoubletAnchorHitIndex], hitsInGPU.xs[outerMiniDoubletAnchorHitIndex], hitsInGPU.ys[outerMiniDoubletAnchorHitIndex], hitsInGPU.zs[outerMiniDoubletAnchorHitIndex]);
     float sdCut = sdSlope + sqrt(sdMuls * sdMuls + sdPVoff * sdPVoff);
 
-    if(not( fabs(dPhi) <= sdCut ))
+    if(not( fabsf(dPhi) <= sdCut ))
     {
         pass = false;
     }
 
     dPhiChange = deltaPhiChange(hitsInGPU.xs[innerMiniDoubletAnchorHitIndex], hitsInGPU.ys[innerMiniDoubletAnchorHitIndex], hitsInGPU.zs[innerMiniDoubletAnchorHitIndex], hitsInGPU.xs[outerMiniDoubletAnchorHitIndex], hitsInGPU.ys[outerMiniDoubletAnchorHitIndex], hitsInGPU.zs[outerMiniDoubletAnchorHitIndex]);
 
-    if(not( fabs(dPhiChange) <= sdCut ))
+    if(not( fabsf(dPhiChange) <= sdCut ))
     {
         pass = false;
     }
@@ -462,17 +459,17 @@ __device__ bool SDL::runSegmentDefaultAlgoBarrel(struct modules& modulesInGPU, s
     dAlphaOuterMDSegment = outerMDAlpha - dPhiChange;
     dAlphaInnerMDOuterMD = innerMDAlpha - outerMDAlpha;
     
-    if(fabs(dAlphaInnerMDSegment) >= dAlphaThresholdValues[0])
+    if(fabsf(dAlphaInnerMDSegment) >= dAlphaThresholdValues[0])
     {
         pass = false;
     }
 
-    if(fabs(dAlphaOuterMDSegment) >= dAlphaThresholdValues[1])
+    if(fabsf(dAlphaOuterMDSegment) >= dAlphaThresholdValues[1])
     {
         pass = false;
     }
 
-    if(fabs(dAlphaInnerMDOuterMD) >= dAlphaThresholdValues[2])
+    if(fabsf(dAlphaInnerMDOuterMD) >= dAlphaThresholdValues[2])
     {
         pass = false;
     }

@@ -90,7 +90,7 @@ inline float SDL::ATan2(float y, float x)
     else        return -M_PI / 2;
 }
 
-
+//TODO:Check if cuda atan2f will work here
 inline float SDL::phi(float x, float y, float z)
 {
     return phi_mpi_pi(M_PI + ATan2(-y, -x)); 

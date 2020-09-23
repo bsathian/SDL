@@ -21,6 +21,9 @@
 #include "Module.cuh"
 #include "Hit.cuh"
 
+//CUDA MATH API
+#include "math.h"
+
 namespace SDL
 {
     struct miniDoublets
@@ -87,6 +90,8 @@ namespace SDL
     extern CUDA_CONST_VAR float miniDeltaFlat[6];
     extern CUDA_CONST_VAR float miniDeltaLooseTilted[3];
     extern CUDA_CONST_VAR float miniDeltaEndcap[5][15];
+    extern CUDA_CONST_VAR float pixelPSZpitch;
+    extern CUDA_CONST_VAR float strip2SZpitch;
 
 }
 
