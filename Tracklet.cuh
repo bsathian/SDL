@@ -4,9 +4,11 @@
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV  __host__ __device__
 #define CUDA_DEV __device__
+#define CUDA_CONST_VAR __device__
 #else
 #define CUDA_HOSTDEV
 #define CUDA_DEV
+#define CUDA_CONST_VAR
 #endif
 
 #include "Constants.h"
@@ -55,6 +57,8 @@ namespace SDL
     CUDA_DEV bool runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut);
 
     CUDA_DEV bool runTrackletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut);
+
+    extern CUDA_CONST_VAR float pt_betaMax;
 
 }
 #endif

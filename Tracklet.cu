@@ -1,6 +1,8 @@
+#ifdef __CUDACC__
+#define CUDA_CONST_VAR __device__
+#endif
 #include "Tracklet.cuh"
-
-CUDA_CONST_VAR float pt_betaMax =7.0f;
+CUDA_CONST_VAR float SDL::pt_betaMax =7.0f;
 
 
 void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsigned int maxTracklets, unsigned int nLowerModules)

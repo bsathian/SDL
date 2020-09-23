@@ -18,8 +18,8 @@ CUDA_CONST_VAR float SDL::k2Rinv1GeVf = (2.99792458e-3 * 3.8) / 2;
 CUDA_CONST_VAR float SDL::sinAlphaMax = 0.95;
 CUDA_CONST_VAR float SDL::ptCut = 1.0;
 CUDA_CONST_VAR float SDL::deltaZLum = 15.0;
-CUDA_CONST_VAR float pixelPSZpitch = 0.15;
-CUDA_CONST_VAR float strip2SZpitch = 5.0;
+CUDA_CONST_VAR float SDL::pixelPSZpitch = 0.15;
+CUDA_CONST_VAR float SDL::strip2SZpitch = 5.0;
 
 void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules)
 {
