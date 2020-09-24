@@ -20,11 +20,13 @@ SDL::Event::Event()
         n_hits_by_layer_barrel_[i] = 0;
         n_minidoublets_by_layer_barrel_[i] = 0;
         n_segments_by_layer_barrel_[i] = 0;
+        n_tracklets_by_layer_barrel_[i] = 0;
         if(i<5)
         {
             n_hits_by_layer_endcap_[i] = 0;
             n_minidoublets_by_layer_endcap_[i] = 0;
-	    n_segments_by_layer_endcap_[i] = 0;
+	        n_segments_by_layer_endcap_[i] = 0;
+            n_tracklets_by_layer_endcap_[i] = 0;
         }
     }
     resetObjectsInModule();
@@ -232,7 +234,38 @@ void SDL::Event::createTrackletsWithModuleMap()
         std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
 
     }
+    addTrackletsToEvent();
 }
+
+void SDL::Event::addTrackletsToEvent()
+{
+    unsigned int idx;
+    for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
+    {
+        idx = SDL::modulesInGPU->lowerModuleIndices[i];
+        //tracklets run only on lower modules!!!!!!
+        if(trackletsInGPU->nTracklets[i] == 0)
+        {
+            modulesInGPU->trackletRanges[idx * 2] = -1;
+            modulesInGPU->trackletRanges[idx * 2 + 1] = -1;
+        }
+        else
+        {
+            modulesInGPU->trackletRanges[idx * 2] = idx * N_MAX_TRACKLETS_PER_MODULE;
+            modulesInGPU->trackletRanges[idx * 2 + 1] = idx * N_MAX_TRACKLETS_PER_MODULE + trackletsInGPU->nTracklets[i] - 1;
+            
+            if(modulesInGPU->subdets[idx] == Barrel)
+            {
+                n_tracklets_by_layer_barrel_[modulesInGPU->layers[idx]] += trackletsInGPU->nTracklets[i];
+            }
+            else
+            {
+                n_tracklets_by_layer_endcap_[modulesInGPU->layers[idx]] += trackletsInGPU->nTracklets[i];
+            }
+        }
+    }
+}
+
 
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
