@@ -97,7 +97,7 @@ inline float SDL::phi(float x, float y, float z)
 }
 
 
-inline float SDL::phi_mpi_pi(float x)
+float SDL::phi_mpi_pi(float x)
 {
     if (isnan(x))
     {

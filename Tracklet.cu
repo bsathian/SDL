@@ -2,7 +2,8 @@
 #define CUDA_CONST_VAR __device__
 #endif
 #include "Tracklet.cuh"
-CUDA_CONST_VAR float SDL::pt_betaMax =7.0f;
+
+CUDA_CONST_VAR float SDL::pt_betaMax = 7.0;
 
 
 void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsigned int maxTracklets, unsigned int nLowerModules)
@@ -814,7 +815,6 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
     float betaAv = 0.5f * (betaIn + betaOut);
     float pt_beta = dr * k2Rinv1GeVf / sinf(betaAv);
 
-    const float pt_betaMax = 7.f;
 
     int lIn= 11; //endcap
     int lOut = 13; //endcap

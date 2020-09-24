@@ -5,7 +5,7 @@ const unsigned int N_MAX_HITS_PER_MODULE = 100;
 const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
-const unsigned int N_MAX_TRACKLETS_PER_MODULE = 500;//temporary
+const unsigned int N_MAX_TRACKLETS_PER_MODULE = 5000;//temporary
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -155,12 +155,12 @@ void SDL::Event::createMiniDoublets()
 
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
-//    dim3 nThreads(1,16,16);
-//    dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nLowerModules/nThreads.x : nLowerModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
+    dim3 nThreads(1,16,16);
+    dim3 nBlocks((nLowerModules % nThreads.x == 0 ? nLowerModules/nThreads.x : nLowerModules/nThreads.x + 1),(N_MAX_HITS_PER_MODULE % nThreads.y == 0 ? N_MAX_HITS_PER_MODULE/nThreads.y : N_MAX_HITS_PER_MODULE/nThreads.y + 1), (N_MAX_HITS_PER_MODULE % nThreads.z == 0 ? N_MAX_HITS_PER_MODULE/nThreads.z : N_MAX_HITS_PER_MODULE/nThreads.z + 1));
     //std::cout<<nBlocks.x<<" "<<nBlocks.y<<" "<<nBlocks.z<<" "<<std::endl;
 
-    int nThreads = 1;
-    int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
+//    int nThreads = 1;
+//    int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
 
     cudaDeviceSynchronize();
     auto syncStart = std::chrono::high_resolution_clock::now();
@@ -234,7 +234,7 @@ void SDL::Event::createTrackletsWithModuleMap()
     }
 }
 
-/*__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
+__global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     int lowerHitIndex = blockIdx.y * blockDim.y + threadIdx.y;
@@ -266,9 +266,9 @@ void SDL::Event::createTrackletsWithModuleMap()
 
         addMDToMemory(mdsInGPU,hitsInGPU, modulesInGPU, lowerHitArrayIndex, upperHitArrayIndex, lowerModuleIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, mdIndex);
     }
-}*/
+}
 
-__global__ void createMiniDoubletsFromLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, unsigned int lowerModuleIndex, unsigned int upperModuleIndex, unsigned int nLowerHits, unsigned int nUpperHits)
+/*__global__ void createMiniDoubletsFromLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, unsigned int lowerModuleIndex, unsigned int upperModuleIndex, unsigned int nLowerHits, unsigned int nUpperHits)
 {
     unsigned int lowerHitIndex = blockIdx.y * blockDim.y + threadIdx.y;
     unsigned int upperHitIndex = blockIdx.z * blockDim.z + threadIdx.z;
@@ -314,7 +314,7 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struc
     createMiniDoubletsFromLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, lowerModuleIndex, upperModuleIndex, nLowerHits, nUpperHits);
 
   
-}
+}*/
 
 /*__global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU)
 {
@@ -426,6 +426,8 @@ __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& mo
     //outer inner lower module array indices should be obtained from the partner module of the inner segment's outer lower module
     unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
 
+    if(innerSegmentIndex >= nInnerSegments) return;
+
     unsigned int innerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex];
 
     //number of possible outer segment inner MD lower modules
@@ -460,6 +462,7 @@ __global__ void createTrackletsInGPU(struct SDL::modules& modulesInGPU, struct S
     int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     if(innerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
     unsigned int innerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerInnerLowerModuleArrayIndex];
+    printf("innerInnerLowerModuleIndex = %d\n",innerInnerLowerModuleIndex);
     unsigned int nInnerSegments = segmentsInGPU.nSegments[innerInnerLowerModuleIndex];
 
     dim3 nThreads(1,16,16);
