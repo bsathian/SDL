@@ -13,7 +13,8 @@ SDL::Event::Event()
 {
     hitsInGPU = nullptr;
     mdsInGPU = nullptr;
-    segmentsInGPU = nullptr; 
+    segmentsInGPU = nullptr;
+    trackletsInGPU = nullptr; 
     //reset the arrays
     for(int i = 0; i<6; i++)
     {
@@ -240,6 +241,7 @@ void SDL::Event::createTrackletsWithModuleMap()
 void SDL::Event::addTrackletsToEvent()
 {
     unsigned int idx;
+    std::cout<<"Number of lower modules = "<<*modulesInGPU->nLowerModules<<std::endl;
     for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
     {
         idx = SDL::modulesInGPU->lowerModuleIndices[i];
@@ -459,7 +461,7 @@ __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& mo
     //outer inner lower module array indices should be obtained from the partner module of the inner segment's outer lower module
     unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
 
-    if(innerSegmentIndex >= nInnerSegments) return;
+    if(innerSegmentArrayIndex >= nInnerSegments) return;
 
     unsigned int innerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex];
 
@@ -495,7 +497,6 @@ __global__ void createTrackletsInGPU(struct SDL::modules& modulesInGPU, struct S
     int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     if(innerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
     unsigned int innerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerInnerLowerModuleArrayIndex];
-    printf("innerInnerLowerModuleIndex = %d\n",innerInnerLowerModuleIndex);
     unsigned int nInnerSegments = segmentsInGPU.nSegments[innerInnerLowerModuleIndex];
 
     dim3 nThreads(1,16,16);

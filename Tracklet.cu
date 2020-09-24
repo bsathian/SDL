@@ -11,7 +11,7 @@ void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsig
     cudaMallocManaged(&trackletsInGPU.segmentIndices, 2 * maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&trackletsInGPU.lowerModuleIndices, 4 * maxTracklets * nLowerModules * sizeof(unsigned int));
 
-    cudaMallocManaged(&trackletsInGPU.nTracklets,nLowerModules,sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.nTracklets,nLowerModules * sizeof(unsigned int));
 #pragma omp parallel for
     for(size_t i = 0; i<nLowerModules;i++)
     {
