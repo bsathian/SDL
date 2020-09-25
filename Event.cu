@@ -258,11 +258,11 @@ void SDL::Event::addTrackletsToEvent()
             
             if(modulesInGPU->subdets[idx] == Barrel)
             {
-                n_tracklets_by_layer_barrel_[modulesInGPU->layers[idx]] += trackletsInGPU->nTracklets[i];
+                n_tracklets_by_layer_barrel_[modulesInGPU->layers[idx] - 1] += trackletsInGPU->nTracklets[i];
             }
             else
             {
-                n_tracklets_by_layer_endcap_[modulesInGPU->layers[idx]] += trackletsInGPU->nTracklets[i];
+                n_tracklets_by_layer_endcap_[modulesInGPU->layers[idx] - 1] += trackletsInGPU->nTracklets[i];
             }
         }
     }
@@ -454,14 +454,15 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
 
 __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex)
 {
-    int innerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
     int outerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    int innerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
     int outerSegmentArrayIndex = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if(innerSegmentArrayIndex >= nInnerSegments) return;
 
     //outer inner lower module array indices should be obtained from the partner module of the inner segment's outer lower module
     unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
 
-    if(innerSegmentArrayIndex >= nInnerSegments) return;
 
     unsigned int innerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex];
 
@@ -470,6 +471,10 @@ __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& mo
     if(outerInnerLowerModuleArrayIndex >= nOuterInnerLowerModules) return;
 
     unsigned int outerInnerLowerModuleIndex = modulesInGPU.moduleMap[innerOuterLowerModuleIndex * MAX_CONNECTED_MODULES + outerInnerLowerModuleArrayIndex];
+
+    unsigned int nOuterSegments = segmentsInGPU.nSegments[outerInnerLowerModuleIndex];
+
+    if(outerSegmentArrayIndex >= nOuterSegments) return;
 
     unsigned int outerSegmentIndex = outerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
 
