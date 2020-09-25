@@ -156,7 +156,7 @@ __device__ bool SDL::runTrackletDefaultAlgoBBBB(struct modules& modulesInGPU, st
     float alpha1GeV_OutLo = asinf(fminf(rt_OutLo * k2Rinv1GeVf / ptCut, sinAlphaMax));
 
     float rtRatio_OutLoInLo = rt_OutLo / rt_InLo; // Outer segment beginning rt divided by inner segment beginning rt;
-    float dzDrtScale = tan(alpha1GeV_OutLo) / alpha1GeV_OutLo; // The track can bend in r-z plane slightly
+    float dzDrtScale = tanf(alpha1GeV_OutLo) / alpha1GeV_OutLo; // The track can bend in r-z plane slightly
     float zpitch_InLo = (isPS_InLo ? pixelPSZpitch : strip2SZpitch);
     float zpitch_OutLo = (isPS_OutLo ? pixelPSZpitch : strip2SZpitch);
 
