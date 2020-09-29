@@ -100,6 +100,8 @@ void SDL::Event::addMiniDoubletsToEvent()
         {
             modulesInGPU->mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
             modulesInGPU->mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU->nMDs[idx] - 1;
+//            for(unsigned int jdx = 0; jdx < mdsInGPU->nMDs[idx]; jdx++)
+//                printMD(*mdsInGPU,*hitsInGPU,*modulesInGPU, idx * N_MAX_MD_PER_MODULES + jdx);
      
             if(modulesInGPU->subdets[idx] == Barrel)
             {
@@ -129,6 +131,9 @@ void SDL::Event::addSegmentsToEvent()
         {
             modulesInGPU->segmentRanges[idx * 2] = idx * N_MAX_SEGMENTS_PER_MODULE;
             modulesInGPU->segmentRanges[idx * 2 + 1] = idx * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[idx] - 1;
+
+            for(unsigned int jdx = 0; jdx < segmentsInGPU->nSegments[idx]; jdx++)
+                printSegment(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, idx * N_MAX_SEGMENTS_PER_MODULE + jdx);
 
             if(modulesInGPU->subdets[idx] == Barrel)
             {

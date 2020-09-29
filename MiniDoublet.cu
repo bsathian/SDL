@@ -214,7 +214,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
     return pass;
 }
 
-__device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
+__device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noshiftedDz, float& noShiftedDphi, float& noShiftedDphichange)
 {
     float xLower = hitsInGPU.xs[lowerHitIndex];
     float yLower = hitsInGPU.ys[lowerHitIndex];
@@ -233,7 +233,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     // For PS module in case when it is tilted a different dz (after the strip hit shift) is calculated later.
     // This is because the 10.f cut is meant more for sanity check (most will pass this cut anyway) (TODO: Maybe revisit this cut later?)
 
-    float dz = zLower - zUpper; // Not const since later it might change depending on the type of module
+    dz = zLower - zUpper; // Not const since later it might change depending on the type of module
 
     const float dzCut = ((modulesInGPU.sides[lowerModuleIndex] == Endcap) ?  1.f : 10.f);
     if (not (fabsf(dz) < dzCut)) // If cut fails continue
@@ -244,7 +244,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
     // Cut #2 : drt cut. The dz difference can't be larger than 1cm. (max separation is 4mm for modules in the endcap)
     // Ref to original code: https://github.com/slava77/cms-tkph2-ntuple/blob/184d2325147e6930030d3d1f780136bc2dd29ce6/doubletAnalysis.C#L3100
     const float drtCut = modulesInGPU.moduleType[lowerModuleIndex] == PS ? 2.f : 10.f;
-    drt = hitsInGPU.rts[lowerHitIndex] - hitsInGPU.rts[upperHitIndex];
+    float drt = hitsInGPU.rts[lowerHitIndex] - hitsInGPU.rts[upperHitIndex];
     if (not (fabs(drt) < drtCut)) // If cut fails continue
     {
         pass = false;
@@ -776,10 +776,10 @@ void SDL::miniDoublets::freeMemory()
     cudaFree(noShiftedDphiChanges);
 }
 
-void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, unsigned int mdIndex)
+void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, SDL::modules& modulesInGPU, unsigned int mdIndex)
 {
+    std::cout<<std::endl;
     std::cout << "dz " << mdsInGPU.dzs[mdIndex] << std::endl;
-    std::cout << "noshiftedDz " << mdsInGPU.noShiftedDzs[mdIndex] << std::endl;   
     std::cout << "dphi " << mdsInGPU.dphis[mdIndex] << std::endl;
     std::cout << "dphinoshift " << mdsInGPU.noShiftedDphis[mdIndex] << std::endl;
     std::cout << "dphichange " << mdsInGPU.dphichanges[mdIndex] << std::endl;
@@ -789,8 +789,8 @@ void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, unsigne
     std::cout << "------------------------------" << std::endl;
     unsigned int lowerHitIndex = mdsInGPU.hitIndices[mdIndex * 2];
     unsigned int upperHitIndex = mdsInGPU.hitIndices[mdIndex * 2  + 1];
-    printHit(hitsInGPU, lowerHitIndex);
+    printHit(hitsInGPU, modulesInGPU, lowerHitIndex);
     std::cout << "Upper Hit " << std::endl;
     std::cout << "------------------------------" << std::endl;
-    printHit(hitsInGPU, upperHitIndex);
+    printHit(hitsInGPU, modulesInGPU, upperHitIndex);
 }

@@ -201,7 +201,7 @@ __device__ bool SDL::runTrackletDefaultAlgoBBBB(struct modules& modulesInGPU, st
         pass = false;
     }
 
-    float sdlPVoff = 0.f/rt_OutLo;
+    float sdlPVoff = 0.1f/rt_OutLo;
     float sdlCut = alpha1GeV_OutLo + sqrtf(sdlMuls * sdlMuls + sdlPVoff * sdlPVoff);
     
     

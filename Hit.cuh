@@ -50,7 +50,7 @@ namespace SDL
     CUDA_HOSTDEV float deltaPhiChange(float x1, float y1, float z1, float x2, float y2, float z2);
     void getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& yhigh, float& xlow, float& ylow);
 
-    void printHit(struct hits& hitsInGPU, unsigned int hitIndex);
+    void printHit(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex);
 }
 #endif
 

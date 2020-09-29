@@ -131,11 +131,11 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     bool isInnerTilted = modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[innerLowerModuleIndex] != SDL::Center;
     bool isOuterTilted = modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[outerLowerModuleIndex] != SDL::Center;
-    float drdzInner;
-    float drdzOuter;
+    float drdzInner = -1.f;
+    float drdzOuter = -1.f;
     if(isInnerTilted)
     {
-        if(modulesInGPU.moduleType[innerLowerModuleIndex] == PS and modulesInGPU.moduleLayerType[innerLowerModuleIndex] == Strip)
+        if(/*modulesInGPU.moduleType[innerLowerModuleIndex] == PS and*/ modulesInGPU.moduleLayerType[innerLowerModuleIndex] == Strip)
         {
             drdzInner = modulesInGPU.drdzs[innerLowerModuleIndex];
         }
@@ -146,7 +146,7 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
     }
     if(isOuterTilted)
     {
-        if(modulesInGPU.moduleType[outerLowerModuleIndex] == PS and modulesInGPU.moduleLayerType[outerLowerModuleIndex] == Strip)
+        if(/*modulesInGPU.moduleType[outerLowerModuleIndex] == PS and */ modulesInGPU.moduleLayerType[outerLowerModuleIndex] == Strip)
         {
             drdzOuter = modulesInGPU.drdzs[outerLowerModuleIndex];
         }
@@ -314,8 +314,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
 
         float dPhiPos_low = deltaPhi(hitsInGPU.xs[innerMiniDoubletAnchorHitIndex], hitsInGPU.ys[innerMiniDoubletAnchorHitIndex], hitsInGPU.zs[innerMiniDoubletAnchorHitIndex], hitsInGPU.lowEdgeXs[outerEdgeIndex], hitsInGPU.lowEdgeYs[outerEdgeIndex], hitsInGPU.zs[outerMiniDoubletAnchorHitIndex]);
 
-        dPhiMax = abs(dPhiPos_high) > abs(dPhiPos_low) ? dPhiPos_high : dPhiPos_low;
-        dPhiMin = abs(dPhiPos_high) > abs(dPhiPos_low) ? dPhiPos_low : dPhiPos_high;
+        dPhiMax = fabsf(dPhiPos_high) > fabsf(dPhiPos_low) ? dPhiPos_high : dPhiPos_low;
+        dPhiMin = fabsf(dPhiPos_high) > fabsf(dPhiPos_low) ? dPhiPos_low : dPhiPos_high;
     }
     else
     {
@@ -500,10 +500,25 @@ __device__ bool SDL::runSegmentDefaultAlgo(struct modules& modulesInGPU, struct 
         if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Endcap)
             pass = runSegmentDefaultAlgoEndcap(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex);
         else
-            pass = runSegmentDefaultAlgoEndcap(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex);
+            pass = runSegmentDefaultAlgoBarrel(modulesInGPU, hitsInGPU, mdsInGPU, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex, zIn, zOut, rtIn, rtOut, dPhi, dPhiMin, dPhiMax, dPhiChange, dPhiChangeMin, dPhiChangeMax, dAlphaInnerMDSegment, dAlphaOuterMDSegment, dAlphaInnerMDOuterMD, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex);
 
     }
 
     return pass;
 }
 
+
+void SDL::printSegment(struct SDL::segments& segmentsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::hits& hitsInGPU, struct SDL::modules& modulesInGPU, unsigned int segmentIndex)
+{
+    unsigned int innerMDIndex = segmentsInGPU.mdIndices[segmentIndex * 2];
+    unsigned int outerMDIndex = segmentsInGPU.mdIndices[segmentIndex * 2 + 1];
+    std::cout<<std::endl;
+    std::cout<<"sg_dPhiChange : "<<segmentsInGPU.dPhiChanges[segmentIndex] << std::endl<<std::endl;
+
+    std::cout << "Inner Mini-Doublet" << std::endl;
+    std::cout << "------------------------------" << std::endl;
+    printMD(mdsInGPU, hitsInGPU, modulesInGPU, innerMDIndex);
+    std::cout<<std::endl<<" Outer Mini-Doublet" <<std::endl;
+    std::cout << "------------------------------" << std::endl;
+    printMD(mdsInGPU, hitsInGPU, modulesInGPU, outerMDIndex);
+}
