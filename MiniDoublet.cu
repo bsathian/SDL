@@ -789,8 +789,14 @@ void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, SDL::mo
     std::cout << "------------------------------" << std::endl;
     unsigned int lowerHitIndex = mdsInGPU.hitIndices[mdIndex * 2];
     unsigned int upperHitIndex = mdsInGPU.hitIndices[mdIndex * 2  + 1];
-    printHit(hitsInGPU, modulesInGPU, lowerHitIndex);
+    {
+        IndentingOStreambuf indent(std::cout);
+        printHit(hitsInGPU, modulesInGPU, lowerHitIndex);
+    }
     std::cout << "Upper Hit " << std::endl;
     std::cout << "------------------------------" << std::endl;
-    printHit(hitsInGPU, modulesInGPU, upperHitIndex);
+    {
+        IndentingOStreambuf indent(std::cout);
+        printHit(hitsInGPU, modulesInGPU, upperHitIndex);
+    }
 }

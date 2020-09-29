@@ -20,6 +20,7 @@
 #include "TiltedGeometry.h"
 #include "Module.cuh"
 #include "Hit.cuh"
+#include "PrintUtil.h"
 
 //CUDA MATH API
 #include "math.h"

@@ -517,8 +517,14 @@ void SDL::printSegment(struct SDL::segments& segmentsInGPU, struct SDL::miniDoub
 
     std::cout << "Inner Mini-Doublet" << std::endl;
     std::cout << "------------------------------" << std::endl;
-    printMD(mdsInGPU, hitsInGPU, modulesInGPU, innerMDIndex);
+    {
+        IndentingOStreambuf indent(std::cout);
+        printMD(mdsInGPU, hitsInGPU, modulesInGPU, innerMDIndex);
+    }
     std::cout<<std::endl<<" Outer Mini-Doublet" <<std::endl;
     std::cout << "------------------------------" << std::endl;
-    printMD(mdsInGPU, hitsInGPU, modulesInGPU, outerMDIndex);
+    {
+        IndentingOStreambuf indent(std::cout);
+        printMD(mdsInGPU, hitsInGPU, modulesInGPU, outerMDIndex);
+    }
 }
