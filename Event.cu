@@ -260,6 +260,11 @@ void SDL::Event::addTrackletsToEvent()
         {
             modulesInGPU->trackletRanges[idx * 2] = idx * N_MAX_TRACKLETS_PER_MODULE;
             modulesInGPU->trackletRanges[idx * 2 + 1] = idx * N_MAX_TRACKLETS_PER_MODULE + trackletsInGPU->nTracklets[i] - 1;
+
+            for(unsigned int jdx = 0; jdx < trackletsInGPU->nTracklets[i]; jdx++)
+            {
+                printTracklet(*trackletsInGPU, *segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, i * N_MAX_TRACKLETS_PER_MODULE + jdx);
+            }
             
             if(modulesInGPU->subdets[idx] == Barrel)
             {
