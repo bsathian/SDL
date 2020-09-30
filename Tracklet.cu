@@ -411,7 +411,6 @@ __device__ bool SDL::runTrackletDefaultAlgoBBEE(struct modules& modulesInGPU, st
     float zpitch_OutLo = (isPS_OutLo ? pixelPSZpitch : strip2SZpitch);
     float zGeom = zpitch_InLo + zpitch_OutLo;
 
-    float zHi = z_InLo + (z_InLo + deltaZLum) * (rtRatio_OutLoInLo - 1.f) * (z_InLo < 0.f ? 1.f : dzDrtScale) + zGeom;
     float zLo = z_InLo + (z_InLo - deltaZLum) * (rtRatio_OutLoInLo - 1.f) * (z_InLo > 0.f ? 1.f : dzDrtScale) - zGeom; 
 
     // Cut #0: Preliminary (Only here in endcap case)
@@ -525,7 +524,7 @@ __device__ bool SDL::runTrackletDefaultAlgoBBEE(struct modules& modulesInGPU, st
     float betaOutRHmin = betaOut;
     float betaOutRHmax = betaOut;
 
-    bool isEC_secondLayer = (modulesInGPU.subdets[innerOuterAnchorHitIndex] == SDL::Endcap) and (modulesInGPU.moduleType[innerOuterLowerModuleIndex] == SDL::TwoS);
+    bool isEC_secondLayer = (modulesInGPU.subdets[innerOuterLowerModuleIndex] == SDL::Endcap) and (modulesInGPU.moduleType[innerOuterLowerModuleIndex] == SDL::TwoS);
 
     if(isEC_secondLayer)
     {
@@ -606,9 +605,8 @@ __device__ bool SDL::runTrackletDefaultAlgoBBEE(struct modules& modulesInGPU, st
     {
         unsigned int outerOuterEdgeIndex = hitsInGPU.edge2SMap[outerOuterAnchorHitIndex];
                 //FIXME:might need to change to outer edge rt - inner edge rt
+        dBetaROut = (sqrtf(hitsInGPU.highEdgeXs[outerOuterEdgeIndex] * hitsInGPU.highEdgeXs[outerOuterEdgeIndex] + hitsInGPU.highEdgeYs[outerOuterEdgeIndex] * hitsInGPU.ys[outerOuterEdgeIndex]) - sqrtf(hitsInGPU.lowEdgeXs[outerOuterEdgeIndex] * hitsInGPU.lowEdgeXs[outerOuterEdgeIndex] + hitsInGPU.lowEdgeYs[outerOuterEdgeIndex] * hitsInGPU.ys[outerOuterEdgeIndex])) * sinDPhi / dr;
 
-        dBetaROut = sqrtf((hitsInGPU.highEdgeXs[outerOuterEdgeIndex] - hitsInGPU.lowEdgeXs[outerOuterEdgeIndex]) * (hitsInGPU.highEdgeXs[outerOuterEdgeIndex] - hitsInGPU.lowEdgeXs[outerOuterEdgeIndex]) + (hitsInGPU.highEdgeYs[outerOuterEdgeIndex] - hitsInGPU.lowEdgeYs[outerOuterEdgeIndex]) * (hitsInGPU.highEdgeYs[outerOuterEdgeIndex] -
-                    hitsInGPU.lowEdgeYs[outerOuterEdgeIndex])) * sinDPhi / dr;
     }
 
     const float dBetaROut2 = dBetaROut * dBetaROut;
@@ -679,7 +677,6 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
 
     float rtGeom = (isInSgInnerMDPS and isOutSgInnerMDPS) ? 2.f * pixelPSZpitch : (isInSgInnerMDPS or isOutSgInnerMDPS) ? pixelPSZpitch + strip2SZpitch : 2.f * strip2SZpitch;
 
-    float rtGeom1 = isOutSgInnerMDPS ? pixelPSZpitch : strip2SZpitch;
     float zGeom1 = copysignf(zGeom,z_InLo);
     float dz = z_OutLo - z_InLo;
     const float rtLo = rt_InLo * (1.f + dz / (z_InLo + dLum) / dzDrtScale) - rtGeom; //slope correction only on the lower end
