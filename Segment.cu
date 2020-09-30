@@ -159,9 +159,9 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     float innerModuleGapSize = SDL::moduleGapSize(modulesInGPU, innerLowerModuleIndex);
     float outerModuleGapSize = SDL::moduleGapSize(modulesInGPU, outerLowerModuleIndex);
-    const float innerminiTilt = isInnerTilted ? (0.5f * pixelPSZpitch * drdzInner / sqrt(1.f + drdzInner * drdzInner) / innerModuleGapSize) : 0;
+    const float innerminiTilt = isInnerTilted ? (0.5f * pixelPSZpitch * drdzInner / sqrtf(1.f + drdzInner * drdzInner) / innerModuleGapSize) : 0;
 
-    const float outerminiTilt = isOuterTilted ? (0.5f * pixelPSZpitch * drdzOuter / sqrt(1.f + drdzOuter * drdzOuter) / outerModuleGapSize) : 0;
+    const float outerminiTilt = isOuterTilted ? (0.5f * pixelPSZpitch * drdzOuter / sqrtf(1.f + drdzOuter * drdzOuter) / outerModuleGapSize) : 0;
 
     float miniDelta = innerModuleGapSize; 
  
@@ -190,19 +190,10 @@ __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& 
 
     //Unique stuff for the segment dudes alone
 
-    float dAlpha_res_inner = 0.02f/miniDelta;
-    float dAlpha_res_outer = 0.02f/miniDelta;
+    float dAlpha_res_inner = 0.02f/miniDelta * (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel ? 1.0f : fabsf(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt));
+    float dAlpha_res_outer = 0.02f/miniDelta * (modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Barrel ? 1.0f : fabsf(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt));
 
-    if(modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Endcap)
-    {
-        dAlpha_res_inner *= fabsf(innerMiniDoubletAnchorHitZ/innerMiniDoubletAnchorHitRt);
-    }
-
-    if(modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Endcap)
-    {
-        dAlpha_res_outer *= fabsf(outerMiniDoubletAnchorHitZ/outerMiniDoubletAnchorHitRt);
-    }
-
+ 
     float dAlpha_res = dAlpha_res_inner + dAlpha_res_outer;
 
     if (modulesInGPU.subdets[innerLowerModuleIndex] == SDL::Barrel and modulesInGPU.sides[innerLowerModuleIndex] == SDL::Center)
@@ -273,7 +264,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     zIn = hitsInGPU.zs[innerMiniDoubletAnchorHitIndex];
     zOut = hitsInGPU.zs[outerMiniDoubletAnchorHitIndex];
 
-    bool outerLayerEndcapTwoS = hitsInGPU.edge2SMap[outerMiniDoubletAnchorHitIndex] >= 0;
+    bool outerLayerEndcapTwoS = (modulesInGPU.subdets[outerLowerModuleIndex] == SDL::Endcap) and (modulesInGPU.moduleType[outerLowerModuleIndex] == SDL::TwoS);
+
     
     float sdSlope = asinf(fminf(rtOut * k2Rinv1GeVf / ptCut, sinAlphaMax));
     float sdPVoff = 0.1/rtOut;
@@ -292,7 +284,7 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
 
     float dz = zOut - zIn;
     float dLum = copysignf(deltaZLum, zIn);
-    float drtDzScale = tanf(sdSlope)/sdSlope;
+    float drtDzScale = sdSlope/tanf(sdSlope);
 
     float rtLo = fmaxf(rtIn * (1.f + dz / (zIn + dLum) * drtDzScale) - rtGeom,  rtIn - 0.5f * rtGeom); //rt should increase
     float rtHi = rtIn * (zOut - dLum) / (zIn - dLum) + rtGeom; //dLum for luminous; rGeom for measurement size; no tanTheta_loc(pt) correction
@@ -346,7 +338,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
     dAlphaInnerMDSegment = innerMDAlpha - dPhiChange;
     dAlphaOuterMDSegment = outerMDAlpha - dPhiChange;
     dAlphaInnerMDOuterMD = innerMDAlpha - outerMDAlpha;
-    
+   
+ 
     if(fabsf(dAlphaInnerMDSegment) >= dAlphaThresholdValues[0])
     {
         pass = false;

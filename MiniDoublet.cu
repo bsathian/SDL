@@ -10,10 +10,10 @@ CUDA_CONST_VAR float SDL::miniMulsPtScaleBarrel[6] = {0.0052, 0.0038, 0.0034, 0.
 CUDA_CONST_VAR float SDL::miniMulsPtScaleEndcap[5] = {0.006, 0.006, 0.006, 0.006, 0.006}; 
 CUDA_CONST_VAR float SDL::miniRminMeanBarrel[6] = {21.8, 34.6, 49.6, 67.4, 87.6, 106.8};
 CUDA_CONST_VAR float SDL::miniRminMeanEndcap[5] = {131.4, 156.2, 185.6, 220.3, 261.5};
-CUDA_CONST_VAR float SDL::miniDeltaTilted[3] = {0.26, 0.26, 0.26};
-CUDA_CONST_VAR float SDL::miniDeltaFlat[6] ={0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
-CUDA_CONST_VAR float SDL::miniDeltaLooseTilted[3] = {0.4,0.4,0.4};
-CUDA_CONST_VAR float SDL::miniDeltaEndcap[5][15];
+//CUDA_CONST_VAR float SDL::miniDeltaTilted[3] = {0.26, 0.26, 0.26};
+//CUDA_CONST_VAR float SDL::miniDeltaFlat[6] ={0.26, 0.16, 0.16, 0.18, 0.18, 0.18};
+//CUDA_CONST_VAR float SDL::miniDeltaLooseTilted[3] = {0.4,0.4,0.4};
+//CUDA_CONST_VAR float SDL::miniDeltaEndcap[5][15];
 CUDA_CONST_VAR float SDL::k2Rinv1GeVf = (2.99792458e-3 * 3.8) / 2;
 CUDA_CONST_VAR float SDL::sinAlphaMax = 0.95;
 CUDA_CONST_VAR float SDL::ptCut = 1.0;
@@ -445,49 +445,7 @@ __device__ inline float SDL::isTighterTiltedModules(struct modules& modulesInGPU
 
 }
 
-__device__ void SDL::initModuleGapSize()
-{
 
-    for (size_t i = 0; i < 5; i++)
-    {
-        for (size_t j = 0; j < 15; j++)
-        {
-            if (i == 0 || i == 1)
-            {
-                if (j < 10)
-                {
-                    miniDeltaEndcap[i][j] = 0.4;
-                }
-                else
-                {
-                    miniDeltaEndcap[i][j] = 0.18;
-                }
-            }
-            else if (i == 2 || i == 3)
-            {
-                if (j < 8)
-                {
-                    miniDeltaEndcap[i][j] = 0.4;
-                }
-                else
-                {
-                    miniDeltaEndcap[i][j]  = 0.18;
-                }
-            }
-            else
-            {
-                if (j < 9)
-                {
-                    miniDeltaEndcap[i][j] = 0.4;
-                }
-                else
-                {
-                    miniDeltaEndcap[i][j] = 0.18;
-                }
-            }
-        }
-    }
-}
 
 __device__ float SDL::moduleGapSize(struct modules& modulesInGPU, unsigned int moduleIndex)
 {
