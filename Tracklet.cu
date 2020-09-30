@@ -182,7 +182,6 @@ __device__ bool SDL::runTrackletDefaultAlgoBBBB(struct modules& modulesInGPU, st
     }
 
     float drt_OutLo_InLo = (rt_OutLo - rt_InLo);
-    float invRt_InLo = 1. / rt_InLo;
     float r3_InLo = sqrtf(z_InLo * z_InLo + rt_InLo * rt_InLo);
 //    float drt_InSeg = innerSegmentPtr()->outerMiniDoubletPtr()->anchorHitPtr()->rt() - innerSegmentPtr()->innerMiniDoubletPtr()->anchorHitPtr()->rt();
     float drt_InSeg = hitsInGPU.rts[innerOuterAnchorHitIndex] - hitsInGPU.rts[innerInnerAnchorHitIndex];
@@ -666,8 +665,7 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
     float zpitch_OutLo = (isPS_OutLo ? pixelPSZpitch : strip2SZpitch);
     float zGeom = zpitch_InLo + zpitch_OutLo;
 
-    float zHi = z_InLo + (z_InLo + deltaZLum) * (rtRatio_OutLoInLo - 1.f) * (z_InLo < 0.f ? 1.f : dzDrtScale) + zGeom;
-    float zLo = z_InLo + (z_InLo - deltaZLum) * (rtRatio_OutLoInLo - 1.f) * (z_InLo > 0.f ? 1.f : dzDrtScale) - zGeom; 
+    const float zLo = z_InLo + (z_InLo - deltaZLum) * (rtRatio_OutLoInLo - 1.f) * (z_InLo > 0.f ? 1.f : dzDrtScale) - zGeom; //slope-correction only on outer end
 
     // Cut #0: Preliminary (Only here in endcap case)
     if(not(z_InLo * z_OutLo > 0))
@@ -684,7 +682,8 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
     float rtGeom1 = isOutSgInnerMDPS ? pixelPSZpitch : strip2SZpitch;
     float zGeom1 = copysignf(zGeom,z_InLo);
     float dz = z_OutLo - z_InLo;
-    float rtLo = rt_InLo * (1.f + (z_OutLo - z_InLo - zGeom1) / (z_InLo + zGeom1 + dLum) / dzDrtScale) - rtGeom1; //slope correction only on the lower end
+    const float rtLo = rt_InLo * (1.f + dz / (z_InLo + dLum) / dzDrtScale) - rtGeom; //slope correction only on the lower end
+
     zOut = z_OutLo;
     rtOut = rt_OutLo;
 
