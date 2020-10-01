@@ -130,9 +130,9 @@ void SDL::getEdgeHits(unsigned int detId,float x, float y, float& xhigh, float& 
 {
     float phi = endcapGeometry.getCentroidPhi(detId);
     xhigh = x + 2.5 * cos(phi);
-    yhigh = x + 2.5 * sin(phi);
+    yhigh = y + 2.5 * sin(phi);
     xlow = x - 2.5 * cos(phi);
-    ylow = x - 2.5 * sin(phi);
+    ylow = y - 2.5 * sin(phi);
 }
 
 void SDL::printHit(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex) 
