@@ -649,3 +649,24 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerEndcap(unsigned int layer)
     return n_tracklets_by_layer_endcap_[layer];
 }
 
+
+const struct SDL::hits* SDL::Event::getHits() const
+{
+    return hitsInGPU;
+}
+
+const struct SDL::miniDoublets* SDL::Event::getMiniDoublets() const
+{
+    return mdsInGPU;
+}
+
+const struct SDL::segments* SDL::Event::getSegments() const
+{
+    return segmentsInGPU;
+}
+
+const struct SDL::tracklets* SDL::Event::getTracklets() const
+{
+    return trackletsInGPU;
+}
+

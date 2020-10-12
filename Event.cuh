@@ -76,6 +76,11 @@ namespace SDL
         unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int layer);
         unsigned int getNumberOfTrackletsByLayerEndcap(unsigned int layer);
 
+        const struct hits* getHits() const;
+        const struct miniDoublets* getMiniDoublets() const;
+        const struct segments* getSegments() const;
+        const struct tracklets* getTracklets() const;
+
     };
 
     //global stuff
