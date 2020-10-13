@@ -764,8 +764,6 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
 
     float sdIn_alpha = segmentsInGPU.dPhiChanges[innerSegmentIndex];
     float sdOut_alpha = sdIn_alpha; //weird
-    float sdIn_alpha_min = segmentsInGPU.dPhiChangeMins[innerSegmentIndex];
-    float sdIn_alpha_max = segmentsInGPU.dPhiChangeMaxs[innerSegmentIndex];
     float sdOut_dPhiPos = deltaPhi(hitsInGPU.xs[outerInnerAnchorHitIndex], hitsInGPU.ys[outerInnerAnchorHitIndex], hitsInGPU.zs[outerInnerAnchorHitIndex], hitsInGPU.xs[outerOuterAnchorHitIndex], hitsInGPU.ys[outerOuterAnchorHitIndex], hitsInGPU.zs[outerOuterAnchorHitIndex]);
     float sdOut_dPhiChange = segmentsInGPU.dPhiChanges[outerSegmentIndex];
     float sdOut_dPhiChange_min = segmentsInGPU.dPhiChangeMins[outerSegmentIndex];
@@ -780,9 +778,11 @@ __device__ bool SDL::runTrackletDefaultAlgoEEEE(struct modules& modulesInGPU, st
     float tl_axis_z = hitsInGPU.zs[outerOuterAnchorHitIndex] - hitsInGPU.zs[innerInnerAnchorHitIndex];
 
     betaIn = sdIn_alpha - deltaPhi(hitsInGPU.xs[innerInnerAnchorHitIndex], hitsInGPU.ys[innerInnerAnchorHitIndex], hitsInGPU.zs[innerInnerAnchorHitIndex], tl_axis_x, tl_axis_y, tl_axis_z);
+    float sdIn_alphaRHmin = segmentsInGPU.dPhiChangeMins[innerSegmentIndex];
+    float sdIn_alphaRHmax = segmentsInGPU.dPhiChangeMaxs[innerSegmentIndex];
 
-    float betaInRHmin = betaIn + sdIn_alpha_min - sdIn_alpha;
-    float betaInRHmax = betaIn + sdIn_alpha_max - sdIn_alpha;
+    float betaInRHmin = betaIn + sdIn_alphaRHmin - sdIn_alpha;
+    float betaInRHmax = betaIn + sdIn_alphaRHmax - sdIn_alpha;
 
     betaOut = -sdOut_alphaOut + deltaPhi(hitsInGPU.xs[outerOuterAnchorHitIndex], hitsInGPU.ys[outerOuterAnchorHitIndex], hitsInGPU.zs[outerOuterAnchorHitIndex], tl_axis_x, tl_axis_y, tl_axis_z);
 

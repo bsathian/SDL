@@ -31,6 +31,17 @@ SDL::Event::Event()
         }
     }
     resetObjectsInModule();
+
+    //emergency proposal
+    const int HIT_MAX = 1000000;
+    const int HIT_2S_MAX = 100000;
+
+    if(hitsInGPU == nullptr)
+    {
+        cudaMallocManaged(&hitsInGPU, sizeof(SDL::hits));
+        createHitsInUnifiedMemory(*hitsInGPU,HIT_MAX,HIT_2S_MAX);
+    }
+ 
 }
 
 SDL::Event::~Event()
@@ -60,14 +71,6 @@ void SDL::Event::resetObjectsInModule()
 
 void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 {
-    const int HIT_MAX = 1000000;
-    const int HIT_2S_MAX = 100000;
-
-    if(hitsInGPU == nullptr)
-    {
-        cudaMallocManaged(&hitsInGPU, sizeof(SDL::hits));
-        createHitsInUnifiedMemory(*hitsInGPU,HIT_MAX,HIT_2S_MAX);
-    }
     //calls the addHitToMemory function
     addHitToMemory(*hitsInGPU, *modulesInGPU, x, y, z, detId);
 
@@ -156,7 +159,6 @@ void SDL::Event::createMiniDoublets()
     cudaDeviceSynchronize();
     auto memStop = std::chrono::high_resolution_clock::now();
     auto memDuration = std::chrono::duration_cast<std::chrono::milliseconds>(memStop - memStart); //in milliseconds
-    std::cout<<"memory allocation took "<<memDuration.count()<<" ms"<<std::endl;
 
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
@@ -176,7 +178,6 @@ void SDL::Event::createMiniDoublets()
     auto syncStop = std::chrono::high_resolution_clock::now();
 
     auto syncDuration =  std::chrono::duration_cast<std::chrono::milliseconds>(syncStop - syncStart);
-    std::cout<<"sync took "<<syncDuration.count()<<" ms"<<std::endl;
 
     if(cudaerr != cudaSuccess)
     {
@@ -243,7 +244,6 @@ void SDL::Event::createTrackletsWithModuleMap()
 void SDL::Event::addTrackletsToEvent()
 {
     unsigned int idx;
-    std::cout<<"Number of lower modules = "<<*modulesInGPU->nLowerModules<<std::endl;
     for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
     {
         idx = SDL::modulesInGPU->lowerModuleIndices[i];
@@ -650,22 +650,22 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerEndcap(unsigned int layer)
 }
 
 
-const struct SDL::hits* SDL::Event::getHits() const
+struct SDL::hits* SDL::Event::getHits()
 {
     return hitsInGPU;
 }
 
-const struct SDL::miniDoublets* SDL::Event::getMiniDoublets() const
+struct SDL::miniDoublets* SDL::Event::getMiniDoublets()
 {
     return mdsInGPU;
 }
 
-const struct SDL::segments* SDL::Event::getSegments() const
+struct SDL::segments* SDL::Event::getSegments()
 {
     return segmentsInGPU;
 }
 
-const struct SDL::tracklets* SDL::Event::getTracklets() const
+struct SDL::tracklets* SDL::Event::getTracklets()
 {
     return trackletsInGPU;
 }
