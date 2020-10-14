@@ -13,6 +13,7 @@ SDL::Event::Event()
 {
     hitsInGPU = nullptr;
     mdsInGPU = nullptr;
+    mdsInHost = nullptr; //explicit
     segmentsInGPU = nullptr;
     trackletsInGPU = nullptr; 
     //reset the arrays
@@ -37,6 +38,8 @@ SDL::Event::~Event()
 {
     mdsInGPU->freeMemory();
     cudaFree(mdsInGPU);
+    mdsInHost->freeMemory();//explicit
+    cudaFree(mdsInHost);
     hitsInGPU->freeMemory();
     cudaFree(hitsInGPU);
     segmentsInGPU->freeMemory(); 
@@ -132,8 +135,8 @@ void SDL::Event::addSegmentsToEvent()
             modulesInGPU->segmentRanges[idx * 2] = idx * N_MAX_SEGMENTS_PER_MODULE;
             modulesInGPU->segmentRanges[idx * 2 + 1] = idx * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[idx] - 1;
 
-            for(unsigned int jdx = 0; jdx < segmentsInGPU->nSegments[idx]; jdx++)
-                printSegment(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, idx * N_MAX_SEGMENTS_PER_MODULE + jdx);
+            //for(unsigned int jdx = 0; jdx < segmentsInGPU->nSegments[idx]; jdx++)
+            //    printSegment(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, idx * N_MAX_SEGMENTS_PER_MODULE + jdx);
 
             if(modulesInGPU->subdets[idx] == Barrel)
             {
@@ -154,6 +157,8 @@ void SDL::Event::createMiniDoublets()
     if(mdsInGPU == nullptr)
     {
         cudaMallocManaged(&mdsInGPU, sizeof(SDL::miniDoublets));
+      //mdsInHost == nullptr;
+    	//createMDsInExplicitMemory(*mdsInGPU,*mdsInHost, N_MAX_MD_PER_MODULES, nModules);
     	createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
     }
     cudaDeviceSynchronize();
@@ -171,6 +176,8 @@ void SDL::Event::createMiniDoublets()
 //    int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
 
     cudaDeviceSynchronize();
+
+
     auto syncStart = std::chrono::high_resolution_clock::now();
 
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU,*hitsInGPU,*mdsInGPU);
@@ -261,10 +268,10 @@ void SDL::Event::addTrackletsToEvent()
             modulesInGPU->trackletRanges[idx * 2] = idx * N_MAX_TRACKLETS_PER_MODULE;
             modulesInGPU->trackletRanges[idx * 2 + 1] = idx * N_MAX_TRACKLETS_PER_MODULE + trackletsInGPU->nTracklets[i] - 1;
 
-            for(unsigned int jdx = 0; jdx < trackletsInGPU->nTracklets[i]; jdx++)
-            {
-                printTracklet(*trackletsInGPU, *segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, i * N_MAX_TRACKLETS_PER_MODULE + jdx);
-            }
+            //for(unsigned int jdx = 0; jdx < trackletsInGPU->nTracklets[i]; jdx++)
+            //{
+            //    printTracklet(*trackletsInGPU, *segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, i * N_MAX_TRACKLETS_PER_MODULE + jdx);
+            //}
             
             if(modulesInGPU->subdets[idx] == Barrel)
             {
