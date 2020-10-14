@@ -32,16 +32,6 @@ SDL::Event::Event()
     }
     resetObjectsInModule();
 
-    //emergency proposal
-    const int HIT_MAX = 1000000;
-    const int HIT_2S_MAX = 100000;
-
-    if(hitsInGPU == nullptr)
-    {
-        cudaMallocManaged(&hitsInGPU, sizeof(SDL::hits));
-        createHitsInUnifiedMemory(*hitsInGPU,HIT_MAX,HIT_2S_MAX);
-    }
- 
 }
 
 SDL::Event::~Event()
@@ -71,6 +61,15 @@ void SDL::Event::resetObjectsInModule()
 
 void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 {
+    const int HIT_MAX = 1000000;
+    const int HIT_2S_MAX = 100000;
+
+    if(hitsInGPU == nullptr)
+    {
+        cudaMallocManaged(&hitsInGPU, sizeof(SDL::hits));
+        createHitsInUnifiedMemory(*hitsInGPU,HIT_MAX,HIT_2S_MAX);
+    }
+
     //calls the addHitToMemory function
     addHitToMemory(*hitsInGPU, *modulesInGPU, x, y, z, detId);
 
