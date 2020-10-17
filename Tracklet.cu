@@ -74,15 +74,19 @@ SDL::tracklets::~tracklets()
 
 void SDL::tracklets::freeMemory()
 {
-   cudaFree(segmentIndices);
-   cudaFree(lowerModuleIndices);
-   cudaFree(zOut);
-   cudaFree(rtOut);
+    cudaFree(segmentIndices);
+    cudaFree(lowerModuleIndices);
+    cudaFree(nTracklets);
+    cudaFree(zOut);
+    cudaFree(rtOut);
 
-   cudaFree(deltaPhiPos);
-   cudaFree(deltaPhi);
-   cudaFree(betaIn);
-   cudaFree(betaOut);
+    cudaFree(deltaPhiPos);
+    cudaFree(deltaPhi);
+    cudaFree(betaIn);
+    cudaFree(betaOut);
+    cudaFree(betaInCut);
+    cudaFree(betaOutCut);
+    cudaFree(dBetaCut);
 }
 
 __device__ bool SDL::runTrackletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut,

@@ -36,12 +36,14 @@ SDL::Event::Event()
 
 SDL::Event::~Event()
 {
-    mdsInGPU->freeMemory();
-    cudaFree(mdsInGPU);
     hitsInGPU->freeMemory();
     cudaFree(hitsInGPU);
+    mdsInGPU->freeMemory();
+    cudaFree(mdsInGPU);
     segmentsInGPU->freeMemory(); 
     cudaFree(segmentsInGPU);
+    trackletsInGPU->freeMemory();
+    cudaFree(trackletsInGPU);
 }
 
 void SDL::initModules()
@@ -443,8 +445,10 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
     if(innerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
     unsigned int innerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerLowerModuleArrayIndex];
     unsigned int nConnectedModules = modulesInGPU.nConnectedModules[innerLowerModuleIndex];
-    if(nConnectedModules == 0) return;
     unsigned int nInnerMDs = mdsInGPU.nMDs[innerLowerModuleIndex];
+
+    if(nConnectedModules == 0) return;
+
     if(nInnerMDs == 0) return;
     dim3 nThreads(1,16,16);
     dim3 nBlocks((nConnectedModules % nThreads.x == 0 ? nConnectedModules/nThreads.x : nConnectedModules/nThreads.x + 1), (nInnerMDs % nThreads.y == 0 ? nInnerMDs/nThreads.y : nInnerMDs/nThreads.y + 1), (N_MAX_MD_PER_MODULES % nThreads.z == 0 ? N_MAX_MD_PER_MODULES/nThreads.z : N_MAX_MD_PER_MODULES/nThreads.z + 1));
