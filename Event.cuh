@@ -49,12 +49,14 @@ namespace SDL
         void addMiniDoubletsToEvent();
         void addSegmentsToEvent();
         void addTrackletsToEvent();
+        void addTrackletsWithAGapToEvent();
 
         void resetObjectsInModule();
 
         void createMiniDoublets();
         void createSegmentsWithModuleMap();
         void createTrackletsWithModuleMap();
+        void createTrackletsWithAGapWithModuleMap();
 
         unsigned int getNumberOfHits();
         unsigned int getNumberOfHitsByLayer(unsigned int layer);
@@ -100,6 +102,11 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
 __global__ void createTrackletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU);
 
 __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex);
+
+__global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU);
+
+__global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex);
+
 
 
 #endif
