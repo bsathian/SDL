@@ -539,11 +539,11 @@ __global__ void createTrackletsInGPU(struct SDL::modules& modulesInGPU, struct S
     dim3 nThreads(1,16,16);
     dim3 nBlocks(MAX_CONNECTED_MODULES % nThreads.x  == 0 ? MAX_CONNECTED_MODULES / nThreads.x : MAX_CONNECTED_MODULES / nThreads.x + 1 ,nInnerSegments % nThreads.y == 0 ? nInnerSegments/nThreads.y : nInnerSegments/nThreads.y + 1,N_MAX_SEGMENTS_PER_MODULE % nThreads.z == 0 ? N_MAX_SEGMENTS_PER_MODULE/nThreads.z : N_MAX_SEGMENTS_PER_MODULE/nThreads.z + 1);
 
-       createTrackletsFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex,nInnerSegments,innerInnerLowerModuleArrayIndex);
+    createTrackletsFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex,nInnerSegments,innerInnerLowerModuleArrayIndex);
 
 }
 
-__global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex)
+/*__global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex)
 {
     //Proposal 1 : Inner kernel takes care of both loops
     int xAxisIndex = blockIdx.x * blockDim.x + threadIdx.x;
@@ -593,20 +593,31 @@ __global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::mod
    }
 }
 
+__global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU)
+{
+    //outer kernel for proposal 1
+    int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    if(innerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+    unsigned int innerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerInnerLowerModuleArrayIndex];
+    unsigned int nInnerSegments = segmentsInGPU.nSegments[innerInnerLowerModuleIndex];
+    if(nInnerSegments == 0) return;
 
-/*__global__ void createTrackletsWithAGapFromMiddleLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex, unsigned int nOuterInnerLowerModules)
+    dim3 nThreads(1,16,16);
+    dim3 nBlocks((MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) % nThreads.x  == 0 ? (MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) / nThreads.x : (MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) / nThreads.x + 1 ,nInnerSegments % nThreads.y == 0 ? nInnerSegments/nThreads.y : nInnerSegments/nThreads.y + 1,N_MAX_SEGMENTS_PER_MODULE % nThreads.z == 0 ? N_MAX_SEGMENTS_PER_MODULE/nThreads.z : N_MAX_SEGMENTS_PER_MODULE/nThreads.z + 1);
+
+    createTrackletsWithAGapFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex,nInnerSegments,innerInnerLowerModuleArrayIndex);
+
+}*/
+
+__global__ void createTrackletsWithAGapFromMiddleLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int innerInnerLowerModuleArrayIndex, unsigned int nOuterInnerLowerModules,unsigned int innerOuterLowerModuleIndex)
 {
     //Inner kernel of Proposal 2 : Inner kernel does middle->outer modoule mapping
     int outerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    int innerSegmentArrayIndex =  blockIdx.y * blockDim.y + threadIdx.y;
-    int outerSegmentArrayIndex = blockIdx.z * blockDim.z + threadIdx.z;
+    int outerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
     
-    if(innerSegmentArrayIndex >= nInnerSegments) return;
     //check for outerInnerLowerModules
     if(outerInnerLowerModuleArrayIndex >= nOuterInnerLowerModules) return;
 
-    unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
-    unsigned int innerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex]; 
 
     unsigned int outerInnerLowerModuleIndex = modulesInGPU.moduleMap[middleLowerModuleIndex * MAX_CONNECTED_MODULES + outerInnerLowerModuleArrayIndex];
 
@@ -615,7 +626,7 @@ __global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::mod
 
     unsigned int outerSegmentIndex = outerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
 
-    //for completeness - outerOuterLowerModuleIndex
+    //for completeness - outerOuterLowerModuleIndex and innerOuterLowerModuleIndex
     unsigned int outerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[outerSegmentIndex];
 
     //with both segment indices obtained, run the tracklet algorithm
@@ -638,33 +649,44 @@ __global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::mod
     //Middle kernel of Proposal 2 : middle kernel does the inner->middle module mapping
 
     int middleLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    if(middleLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
-    unsigned int middleLowerModuleIndex = modulesInGPU.lowerModuleIndices[middleLowerModuleArrayIndex];
+    int innerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
+    if(innerSegmentArrayIndex >= nInnerSegments) return;
+
+    unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
+
+    //middle lower module - modules that are connected to outer lower module of inner segment
+    unsigned int innerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex];
+    unsigned int nMiddleLowerModules = modulesInGPU.nConnectedModules[innerOuterLowerModuleIndex];
+ 
+    if(middleLowerModuleArrayIndex >= nMiddleLowerModules) return;
+ 
+    unsigned int middleLowerModuleIndex = modulesInGPU.moduleMap[innerOuterLowerModuleIndex * MAX_CONNECTED_MODULES + middleLowerModuleArrayIndex];
 
     unsigned int nOuterInnerLowerModules = modulesInGPU.nConnectedModules[middleLowerModuleIndex];
 
-    dim3 nThreads(1,16,16);
-    dim3 nBlocks(nOuterInnerLowerModules % nThreads.x  == 0 ? nOuterInnerLowerModules / nThreads.x : nOuterInnerLowerModules / nThreads.x + 1 ,nInnerSegments % nThreads.y == 0 ? nInnerSegments/nThreads.y : nInnerSegments/nThreads.y + 1,N_MAX_SEGMENTS_PER_MODULE % nThreads.z == 0 ? N_MAX_SEGMENTS_PER_MODULE/nThreads.z : N_MAX_SEGMENTS_PER_MODULE/nThreads.z + 1);
+    dim3 nThreads(1,16,1);
+    dim3 nBlocks(nOuterInnerLowerModules % nThreads.x  == 0 ? nOuterInnerLowerModules / nThreads.x : nOuterInnerLowerModules / nThreads.x + 1 ,N_MAX_SEGMENTS_PER_MODULE % nThreads.y == 0 ? N_MAX_SEGMENTS_PER_MODULE/nThreads.y : N_MAX_SEGMENTS_PER_MODULE/nThreads.y + 1,1);
 
-    createTrackletsWithAGrapFromMiddleLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex,middleLowerModuleIndex,nInnerSegments,innerInnerLowerModuleArrayIndex,nOuterInnerLowerModules);
+    createTrackletsWithAGapFromMiddleLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex, middleLowerModuleIndex,innerSegmentIndex,innerInnerLowerModuleArrayIndex,nOuterInnerLowerModules,innerOuterLowerModuleIndex);
 
 
-}*/
+}
+
+
 __global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU)
 {
-     int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    //outer kernel for proposal 2
+    int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     if(innerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
     unsigned int innerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerInnerLowerModuleArrayIndex];
     unsigned int nInnerSegments = segmentsInGPU.nSegments[innerInnerLowerModuleIndex];
     if(nInnerSegments == 0) return;
 
-    dim3 nThreads(1,16,16);
-    dim3 nBlocks((MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) % nThreads.x  == 0 ? (MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) / nThreads.x : (MAX_CONNECTED_MODULES * MAX_CONNECTED_MODULES) / nThreads.x + 1 ,nInnerSegments % nThreads.y == 0 ? nInnerSegments/nThreads.y : nInnerSegments/nThreads.y + 1,N_MAX_SEGMENTS_PER_MODULE % nThreads.z == 0 ? N_MAX_SEGMENTS_PER_MODULE/nThreads.z : N_MAX_SEGMENTS_PER_MODULE/nThreads.z + 1);
+    dim3 nThreads(1,1,1);
+    dim3 nBlocks(MAX_CONNECTED_MODULES % nThreads.x  == 0 ? MAX_CONNECTED_MODULES / nThreads.x : MAX_CONNECTED_MODULES / nThreads.x + 1 , nInnerSegments % nThreads.y == 0 ? nInnerSegments/nThreads.y : nInnerSegments/nThreads.y + 1,1);
 
-       createTrackletsWithAGapFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU,hitsInGPU,mdsInGPU,segmentsInGPU,trackletsInGPU,innerInnerLowerModuleIndex,nInnerSegments,innerInnerLowerModuleArrayIndex);
 
 }
-
 
 
 
