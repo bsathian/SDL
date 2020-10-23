@@ -6,6 +6,7 @@ const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
 const unsigned int N_MAX_TRACKLETS_PER_MODULE = 5000;//temporary
+const unsigned int N_MAX_TRIPLETS_PER_MODULE = 1000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -214,6 +215,29 @@ void SDL::Event::createSegmentsWithModuleMap()
     }
     addSegmentsToEvent();
 
+}
+
+
+void SDL::Event::createTriplets()
+{
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+
+    if(tripletsInGPU == nullptr)
+    {
+        cudaMallocManaged(&tripletsInGPU, sizeof(SDL::triplets));
+        createTripletsInUnifiedMemory(*tripletsInGPU, N_MAX_TRIPLETS_PER_MODULE, nLowerModules);
+    }
+
+    unsigned int nThreads = 1;
+    unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
+    createTripletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU, *hitsInGPU, *mdsInGPU, *segmentsInGPU, *tripletsInGPU);
+
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if(cudaerr != cudaSuccess)
+    {
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;
+    }
+    addTripletsToEvent();
 }
 
 
@@ -689,8 +713,52 @@ __global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, 
 
 }*/
 
+__global__ void createTripletsFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int nConnectedModules, unsigned int innerInnerLowerModuleArrayIndex)
+{
+    int innerSegmentArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    int outerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
 
+    if(innerSegmentArrayIndex >= nInnerSegments) return;
 
+    unsigned int innerSegmentIndex = innerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
+
+    //middle lower module - outer lower module of inner segment
+    unsigned int middleLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[innerSegmentIndex];
+
+    unsigned int nOuterSegments = segmentsInGPU.nSegments[middleLowerModuleIndex];
+    if(outerSegmentArrayIndex >= nOuterSegments) return;
+    unsigned int outerSegmentIndex = middleLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
+    unsigned int outerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[outerSegmentIndex];
+
+    float zOut,rtOut,deltaPhiPos,deltaPhi,betaIn,betaOut;
+   float betaInCut, betaOutCut, dBetaCut;
+
+    bool success = runTripletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, betaInCut, betaOutCut, dBetaCut);
+    if(success)
+    {
+        unsigned int tripletModuleIndex = atomicAdd(&tripletsInGPU.nTriplets[innerInnerLowerModuleArrayIndex], 1);
+        unsigned int tripletIndex = innerInnerLowerModuleArrayIndex * N_MAX_TRIPLETS_PER_MODULE + tripletModuleIndex;
+
+        addTripletToMemory(tripletsInGPU, innerSegmentIndex, outerSegmentIndex, innerInnerLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, tripletIndex, betaInCut, betaOutCut, dBetaCut);
+    }   
+}
+
+__global__ void createTripletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU)
+{
+    int innerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    if(innerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+    unsigned int innerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[innerInnerLowerModuleArrayIndex];
+    unsigned int nInnerSegments = segmentsInGPU.nSegments[innerInnerLowerModuleIndex];
+    if(nInnerSegments == 0) return;
+
+    unsigned int nConnectedModules = modulesInGPU.nConnectedModules[innerInnerLowerModuleIndex];
+    if(nConnectedModules == 0) return;
+
+    dim3 nThreads(16,16,1);
+    dim3 nBlocks(nInnerSegments % nThreads.x == 0 ? nInnerSegments / nThreads.x : nInnerSegments / nThreads.x + 1, N_MAX_SEGMENTS_PER_MODULE % nThreads.y == 0 ? N_MAX_SEGMENTS_PER_MODULE / nThreads.y : N_MAX_SEGMENTS_PER_MODULE / nThreads.y + 1);
+
+    createTripletsFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, tripletsInGPU, innerInnerLowerModuleIndex, nInnerSegments, nConnectedModules, innerInnerLowerModuleArrayIndex);
+}
 unsigned int SDL::Event::getNumberOfHits()
 {
     unsigned int hits = 0;
@@ -826,6 +894,23 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerEndcap(unsigned int layer)
     return n_tracklets_by_layer_endcap_[layer];
 }
 
+unsigned int SDL::Event::getNumberOfTripletsByLayer(unsigned int layer)
+{
+    if(layer == 6)
+        return n_triplets_by_layer_barrel_[layer];
+    else
+        return n_triplets_by_layer_barrel_[layer] + n_tracklets_by_layer_endcap_[layer];
+}
+
+unsigned int SDL::Event::getNumberOfTripletsByLayerBarrel(unsigned int layer)
+{
+    return n_triplets_by_layer_barrel_[layer];
+}
+
+unsigned int SDL::Event::getNumberOfTripletsByLayerEndcap(unsigned int layer)
+{
+    return n_triplets_by_layer_endcap_[layer];
+}
 
 struct SDL::hits* SDL::Event::getHits()
 {
@@ -847,3 +932,7 @@ struct SDL::tracklets* SDL::Event::getTracklets()
     return trackletsInGPU;
 }
 
+struct SDL::triplets* SDL::Event::getTriplets()
+{
+    return tripletsInGPU;
+}

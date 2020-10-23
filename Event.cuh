@@ -16,6 +16,7 @@
 #include "MiniDoublet.cuh"
 #include "Segment.cuh"
 #include "Tracklet.cuh"
+#include "Triplet.cuh"
 
 #include "cuda_profiler_api.h"
 
@@ -32,6 +33,8 @@ namespace SDL
         std::array<unsigned int, 5> n_segments_by_layer_endcap_;
         std::array<unsigned int, 6> n_tracklets_by_layer_barrel_;
         std::array<unsigned int, 5> n_tracklets_by_layer_endcap_;
+        std::array<unsigned int, 6> n_triplets_by_layer_barrel_;
+        std::array<unsigned int, 5> n_triplets_by_layer_endcap_;
 
 
         //CUDA stuff
@@ -39,6 +42,7 @@ namespace SDL
         struct miniDoublets* mdsInGPU;
         struct segments* segmentsInGPU;
         struct tracklets* trackletsInGPU;
+        struct triplets* tripletsInGPU;
 
     public:
         Event();
@@ -48,6 +52,7 @@ namespace SDL
         /*functions that map the objects to the appropriate modules*/
         void addMiniDoubletsToEvent();
         void addSegmentsToEvent();
+        void addTripletsToEvent();
         void addTrackletsToEvent();
         void addTrackletsWithAGapToEvent();
 
@@ -55,6 +60,7 @@ namespace SDL
 
         void createMiniDoublets();
         void createSegmentsWithModuleMap();
+        void createTriplets();
         void createTrackletsWithModuleMap();
         void createTrackletsWithAGapWithModuleMap();
 
@@ -78,10 +84,16 @@ namespace SDL
         unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int layer);
         unsigned int getNumberOfTrackletsByLayerEndcap(unsigned int layer);
 
+        unsigned int getNumberOfTriplets();
+        unsigned int getNumberOfTripletsByLayer(unsigned int layer);
+        unsigned int getNumberOfTripletsByLayerBarrel(unsigned int layer);
+        unsigned int getNumberOfTripletsByLayerEndcap(unsigned int layer);
+
         struct hits* getHits();
         struct miniDoublets* getMiniDoublets();
         struct segments* getSegments() ;
         struct tracklets* getTracklets();
+        struct triplets* getTriplets();
 
     };
 
@@ -106,6 +118,10 @@ __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& mo
 __global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU);
 
 __global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex);
+
+__global__ void createTripletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU);
+
+__global__ void createTripletsFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex);
 
 
 
