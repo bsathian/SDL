@@ -52,9 +52,9 @@ namespace SDL
         /*functions that map the objects to the appropriate modules*/
         void addMiniDoubletsToEvent();
         void addSegmentsToEvent();
-        void addTripletsToEvent();
         void addTrackletsToEvent();
         void addTrackletsWithAGapToEvent();
+        void addTripletsToEvent();
 
         void resetObjectsInModule();
 

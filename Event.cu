@@ -15,7 +15,8 @@ SDL::Event::Event()
     hitsInGPU = nullptr;
     mdsInGPU = nullptr;
     segmentsInGPU = nullptr;
-    trackletsInGPU = nullptr; 
+    trackletsInGPU = nullptr;
+    tripletsInGPU = nullptr; 
     //reset the arrays
     for(int i = 0; i<6; i++)
     {
@@ -23,12 +24,14 @@ SDL::Event::Event()
         n_minidoublets_by_layer_barrel_[i] = 0;
         n_segments_by_layer_barrel_[i] = 0;
         n_tracklets_by_layer_barrel_[i] = 0;
+        n_triplets_by_layer_barrel_[i] = 0;
         if(i<5)
         {
             n_hits_by_layer_endcap_[i] = 0;
             n_minidoublets_by_layer_endcap_[i] = 0;
-	        n_segments_by_layer_endcap_[i] = 0;
+	    n_segments_by_layer_endcap_[i] = 0;
             n_tracklets_by_layer_endcap_[i] = 0;
+            n_triplets_by_layer_endcap_[i] = 0;
         }
     }
     resetObjectsInModule();
@@ -264,6 +267,8 @@ void SDL::Event::createTrackletsWithModuleMap()
 
     }
     /*addTrackletsToEvent will be called in the createTrackletsWithAGapWithModuleMap function*/
+    addTrackletsToEvent();
+
 }
 
 
@@ -290,7 +295,6 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
         std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
 
     }
-    addTrackletsToEvent();
 
 }
 
@@ -324,6 +328,34 @@ void SDL::Event::addTrackletsToEvent()
     }
 }
 
+void SDL::Event::addTripletsToEvent()
+{
+    unsigned int idx;
+    for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
+    {
+        idx = SDL::modulesInGPU->lowerModuleIndices[i];
+        //tracklets run only on lower modules!!!!!!
+        if(tripletsInGPU->nTriplets[i] == 0)
+        {
+            modulesInGPU->tripletRanges[idx * 2] = -1;
+            modulesInGPU->tripletRanges[idx * 2 + 1] = -1;
+        }
+        else
+        {
+            modulesInGPU->tripletRanges[idx * 2] = idx * N_MAX_TRIPLETS_PER_MODULE;
+            modulesInGPU->tripletRanges[idx * 2 + 1] = idx * N_MAX_TRIPLETS_PER_MODULE + tripletsInGPU->nTriplets[i] - 1;
+ 
+            if(modulesInGPU->subdets[idx] == Barrel)
+            {
+                n_triplets_by_layer_barrel_[modulesInGPU->layers[idx] - 1] += tripletsInGPU->nTriplets[i];
+            }
+            else
+            {
+                n_triplets_by_layer_endcap_[modulesInGPU->layers[idx] - 1] += tripletsInGPU->nTriplets[i];
+            }
+        }
+    }
+}
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
@@ -893,6 +925,23 @@ unsigned int SDL::Event::getNumberOfTrackletsByLayerEndcap(unsigned int layer)
 {
     return n_tracklets_by_layer_endcap_[layer];
 }
+
+unsigned int SDL::Event::getNumberOfTriplets()
+{
+    unsigned int triplets = 0;
+    for(auto &it:n_triplets_by_layer_barrel_)
+    {
+        triplets += it;
+    }
+    for(auto &it:n_triplets_by_layer_endcap_)
+    {
+        triplets += it;
+    }
+
+    return triplets;
+   
+}
+
 
 unsigned int SDL::Event::getNumberOfTripletsByLayer(unsigned int layer)
 {

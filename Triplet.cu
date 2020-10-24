@@ -7,7 +7,7 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
 {
     cudaMallocManaged(&tripletsInGPU.segmentIndices, 2 * maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.lowerModuleIndices, 3 * maxTriplets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&tripletsInGPU.nTriplets, nLowerModules, sizeof(unsigned int));
+    cudaMallocManaged(&tripletsInGPU.nTriplets, nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.zOut, maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.rtOut, maxTriplets * nLowerModules * sizeof(unsigned int));
 
@@ -244,7 +244,7 @@ __device__ bool SDL::passPointingConstraintBBE(struct SDL::modules& modulesInGPU
         pass = false;
     }
     float dLum = copysignf(deltaZLum, z_InLo);
-    bool isOutSgInnerMDPS = modulesInGPU.moduleType[outerInnerLowerModuleIndex] == SDL::PS;
+    bool isOutSgInnerMDPS = modulesInGPU.moduleType[outerOuterLowerModuleIndex] == SDL::PS;
     float rtGeom1 = isOutSgInnerMDPS ? pixelPSZpitch : strip2SZpitch;
     float zGeom1 = copysignf(zGeom,z_InLo);
     float rtLo = rt_InLo * (1.f + (z_OutUp - z_InLo - zGeom1) / (z_InLo + zGeom1 + dLum) / dzDrtScale) - rtGeom1; //slope correction only on the lower end
@@ -361,7 +361,7 @@ __device__ bool SDL::passPointingConstraintEEE(struct SDL::modules& modulesInGPU
     }
     
     unsigned int innerOuterLowerModuleIndex = middleLowerModuleIndex;
-    bool isInSgOuterMDPS = modulesInGPU.moduleType[innerOuterLowerModuleIndex] == SDL::PS;
+    bool isInSgOuterMDPS = modulesInGPU.moduleType[outerOuterLowerModuleIndex] == SDL::PS;
 
     float drOutIn = rtOut - rt_InLo;
     float drtSDIn = hitsInGPU.rts[innerOuterAnchorHitIndex] - hitsInGPU.rts[innerInnerAnchorHitIndex];
@@ -402,14 +402,11 @@ __device__ bool SDL::passPointingConstraintEEE(struct SDL::modules& modulesInGPU
 
 __device__ bool SDL::hasCommonMiniDoublet(struct segments& segmentsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex)
 {
-    bool pass = false;
-    //check the outer MD index of inner segment with inner MD index of outer segment
 
     if(segmentsInGPU.mdIndices[innerSegmentIndex * 2 + 1] == segmentsInGPU.mdIndices[outerSegmentIndex * 2])
     {
-        pass = true;
+        return true;
     }
-
-    return pass;
+    else return false;
 }
 

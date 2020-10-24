@@ -77,6 +77,7 @@ namespace SDL
         int* mdRanges;
         int* segmentRanges;
         int* trackletRanges;
+        int* tripletRanges;
         //others will be added later
 
     };
