@@ -55,6 +55,11 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.dphichanges, maxMDsPerModule * nModules * sizeof(float));
 
     cudaMallocManaged(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); // allows for transfer back
+#pragma omp parallel for default(shared)
+    for(size_t i = 0; i< nModules; i++)
+    {
+        mdsInTemp.nMDs[i] = 0;
+    }
     //cudaMalloc(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); for full explicit
     cudaMalloc(&mdsInTemp.dzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.dphis, maxMDsPerModule * nModules * sizeof(float));
@@ -66,7 +71,7 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
     //cudaMalloc(&(mdsInGPU.nMDs),nModules * sizeof(unsigned int));
     cudaMemcpy(&mdsInGPU,&mdsInTemp, sizeof(SDL::miniDoublets), cudaMemcpyHostToDevice);
-    cudaMemset(&mdsInGPU.nMDs,0,nModules *sizeof(unsigned int));
+ //   cudaMemset(&mdsInGPU.nMDs,0,nModules *sizeof(unsigned int));
 
 }
 
@@ -801,21 +806,21 @@ SDL::miniDoublets::miniDoublets()
 
 void SDL::miniDoublets::freeMemoryHost()
 {
-    cudaFree(hitIndices);
-    cudaFree(moduleIndices);
-    cudaFree(pixelModuleFlag);
+//    cudaFree(hitIndices);
+//    cudaFree(moduleIndices);
+//    cudaFree(pixelModuleFlag);
     cudaFree(nMDs);
-    cudaFree(dphichanges);
-
-    cudaFree(dzs);
-    cudaFree(dphis);
-
-    cudaFree(shiftedXs);
-    cudaFree(shiftedYs);
-    cudaFree(shiftedZs);
-    cudaFree(noShiftedDzs);
-    cudaFree(noShiftedDphis);
-    cudaFree(noShiftedDphiChanges);
+//    cudaFree(dphichanges);
+//
+//    cudaFree(dzs);
+//    cudaFree(dphis);
+//
+//    cudaFree(shiftedXs);
+//    cudaFree(shiftedYs);
+//    cudaFree(shiftedZs);
+//    cudaFree(noShiftedDzs);
+//    cudaFree(noShiftedDphis);
+//    cudaFree(noShiftedDphiChanges);
 }
 void SDL::miniDoublets::freeMemory()
 {

@@ -52,6 +52,13 @@ SDL::Event::~Event()
     cudaFree(segmentsInGPU);
     trackletsInGPU->freeMemory();
     cudaFree(trackletsInGPU);
+
+    mdsInTemp->freeMemory();
+    cudaFree(mdsInTemp);
+    segmentsInTemp->freeMemory(); 
+    cudaFree(segmentsInTemp);
+    trackletsInTemp->freeMemory(); 
+    cudaFree(trackletsInTemp);
 }
 
 void SDL::initModules()
@@ -265,7 +272,6 @@ void SDL::Event::createMiniDoublets()
     cudaDeviceSynchronize();
     auto memStop = std::chrono::high_resolution_clock::now();
     auto memDuration = std::chrono::duration_cast<std::chrono::milliseconds>(memStop - memStart); //in milliseconds
-    	//transferMDsInExplicitMemory(*mdsInGPU,*mdsInHost, N_MAX_MD_PER_MODULES, nModules);
 
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
@@ -307,8 +313,6 @@ void SDL::Event::createSegmentsWithModuleMap()
         cudaMallocManaged(&segmentsInGPU, sizeof(SDL::segments));
         //createSegmentsInUnifiedMemory(*segmentsInGPU, N_MAX_SEGMENTS_PER_MODULE, nModules);
 
-        //cudaMalloc((SDL::segments**)&segmentsInGPU, sizeof(SDL::segments));
-        //SDL::segments* segmentsInTemp;
         cudaMallocHost(&segmentsInTemp, sizeof(SDL::segments));
         createSegmentsInExplicitMemory(*segmentsInGPU, *segmentsInTemp,N_MAX_SEGMENTS_PER_MODULE, nModules);
     }
@@ -396,7 +400,10 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+        //createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+
+        cudaMallocHost(&trackletsInTemp,sizeof(SDL::tracklets));
+        createTrackletsInExplicitMemory(*trackletsInGPU,*trackletsInTemp, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
     }
 
     unsigned int nThreads = 1;
