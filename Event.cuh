@@ -37,18 +37,27 @@ namespace SDL
         //CUDA stuff
         struct hits* hitsInGPU;
         struct miniDoublets* mdsInGPU;
-        struct miniDoublets* mdsInHost; //explicit
+        struct miniDoublets* mdsInTemp; //explicit
         struct segments* segmentsInGPU;
+        struct segments* segmentsInTemp;
         struct tracklets* trackletsInGPU;
+        struct tracklets* trackletsInTemp;
 
     public:
         Event();
         ~Event();
 
         void addHitToEvent(float x, float y, float z, unsigned int detId); //call the appropriate hit function, then increment the counter here
+        void addHitToEventHost(float x, float y, float z, unsigned int detId); //call the appropriate hit function, then increment the counter here
         /*functions that map the objects to the appropriate modules*/
         void addMiniDoubletsToEvent();
+        //void addMiniDoubletsToEventHost(unsigned int* hostMDs);
+        //void addMiniDoubletsToEventHost();
+        void transfertest(struct SDL::miniDoublets& mdsInGPU, struct SDL::miniDoublets& mdsInHost, unsigned int maxds, unsigned int nModules);
+        //void transfertest(unsigned int* gpumd, unsigned int* hostmd, unsigned int maxds, unsigned int nModules);
+        void addMiniDoubletsToEventHost(struct SDL::miniDoublets* mdsInGPU);
         void addSegmentsToEvent();
+        void addSegmentsToEventHost();
         void addTrackletsToEvent();
 
         void resetObjectsInModule();
@@ -77,16 +86,24 @@ namespace SDL
         unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int layer);
         unsigned int getNumberOfTrackletsByLayerEndcap(unsigned int layer);
 
+        struct hits* getHits();
+        struct miniDoublets* getMiniDoublets();
+        struct segments* getSegments() ;
+        struct tracklets* getTracklets();
+
     };
 
     //global stuff
 
     extern struct modules* modulesInGPU;
+    extern struct modules* modulesInHost;
     extern unsigned int nModules;
     void initModules(); //read from file and init
+    void initModulesHost(); //read from file and init
 
 }
 
+__global__ void testMiniDoublets(struct SDL::miniDoublets& mdsInGPU);
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU);
 
 __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU);
