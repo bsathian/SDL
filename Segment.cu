@@ -44,11 +44,11 @@ void SDL::createSegmentsInExplicitMemory(struct segments& segmentsInGPU, struct 
     cudaMalloc(&segmentsInTemp.outerMiniDoubletAnchorHitIndices, maxSegments * nModules * sizeof(unsigned int));
     //cudaMalloc(&segmentsInTemp.nSegments, nModules * sizeof(unsigned int));
     cudaMallocManaged(&segmentsInTemp.nSegments, nModules * sizeof(unsigned int));
-#pragma omp parallel for default(shared)
-    for(size_t i = 0; i < nModules; i++)
-    {
-        segmentsInTemp.nSegments[i] = 0;
-    }
+//#pragma omp parallel for default(shared)
+//    for(size_t i = 0; i < nModules; i++)
+//    {
+//        segmentsInTemp.nSegments[i] = 0;
+//    }
 
     cudaMalloc(&segmentsInTemp.dPhis, maxSegments * nModules * sizeof(float));
     cudaMalloc(&segmentsInTemp.dPhiMins, maxSegments * nModules * sizeof(float));

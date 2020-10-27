@@ -38,11 +38,11 @@ void SDL::createTrackletsInExplicitMemory(struct tracklets& trackletsInGPU, stru
     cudaMalloc(&trackletsInTemp.lowerModuleIndices, 4 * maxTracklets * nLowerModules * sizeof(unsigned int));
 
     cudaMallocManaged(&trackletsInTemp.nTracklets,nLowerModules * sizeof(unsigned int));
-#pragma omp parallel for
-    for(size_t i = 0; i<nLowerModules;i++)
-    {
-        trackletsInTemp.nTracklets[i] = 0;
-    }
+//#pragma omp parallel for
+//    for(size_t i = 0; i<nLowerModules;i++)
+//    {
+//        trackletsInTemp.nTracklets[i] = 0;
+//    }
 
     cudaMalloc(&trackletsInTemp.zOut, maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMalloc(&trackletsInTemp.rtOut, maxTracklets * nLowerModules * sizeof(unsigned int));
