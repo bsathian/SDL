@@ -53,12 +53,18 @@ SDL::Event::~Event()
     trackletsInGPU->freeMemory();
     cudaFree(trackletsInGPU);
 
+#ifdef Explicit_MD
     mdsInTemp->freeMemory();
     cudaFree(mdsInTemp);
+#endif
+#ifdef Explicit_Seg
     segmentsInTemp->freeMemory(); 
     cudaFree(segmentsInTemp);
+#endif
+#ifdef Explicit_Tracklet
     trackletsInTemp->freeMemory(); 
     cudaFree(trackletsInTemp);
+#endif
 }
 
 void SDL::initModules()
@@ -269,12 +275,16 @@ void SDL::Event::createMiniDoublets()
         //cudaMalloc(&mdsInGPU, sizeof(SDL::miniDoublets)); //completely explicit. issues with transfer back. use this version
         //cudaMalloc((SDL::miniDoublets**)mdsInGPU, sizeof(SDL::miniDoublets)); //completely explicit old
         //SDL::miniDoublets* mdsInTemp; //already initialized above
-
+#ifdef Explicit_MD
       cudaMallocHost(&mdsInTemp, sizeof(SDL::miniDoublets));
     	createMDsInExplicitMemory(*mdsInGPU,*mdsInTemp, N_MAX_MD_PER_MODULES, nModules);
-    	//createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
+#else
+    	createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
+#endif
     }
+#ifdef Explicit_MD
     cudaMemset(mdsInGPU->nMDs,0,nModules*sizeof(unsigned int));
+#endif
     cudaDeviceSynchronize();
     auto memStop = std::chrono::high_resolution_clock::now();
     auto memDuration = std::chrono::duration_cast<std::chrono::milliseconds>(memStop - memStart); //in milliseconds
@@ -317,12 +327,17 @@ void SDL::Event::createSegmentsWithModuleMap()
     if(segmentsInGPU == nullptr)
     {
         cudaMallocManaged(&segmentsInGPU, sizeof(SDL::segments));
-        //createSegmentsInUnifiedMemory(*segmentsInGPU, N_MAX_SEGMENTS_PER_MODULE, nModules);
 
+#ifdef Explicit_Seg
         cudaMallocHost(&segmentsInTemp, sizeof(SDL::segments));
         createSegmentsInExplicitMemory(*segmentsInGPU, *segmentsInTemp,N_MAX_SEGMENTS_PER_MODULE, nModules);
+#else
+        createSegmentsInUnifiedMemory(*segmentsInGPU, N_MAX_SEGMENTS_PER_MODULE, nModules);
+#endif
     }
+#ifdef Explicit_Seg
     cudaMemset(segmentsInGPU->nSegments,0,nModules*sizeof(unsigned int));
+#endif
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
 //    dim3 nThreads(1,16,16);
@@ -375,12 +390,17 @@ void SDL::Event::createTrackletsWithModuleMap()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        //createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
 
+#ifdef Explicit_Tracklet
         cudaMallocHost(&trackletsInTemp,sizeof(SDL::tracklets));
         createTrackletsInExplicitMemory(*trackletsInGPU,*trackletsInTemp, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+#else
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+#endif
     }
+#ifdef Explicit_Tracklet
     cudaMemset(trackletsInGPU->nTracklets,0,nLowerModules*sizeof(unsigned int));
+#endif
 
     unsigned int nThreads = 1;
     unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
@@ -408,12 +428,17 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        //createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
 
+#ifdef Explicit_Tracklet
         cudaMallocHost(&trackletsInTemp,sizeof(SDL::tracklets));
         createTrackletsInExplicitMemory(*trackletsInGPU,*trackletsInTemp, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+#else
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+#endif
     }
+#ifdef Explicit_Tracklet
     cudaMemset(trackletsInGPU->nTracklets,0,nLowerModules*sizeof(unsigned int));
+#endif
 
     unsigned int nThreads = 1;
     unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
