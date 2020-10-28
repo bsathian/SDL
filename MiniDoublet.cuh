@@ -47,7 +47,6 @@ namespace SDL
 
         miniDoublets();
 	void freeMemory();
-	void freeMemoryHost();
 
     };
 

@@ -214,8 +214,6 @@ void SDL::Event::createMiniDoublets()
 //    int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
 
     cudaDeviceSynchronize();
-
-
     auto syncStart = std::chrono::high_resolution_clock::now();
 
     createMiniDoubletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU,*hitsInGPU,*mdsInGPU);
@@ -255,6 +253,7 @@ void SDL::Event::createSegmentsWithModuleMap()
     cudaMemset(segmentsInGPU->nSegments,0,nModules*sizeof(unsigned int));
 #endif
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+
 //    dim3 nThreads(1,16,16);
 //    dim3 nBlocks(((nLowerModules * MAX_CONNECTED_MODULES)  % nThreads.x == 0 ? (nLowerModules * MAX_CONNECTED_MODULES)/nThreads.x : (nLowerModules * MAX_CONNECTED_MODULES)/nThreads.x + 1),(N_MAX_MD_PER_MODULES % nThreads.y == 0 ? N_MAX_MD_PER_MODULES/nThreads.y : N_MAX_MD_PER_MODULES/nThreads.y + 1), (N_MAX_MD_PER_MODULES % nThreads.z == 0 ? N_MAX_MD_PER_MODULES/nThreads.z : N_MAX_MD_PER_MODULES/nThreads.z + 1));
 
@@ -635,7 +634,6 @@ __global__ void createSegmentsInGPU(struct SDL::modules& modulesInGPU, struct SD
     if(nConnectedModules == 0) return;
 
     if(nInnerMDs == 0) return;
-
     dim3 nThreads(1,16,16);
     dim3 nBlocks((nConnectedModules % nThreads.x == 0 ? nConnectedModules/nThreads.x : nConnectedModules/nThreads.x + 1), (nInnerMDs % nThreads.y == 0 ? nInnerMDs/nThreads.y : nInnerMDs/nThreads.y + 1), (N_MAX_MD_PER_MODULES % nThreads.z == 0 ? N_MAX_MD_PER_MODULES/nThreads.z : N_MAX_MD_PER_MODULES/nThreads.z + 1));
     createSegmentsFromInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerLowerModuleIndex,nInnerMDs);

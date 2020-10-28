@@ -29,12 +29,7 @@ void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned
     cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegments, maxSegments * nModules * sizeof(float));
     cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDOuterMDs, maxSegments * nModules * sizeof(float));
 }
-__global__ void fillNSeg(unsigned int* segments, unsigned int nModules){
- for (int tid = threadIdx.x; tid < nModules; tid += blockIdx.x){
-    segments[tid] = 0;
- } 
 
-}
 void SDL::createSegmentsInExplicitMemory(struct segments& segmentsInGPU, struct segments& segmentsInTemp, unsigned int maxSegments, unsigned int nModules)
 {
     cudaMalloc(&segmentsInTemp.mdIndices, maxSegments * nModules * 2 * sizeof(unsigned int));
