@@ -37,8 +37,12 @@ void SDL::createTrackletsInExplicitMemory(struct tracklets& trackletsInGPU, stru
     cudaMalloc(&trackletsInTemp.segmentIndices, 2 * maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMalloc(&trackletsInTemp.lowerModuleIndices, 4 * maxTracklets * nLowerModules * sizeof(unsigned int));
 
+#ifdef Full_Explicit
+    cudaMalloc(&trackletsInTemp.nTracklets,nLowerModules * sizeof(unsigned int));
+    cudaMemset(&(trackletsInTemp.nTracklets),0,nLowerModules*sizeof(unsigned int));
+#else
     cudaMallocManaged(&trackletsInTemp.nTracklets,nLowerModules * sizeof(unsigned int));
-    //cudaMalloc(&trackletsInTemp.nTracklets,nLowerModules * sizeof(unsigned int));
+#endif
 
     cudaMalloc(&trackletsInTemp.zOut, maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMalloc(&trackletsInTemp.rtOut, maxTracklets * nLowerModules * sizeof(unsigned int));
@@ -55,7 +59,6 @@ void SDL::createTrackletsInExplicitMemory(struct tracklets& trackletsInGPU, stru
     cudaMalloc(&trackletsInTemp.dBetaCut, maxTracklets * nLowerModules * sizeof(unsigned int));
     
     cudaMemcpy(&trackletsInGPU,&trackletsInTemp, sizeof(SDL::tracklets),cudaMemcpyHostToDevice);
-    //cudaMemset(&(trackletsInGPU.nTracklets),0,nLowerModules*sizeof(unsigned int));
 }
 
 __device__ void SDL::addTrackletToMemory(struct tracklets& trackletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int trackletIndex, float& betaInCut, float& betaOutCut, float& dBetaCut)

@@ -53,9 +53,12 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.moduleIndices, maxMDsPerModule * nModules * sizeof(unsigned int));
     cudaMalloc(&mdsInTemp.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short));
     cudaMalloc(&mdsInTemp.dphichanges, maxMDsPerModule * nModules * sizeof(float));
-
+#ifdef Full_Explicit
+    cudaMalloc(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); //for full explicit
+    cudaMemset(&mdsInTemp.nMDs,0,nModules *sizeof(unsigned int));
+#else
     cudaMallocManaged(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); // allows for transfer back
-    //cudaMalloc(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); //for full explicit
+#endif
     cudaMalloc(&mdsInTemp.dzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.dphis, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.shiftedXs, maxMDsPerModule * nModules * sizeof(float));
@@ -65,7 +68,6 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.noShiftedDphis, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
     cudaMemcpy(&mdsInGPU,&mdsInTemp, sizeof(SDL::miniDoublets), cudaMemcpyHostToDevice);
-    //cudaMemset(&mdsInGPU.nMDs,0,nModules *sizeof(unsigned int));
 
 }
 
