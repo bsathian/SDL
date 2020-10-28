@@ -55,13 +55,7 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.dphichanges, maxMDsPerModule * nModules * sizeof(float));
 
     cudaMallocManaged(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); // allows for transfer back
-//#pragma omp parallel for default(shared)
-//    for(size_t i = 0; i< nModules; i++)
-//    {
-//        mdsInTemp.nMDs[i] = 0;
-//    }
     //cudaMalloc(&mdsInTemp.nMDs, nModules * sizeof(unsigned int)); //for full explicit
-    //cudaMemset(&mdsInTemp.nMDs,0,nModules *sizeof(unsigned int));
     cudaMalloc(&mdsInTemp.dzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.dphis, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.shiftedXs, maxMDsPerModule * nModules * sizeof(float));
@@ -70,52 +64,8 @@ void SDL::createMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDo
     cudaMalloc(&mdsInTemp.noShiftedDzs, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.noShiftedDphis, maxMDsPerModule * nModules * sizeof(float));
     cudaMalloc(&mdsInTemp.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
-    //cudaMalloc(&(mdsInGPU.nMDs),nModules * sizeof(unsigned int));
-    //unsigned char *d_addr = NULL;
-    //cudaGetSymbolAddress((void**)&d_addr,"mdsInTemp->nMDs");
-    //cudaMemset(d_addr,0,nModules *sizeof(unsigned int));
     cudaMemcpy(&mdsInGPU,&mdsInTemp, sizeof(SDL::miniDoublets), cudaMemcpyHostToDevice);
     //cudaMemset(&mdsInGPU.nMDs,0,nModules *sizeof(unsigned int));
-
-}
-
-inline void SDL::transferMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDoublets& mdsInHost, unsigned int maxMDsPerModule, unsigned int nModules)
-{
-    cudaMemcpy(&mdsInGPU,&mdsInHost, sizeof(SDL::miniDoublets), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.hitIndices,&mdsInHost.hitIndices,            maxMDsPerModule * nModules * 2 * sizeof(unsigned int), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.moduleIndices, &mdsInHost.moduleIndices,      maxMDsPerModule * nModules * sizeof(unsigned int), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.pixelModuleFlag, &mdsInHost.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.dphichanges, &mdsInHost.dphichanges,         maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-
-    cudaMemcpy(&mdsInGPU.nMDs, &mdsInHost.nMDs, nModules * sizeof(unsigned int),cudaMemcpyHostToDevice);
-
-    cudaMemcpy(&mdsInGPU.dzs,                  &mdsInHost.dzs ,                  maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.dphis,                &mdsInHost.dphis ,                maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.shiftedXs,            &mdsInHost.shiftedXs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.shiftedYs,            &mdsInHost.shiftedYs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.shiftedZs,            &mdsInHost.shiftedZs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.noShiftedDzs,         &mdsInHost.noShiftedDzs ,         maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.noShiftedDphis,       &mdsInHost.noShiftedDphis ,       maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(&mdsInGPU.noShiftedDphiChanges, &mdsInHost.noShiftedDphiChanges , maxMDsPerModule * nModules * sizeof(float), cudaMemcpyHostToDevice);
-}
-void SDL::transferbackMDsInExplicitMemory(struct miniDoublets& mdsInGPU, struct miniDoublets& mdsInHost, unsigned int maxMDsPerModule, unsigned int nModules)
-{
-    cudaMemcpy(&mdsInHost,&mdsInGPU, sizeof(SDL::miniDoublets), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.hitIndices,&mdsInGPU.hitIndices,            maxMDsPerModule * nModules * 2 * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.moduleIndices, &mdsInGPU.moduleIndices,      maxMDsPerModule * nModules * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.pixelModuleFlag, &mdsInGPU.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.dphichanges, &mdsInGPU.dphichanges,         maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-
-    cudaMemcpy(&mdsInHost.nMDs, &mdsInGPU.nMDs, nModules * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-
-    //cudaMemcpy(&mdsInHost.dzs,                  &mdsInGPU.dzs ,                  maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.dphis,                &mdsInGPU.dphis ,                maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.shiftedXs,            &mdsInGPU.shiftedXs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.shiftedYs,            &mdsInGPU.shiftedYs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.shiftedZs,            &mdsInGPU.shiftedZs ,            maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.noShiftedDzs,         &mdsInGPU.noShiftedDzs ,         maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.noShiftedDphis,       &mdsInGPU.noShiftedDphis ,       maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
-    //cudaMemcpy(&mdsInHost.noShiftedDphiChanges, &mdsInGPU.noShiftedDphiChanges , maxMDsPerModule * nModules * sizeof(float), cudaMemcpyDeviceToHost);
 
 }
 
@@ -788,44 +738,6 @@ SDL::miniDoublets::miniDoublets()
 
 }
 
-//SDL::miniDoublets::miniDoubletsHost()
-//{
-//    hitIndices = nullptr;
-//    moduleIndices = nullptr;
-//    pixelModuleFlag = nullptr;
-//    nMDs = nullptr;
-//    dphichanges = nullptr;
-//
-//    dzs = nullptr;
-//    dphis = nullptr;
-//
-//    shiftedXs = nullptr;
-//    shiftedYs = nullptr;
-//    shiftedZs = nullptr;
-//    noShiftedDzs = nullptr;
-//    noShiftedDphis = nullptr;
-//    noShiftedDphiChanges = nullptr;
-//
-//}
-
-void SDL::miniDoublets::freeMemoryHost()
-{
-//    cudaFree(hitIndices);
-//    cudaFree(moduleIndices);
-//    cudaFree(pixelModuleFlag);
-    cudaFree(nMDs);
-//    cudaFree(dphichanges);
-//
-//    cudaFree(dzs);
-//    cudaFree(dphis);
-//
-//    cudaFree(shiftedXs);
-//    cudaFree(shiftedYs);
-//    cudaFree(shiftedZs);
-//    cudaFree(noShiftedDzs);
-//    cudaFree(noShiftedDphis);
-//    cudaFree(noShiftedDphiChanges);
-}
 void SDL::miniDoublets::freeMemory()
 {
     cudaFree(hitIndices);

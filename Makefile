@@ -18,15 +18,16 @@ CXXFLAGS      =  -g --compiler-options -Wall --compiler-options -Wshadow --compi
 LD            = nvcc 
 #LDFLAGS       = -g -O2
 SOFLAGS       = -g -shared --compiler-options -fPIC --cudart shared -arch=compute_52
-MEMFLAG       = -DExplicit_MD -DExplicit_Seg -DExplicit_Tracklet 
+MEMFLAG       = -DExplicit_MD -DExplicit_Seg -DExplicit_Tracklet -DExplicit_Trips 
+PRINTFLAG     = -DAddObjects
 # how to make it 
 #
 
 %.o : %.cu %.cuh
-	$(LD) -x cu $(CXXFLAGS) $(LDFLAGS) $(ROOTLIBS) $(MEMFLAG) $< -o $@
+	$(LD) -x cu $(CXXFLAGS) $(LDFLAGS) $(ROOTLIBS) $(MEMFLAG) $(PRINTFLAG) $< -o $@
 
 %.o : %.cc %.h
-	$(LD) $(CXXFLAGS) $(LDFLAGS) $(ROOTLIBS) $(MEMFLAG) $< -o $@
+	$(LD) $(CXXFLAGS) $(LDFLAGS) $(ROOTLIBS) $(MEMFLAG) $(PRINTFLAG) $< -o $@
 
 
 

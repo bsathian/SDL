@@ -46,6 +46,7 @@ namespace SDL
         struct tracklets* trackletsInGPU;
         struct tracklets* trackletsInTemp;
         struct triplets* tripletsInGPU;
+        struct triplets* tripletsInTemp;
 
     public:
         Event();

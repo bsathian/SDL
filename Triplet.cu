@@ -29,6 +29,30 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
         tripletsInGPU.nTriplets[i] = 0;
     }
 }
+void SDL::createTripletsInExplicitMemory(struct triplets& tripletsInGPU,struct triplets& tripletsInTemp, unsigned int maxTriplets, unsigned int nLowerModules)
+{
+    cudaMalloc(&tripletsInTemp.segmentIndices, 2 * maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.lowerModuleIndices, 3 * maxTriplets * nLowerModules * sizeof(unsigned int));
+    //cudaMalloc(&tripletsInTemp.nTriplets, nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&tripletsInTemp.nTriplets, nLowerModules * sizeof(unsigned int));
+    //cudaMemset(&(tripletsInTemp.nTriplets),0,nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.zOut, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.rtOut, maxTriplets * nLowerModules * sizeof(unsigned int));
+
+    cudaMalloc(&tripletsInTemp.deltaPhiPos, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.deltaPhi, maxTriplets * nLowerModules * sizeof(unsigned int));
+
+    cudaMalloc(&tripletsInTemp.betaIn, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.betaOut, maxTriplets * nLowerModules * sizeof(unsigned int));
+
+
+    cudaMalloc(&tripletsInTemp.betaInCut, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.betaOutCut, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMalloc(&tripletsInTemp.dBetaCut, maxTriplets * nLowerModules * sizeof(unsigned int));
+    cudaMemcpy(&tripletsInGPU,&tripletsInTemp, sizeof(SDL::triplets),cudaMemcpyHostToDevice); 
+
+
+}
 
 __device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int tripletIndex, float& betaInCut, float& betaOutCut, float& dBetaCut)
 {
