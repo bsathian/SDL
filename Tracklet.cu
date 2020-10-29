@@ -49,12 +49,7 @@ void SDL::createTrackletsInExplicitMemory(struct tracklets& trackletsInGPU, stru
 
     cudaMalloc(&trackletsInTemp.betaIn, maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMalloc(&trackletsInTemp.betaOut, maxTracklets * nLowerModules * sizeof(unsigned int));
-
-
-    cudaMalloc(&trackletsInTemp.betaInCut, maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMalloc(&trackletsInTemp.betaOutCut, maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMalloc(&trackletsInTemp.dBetaCut, maxTracklets * nLowerModules * sizeof(unsigned int));
-    
+ 
     cudaMemcpy(&trackletsInGPU,&trackletsInTemp, sizeof(SDL::tracklets),cudaMemcpyHostToDevice);
 }
 

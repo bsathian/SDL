@@ -42,10 +42,6 @@ void SDL::createTripletsInExplicitMemory(struct triplets& tripletsInGPU,struct t
     cudaMalloc(&tripletsInTemp.betaIn, maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMalloc(&tripletsInTemp.betaOut, maxTriplets * nLowerModules * sizeof(unsigned int));
 
-
-    cudaMalloc(&tripletsInTemp.betaInCut, maxTriplets * nLowerModules * sizeof(unsigned int));
-    cudaMalloc(&tripletsInTemp.betaOutCut, maxTriplets * nLowerModules * sizeof(unsigned int));
-    cudaMalloc(&tripletsInTemp.dBetaCut, maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMemcpy(&tripletsInGPU,&tripletsInTemp, sizeof(SDL::triplets),cudaMemcpyHostToDevice); 
 
 
