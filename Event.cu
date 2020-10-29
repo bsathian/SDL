@@ -6,7 +6,7 @@ const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
 const unsigned int N_MAX_TRACKLETS_PER_MODULE = 5000;//temporary
-const unsigned int N_MAX_TRIPLETS_PER_MODULE = 1000;
+const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -106,6 +106,7 @@ void SDL::Event::addMiniDoubletsToEvent()
         }
         else
         {
+
             modulesInGPU->mdRanges[idx * 2] = idx * N_MAX_MD_PER_MODULES;
             modulesInGPU->mdRanges[idx * 2 + 1] = (idx * N_MAX_MD_PER_MODULES) + mdsInGPU->nMDs[idx] - 1;
     
@@ -137,7 +138,6 @@ void SDL::Event::addSegmentsToEvent()
         {
             modulesInGPU->segmentRanges[idx * 2] = idx * N_MAX_SEGMENTS_PER_MODULE;
             modulesInGPU->segmentRanges[idx * 2 + 1] = idx * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[idx] - 1;
-
 
             if(modulesInGPU->subdets[idx] == Barrel)
             {

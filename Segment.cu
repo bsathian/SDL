@@ -288,7 +288,6 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
 
     float rtLo = fmaxf(rtIn * (1.f + dz / (zIn + dLum) * drtDzScale) - rtGeom,  rtIn - 0.5f * rtGeom); //rt should increase
     float rtHi = rtIn * (zOut - dLum) / (zIn - dLum) + rtGeom; //dLum for luminous; rGeom for measurement size; no tanTheta_loc(pt) correction
-    
     if(not(rtOut >= rtLo and rtOut <= rtHi))
     {
         pass = false;
@@ -330,6 +329,8 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
         pass = false;
     }
 
+
+
     float dAlphaThresholdValues[3];
     dAlphaThreshold(dAlphaThresholdValues, hitsInGPU, modulesInGPU, mdsInGPU, innerMiniDoubletAnchorHitIndex, outerMiniDoubletAnchorHitIndex, innerLowerModuleIndex, outerLowerModuleIndex, innerMDIndex, outerMDIndex);
 
@@ -355,6 +356,10 @@ __device__ bool SDL::runSegmentDefaultAlgoEndcap(struct modules& modulesInGPU, s
         pass = false;
     }
 
+/*    if(modulesInGPU.detIds[innerLowerModuleIndex] == 420504594)
+    {
+        printf("rtLo = %f, rtHi = %f, rtOut = %f, dPhiChange = %f, dAlphaInnerMDSegment = %f, dAlphaThresholdInnerMDSegment = %f, dAlphaOuterMDSegment = %f, dAlphaThresholdOuterMDSegment = %f, dAlphaInnerMDOuterMD = %f alpha innerMD = %f, alpha outerMD = %f, dAlphaThresholdInnerMDOuterMD = %f\n", rtLo, rtHi, rtOut, dPhiChange,dAlphaInnerMDSegment, dAlphaThresholdValues[0], dAlphaOuterMDSegment, dAlphaThresholdValues[1], dAlphaInnerMDOuterMD, innerMDAlpha, outerMDAlpha, dAlphaThresholdValues[2]);
+    }*/ 
 
     return pass;
 }

@@ -143,7 +143,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
             shiftedX = xn;
             shiftedY = yn;
             shiftedZ = zUpper;
-            shiftedRt = sqrt(xn * xn + yn * yn);
+            shiftedRt = sqrtf(xn * xn + yn * yn);
 
             dPhi = deltaPhi(xLower,yLower,zLower,shiftedX, shiftedY, shiftedZ); //function from Hit.cu
             noShiftedDphi = deltaPhi(xLower, yLower, zLower, xUpper, yUpper, zUpper);
@@ -153,7 +153,7 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoBarrel(struct modules& modulesInGP
             shiftedX = xn;
             shiftedY = yn;
             shiftedZ = zLower;
-            shiftedRt = sqrt(xn * xn + yn * yn);
+            shiftedRt = sqrtf(xn * xn + yn * yn);
             dPhi = deltaPhi(shiftedX, shiftedY, shiftedZ, xUpper, yUpper, zUpper);
             noShiftedDphi = deltaPhi(xLower,yLower,zLower,xUpper,yUpper,zUpper);
 
@@ -394,7 +394,7 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
     {
         drdz = 0;
     }
-    const float miniTilt = ((isTilted) ? 0.5f * pixelPSZpitch * drdz / sqrt(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
+    const float miniTilt = ((isTilted) ? 0.5f * pixelPSZpitch * drdz / sqrtf(1.f + drdz * drdz) / moduleGapSize(modulesInGPU,moduleIndex) : 0);
 
     // Compute luminous region requirement for endcap
     const float miniLum = fabsf(dPhi * deltaZLum/dz); // Balaji's new error
@@ -407,17 +407,17 @@ __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modu
     // Following condition is met if the module is central and flatly lying
     if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] == Center)
     {
-        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff);
+        return miniSlope + sqrtf(miniMuls * miniMuls + miniPVoff * miniPVoff);
     }
     // Following condition is met if the module is central and tilted
     else if (modulesInGPU.subdets[moduleIndex] == Barrel and modulesInGPU.sides[moduleIndex] != Center) //all types of tilted modules
     {
-        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff + miniTilt * miniTilt * miniSlope * miniSlope);
+        return miniSlope + sqrtf(miniMuls * miniMuls + miniPVoff * miniPVoff + miniTilt * miniTilt * miniSlope * miniSlope);
     }
     // If not barrel, it is Endcap
     else
     {
-        return miniSlope + sqrt(miniMuls * miniMuls + miniPVoff * miniPVoff + miniLum * miniLum);
+        return miniSlope + sqrtf(miniMuls * miniMuls + miniPVoff * miniPVoff + miniLum * miniLum);
     }
 
 }
@@ -589,8 +589,8 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     // If it is endcap some of the math gets simplified (and also computers don't like infinities)
     isEndcap = modulesInGPU.subdets[lowerModuleIndex]== Endcap;
 
-    // NOTE: TODO: Keep in mind that the sin(atan) function can be simplifed to something like x / sqrt(1 + x^2) and similar for cos
-    // I am not sure how slow sin, atan, cos, functions are in c++. If x / sqrt(1 + x^2) are faster change this later to reduce arithmetic computation time
+    // NOTE: TODO: Keep in mind that the sin(atan) function can be simplifed to something like x / sqrtf(1 + x^2) and similar for cos
+    // I am not sure how slow sin, atan, cos, functions are in c++. If x / sqrtf(1 + x^2) are faster change this later to reduce arithmetic computation time
 
     // The pixel hit is used to compute the angleA which is the theta in polar coordinate
     // angleA = atanf(pixelHitPtr->rt() / pixelHitPtr->z() + (pixelHitPtr->z() < 0 ? M_PI : 0)); // Shift by pi if the z is negative so that the value of the angleA stays between 0 to pi and not -pi/2 to pi/2
@@ -607,7 +607,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
         drdz_ = modulesInGPU.drdzs[lowerModuleIndex];
         slope = modulesInGPU.slopes[lowerModuleIndex];
     }
-    angleB = ((isEndcap) ? M_PI / 2. : atan(drdz_)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
+    angleB = ((isEndcap) ? M_PI / 2. : atanf(drdz_)); // The tilt module on the postive z-axis has negative drdz slope in r-z plane and vice versa
 
 
     moduleSeparation = moduleGapSize(modulesInGPU, lowerModuleIndex);
@@ -618,10 +618,10 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
         moduleSeparation *= -1;
     }
 
-    drprime = (moduleSeparation / std::sin(angleA + angleB)) * std::sin(angleA);
+    drprime = (moduleSeparation / sinf(angleA + angleB)) * sinf(angleA);
     
     // Compute arctan of the slope and take care of the slope = infinity case
-    absArctanSlope = ((slope != SDL_INF) ? fabs(atanf(slope)) : M_PI / 2); // Since C++ can't represent infinity, SDL_INF = 123456789 was used to represent infinity in the data table
+    absArctanSlope = ((slope != SDL_INF) ? fabsf(atanf(slope)) : M_PI / 2); // Since C++ can't represent infinity, SDL_INF = 123456789 was used to represent infinity in the data table
 
     // The pixel hit position
     xp = hitsInGPU.xs[pixelHitIndex];
@@ -675,7 +675,7 @@ __device__ void SDL::shiftStripHits(struct modules& modulesInGPU, struct hits& h
     }
 
     // Computing new Z position
-    absdzprime = fabsf(moduleSeparation / std::sin(angleA + angleB) * std::cos(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign later
+    absdzprime = fabsf(moduleSeparation / sinf(angleA + angleB) * cosf(angleA)); // module separation sign is for shifting in radial direction for z-axis direction take care of the sign late
 
     // Depending on which one as closer to the interactin point compute the new z wrt to the pixel properly
     if (modulesInGPU.moduleLayerType[lowerModuleIndex] == Pixel)
