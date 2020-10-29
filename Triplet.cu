@@ -17,12 +17,6 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
     cudaMallocManaged(&tripletsInGPU.betaIn, maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.betaOut, maxTriplets * nLowerModules * sizeof(unsigned int));
 
-
-    cudaMallocManaged(&tripletsInGPU.betaInCut, maxTriplets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&tripletsInGPU.betaOutCut, maxTriplets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&tripletsInGPU.dBetaCut, maxTriplets * nLowerModules * sizeof(unsigned int));
-
-
 #pragma omp parallel for
     for(size_t i = 0; i<nLowerModules;i++)
     {
@@ -57,7 +51,7 @@ void SDL::createTripletsInExplicitMemory(struct triplets& tripletsInGPU,struct t
 
 }
 
-__device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int tripletIndex, float& betaInCut, float& betaOutCut, float& dBetaCut)
+__device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int tripletIndex)
 {
    tripletsInGPU.segmentIndices[tripletIndex * 2] = innerSegmentIndex;
    tripletsInGPU.segmentIndices[tripletIndex * 2 + 1] = outerSegmentIndex;
@@ -72,9 +66,6 @@ __device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned
 
    tripletsInGPU.betaIn[tripletIndex] = betaIn;
    tripletsInGPU.betaOut[tripletIndex] = betaOut;
-   tripletsInGPU.betaInCut[tripletIndex] = betaInCut;
-   tripletsInGPU.betaOutCut[tripletIndex] = betaOutCut;
-   tripletsInGPU.dBetaCut[tripletIndex] = dBetaCut;
 }
 
 SDL::triplets::triplets()
@@ -106,12 +97,9 @@ void SDL::triplets::freeMemory()
     cudaFree(deltaPhi);
     cudaFree(betaIn);
     cudaFree(betaOut);
-    cudaFree(betaInCut);
-    cudaFree(betaOutCut);
-    cudaFree(dBetaCut);
 }
 
-__device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float& betaInCut, float& betaOutCut, float& dBetaCut)
+__device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut)
 {
     bool pass = true;
     //check
@@ -125,7 +113,7 @@ __device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct 
     }
     //now check tracklet algo
     
-    if(not(runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, middleLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, betaInCut, betaOutCut, dBetaCut)))
+    if(not(runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, middleLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut)))
     {
         pass = false;
     }
