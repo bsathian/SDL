@@ -6,7 +6,8 @@ const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
 const unsigned int N_MAX_TRACKLETS_PER_MODULE = 5000;//temporary
-const unsigned int N_MAX_TRIPLETS_PER_MODULE = 1000;
+const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
+const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 1000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -298,6 +299,29 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
 
 }
 
+void SDL::Event::createTrackCandidates()
+{
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+
+    if(trackCandidatesInGPU == nullptr)
+    {
+        cudaMallocManaged(&trackCandidatesInGPU, sizeof(SDL::trackCandidates));
+        createTrackCandidatesInUnifiedMemory(*trackCandidatesInGPU, N_MAX_TRACK_CANDIDATES_PER_MODULE, nLowerModules);
+    }
+
+    unsigned int nThreads = 1;
+    unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
+
+    createTrackCandidatesInGPU<<<nBlocks,nThreads>>>(*modulesInGPU, *hitsInGPU, *mdsInGPU, *segmentsInGPU, *tripletsInGPU, *trackCandidatesInGPU);
+
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if(cudaerr != cudaSuccess)
+    {
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;
+    }
+    addTrackCandidatesToEvent();
+
+}
 
 void SDL::Event::addTrackletsToEvent()
 {
@@ -356,6 +380,36 @@ void SDL::Event::addTripletsToEvent()
         }
     }
 }
+
+void SDL::Event::addTrackCandidatesToEvent()
+{
+    unsigned int idx;
+    for(unsigned int i = 0; i<*(SDL::modulesInGPU->nLowerModules); i++)
+    {
+        idx = SDL::modulesInGPU->lowerModuleIndices[i];
+
+        if(trackCandidatesInGPU->nTrackCandidates[i] == 0)
+        {
+            modulesInGPU->trackCandidateRanges[idx * 2] = -1;
+            modulesInGPU->trackCandidateRanges[idx * 2 + 1] = -1;
+        }
+        else
+        {
+            modulesInGPU->trackCandidateRanges[idx * 2] = idx * N_MAX_TRACK_CANDIDATES_PER_MODULE;
+            modulesInGPU->trackCandidateRanges[idx * 2 + 1] = idx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidatesInGPU->nTrackCandidates[i] - 1;
+ 
+            if(modulesInGPU->subdets[idx] == Barrel)
+            {
+                n_trackCandidates_by_layer_barrel_[modulesInGPU->layers[idx] - 1] += trackCandidatesInGPU->nTrackCandidates[i];
+            }
+            else
+            {
+                n_trackCandidates_by_layer_endcap_[modulesInGPU->layers[idx] - 1] += trackCandidatesInGPU->nTrackCandidates[i];
+            }
+        }
+    }
+}
+
 __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU)
 {
     int lowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
@@ -787,6 +841,99 @@ __global__ void createTripletsInGPU(struct SDL::modules& modulesInGPU, struct SD
 
     createTripletsFromInnerInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, tripletsInGPU, innerInnerLowerModuleIndex, nInnerSegments, nConnectedModules, innerInnerLowerModuleArrayIndex);
 }
+
+__global__ void createTrackCandidatesInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, struct SDL::triplets& tripletsInGPU, struct SDL::trackCandidates& trackCandidatesInGPU)
+{
+    //inner tracklet/triplet inner segment inner MD lower module
+    int innerInnerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    if(innerInnerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+    unsigned int nTracklets = trackletsInGPU.nTracklets[innerInnerInnerLowerModuleArrayIndex];
+    unsigned int nTriplets = tripletsInGPU.nTriplets[innerInnerInnerLowerModuleArrayIndex];
+    unsigned int temp = max(nTracklets,nTriplets);
+    unsigned int MAX_OBJECTS = max(N_MAX_TRACKLETS_PER_MODULE, N_MAX_TRIPLETS_PER_MODULE);
+
+    if(temp == 0) return;
+
+    //triplets and tracklets are stored directly using lower module array index
+    dim3 nThreads(16,16,1);
+    dim3 nBlocks(temp % nThreads.x == 0 ? temp / nThreads.x : temp / nThreads.x + 1, MAX_OBJECTS % nThreads.y == 0 ? MAX_OBJECTS / nThreads.y : MAX_OBJECTS / nThreads.y + 1, 1);
+    createTrackCandidatesFromInnerInnerInnerLowerModule<<<nBlocks, nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, trackletsInGPU, tripletsInGPU, trackCandidatesInGPU,innerInnerInnerLowerModuleArrayIndex,nTracklets,nTriplets);
+}
+
+__global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, struct SDL::triplets& tripletsInGPU, struct SDL::trackCandidates& trackCandidatesInGPU, unsigned int innerInnerInnerLowerModuleArrayIndex, unsigned int nInnerTracklets, unsigned int nInnerTriplets)
+{
+    int innerObjectArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    int outerObjectArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    int innerObjectIndex = 0;
+    int outerObjectIndex = 0;
+    short trackCandidateType;
+    bool success;
+    //step 1 tracklet-tracklet
+    if(innerObjectArrayIndex < nInnerTracklets)
+    {
+        innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
+        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];/*same as innerOuterInnerLowerModuleIndex*/
+        if(outerObjectArrayIndex < trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex])
+        {
+            outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRACKLETS_PER_MODULE + outerObjectArrayIndex;
+
+            success = runTrackCandidateDefaultAlgoTwoTracklets(trackletsInGPU, tripletsInGPU, innerObjectIndex, outerObjectIndex,trackCandidateType);
+
+            if(success)
+            {
+                unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+                addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
+            }
+
+        }
+    }
+    
+    //step 2 tracklet-triplet
+    if(innerObjectArrayIndex < nInnerTracklets)
+    {
+        innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
+        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];/*same as innerOuterInnerLowerModuleIndex*/
+
+        if(outerObjectArrayIndex < tripletsInGPU.nTriplets[outerInnerInnerLowerModuleIndex])
+        {
+            outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRIPLETS_PER_MODULE + outerObjectArrayIndex;
+            success = runTrackCandidateDefaultAlgoTrackletToTriplet(trackletsInGPU, tripletsInGPU, innerObjectIndex, outerObjectIndex,trackCandidateType);
+            if(success)
+            {
+                unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+                addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
+            }
+
+        }
+    }
+
+    //step 3 triplet-tracklet
+    if(innerObjectArrayIndex < nInnerTriplets)
+    {
+        innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
+        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[3 * innerObjectIndex + 1]];/*same as innerOuterInnerLowerModuleIndex*/
+
+        if(outerObjectArrayIndex < trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex])
+        {
+            outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRACKLETS_PER_MODULE + outerObjectArrayIndex;
+            success = runTrackCandidateDefaultAlgoTripletToTracklet(trackletsInGPU, tripletsInGPU, innerObjectIndex, outerObjectIndex,trackCandidateType);
+            if(success)
+            {
+                unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+                addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
+            }
+
+ 
+        }
+
+    }
+}
+
+
 unsigned int SDL::Event::getNumberOfHits()
 {
     unsigned int hits = 0;
@@ -957,6 +1104,42 @@ unsigned int SDL::Event::getNumberOfTripletsByLayerEndcap(unsigned int layer)
     return n_triplets_by_layer_endcap_[layer];
 }
 
+unsigned int SDL::Event::getNumberOfTrackCandidates()
+{
+    unsigned int trackCandidates = 0;
+    for(auto &it:n_trackCandidates_by_layer_barrel_)
+    {
+        trackCandidates += it;
+    }
+    for(auto &it:n_trackCandidates_by_layer_endcap_)
+    {
+        trackCandidates += it;
+    }
+
+    return trackCandidates;
+   
+}
+
+
+unsigned int SDL::Event::getNumberOfTrackCandidatesByLayer(unsigned int layer)
+{
+    if(layer == 6)
+        return n_trackCandidates_by_layer_barrel_[layer];
+    else
+        return n_trackCandidates_by_layer_barrel_[layer] + n_tracklets_by_layer_endcap_[layer];
+}
+
+unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerBarrel(unsigned int layer)
+{
+    return n_trackCandidates_by_layer_barrel_[layer];
+}
+
+unsigned int SDL::Event::getNumberOfTrackCandidatesByLayerEndcap(unsigned int layer)
+{
+    return n_trackCandidates_by_layer_endcap_[layer];
+}
+
+
 struct SDL::hits* SDL::Event::getHits()
 {
     return hitsInGPU;
@@ -980,4 +1163,9 @@ struct SDL::tracklets* SDL::Event::getTracklets()
 struct SDL::triplets* SDL::Event::getTriplets()
 {
     return tripletsInGPU;
+}
+
+struct SDL::trackCandidates* SDL::Event::getTrackCandidates()
+{
+    return trackCandidatesInGPU;
 }
