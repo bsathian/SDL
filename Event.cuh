@@ -17,6 +17,7 @@
 #include "Segment.cuh"
 #include "Tracklet.cuh"
 #include "Triplet.cuh"
+#include "TrackCandidate.cuh"
 
 #include "cuda_profiler_api.h"
 
@@ -35,6 +36,8 @@ namespace SDL
         std::array<unsigned int, 5> n_tracklets_by_layer_endcap_;
         std::array<unsigned int, 6> n_triplets_by_layer_barrel_;
         std::array<unsigned int, 5> n_triplets_by_layer_endcap_;
+        std::array<unsigned int, 6> n_trackCandidates_by_layer_barrel_;
+        std::array<unsigned int, 5> n_trackCandidates_by_layer_endcap_;
 
 
         //CUDA stuff
@@ -43,6 +46,7 @@ namespace SDL
         struct segments* segmentsInGPU;
         struct tracklets* trackletsInGPU;
         struct triplets* tripletsInGPU;
+        struct trackCandidates* trackCandidatesInGPU;
 
     public:
         Event();
@@ -55,6 +59,7 @@ namespace SDL
         void addTrackletsToEvent();
         void addTrackletsWithAGapToEvent();
         void addTripletsToEvent();
+        void addTrackCandidatesToEvent();
 
         void resetObjectsInModule();
 
@@ -63,6 +68,7 @@ namespace SDL
         void createTriplets();
         void createTrackletsWithModuleMap();
         void createTrackletsWithAGapWithModuleMap();
+        void createTrackCandidates();
 
         unsigned int getNumberOfHits();
         unsigned int getNumberOfHitsByLayer(unsigned int layer);
@@ -89,11 +95,17 @@ namespace SDL
         unsigned int getNumberOfTripletsByLayerBarrel(unsigned int layer);
         unsigned int getNumberOfTripletsByLayerEndcap(unsigned int layer);
 
+        unsigned int getNumberOfTrackCandidates();
+        unsigned int getNumberOfTrackCandidatesByLayer(unsigned int layer);
+        unsigned int getNumberOfTrackCandidatesByLayerBarrel(unsigned int layer);
+        unsigned int getNumberOfTrackCandidatesByLayerEndcap(unsigned int layer);
+
         struct hits* getHits();
         struct miniDoublets* getMiniDoublets();
         struct segments* getSegments() ;
         struct tracklets* getTracklets();
         struct triplets* getTriplets();
+        struct trackCandidates* getTrackCandidates();
 
     };
 
@@ -123,6 +135,10 @@ __global__ void createTripletsInGPU(struct SDL::modules& modulesInGPU, struct SD
 
 __global__ void createTripletsFromInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int innerInnerLowerModuleArrayIndex);
 
+__global__ void createTrackCandidatesInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::triplets& tripletsInGPU, struct SDL::trackCandidates& trackCandidatesInGPU);
+
+__global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, struct SDL::triplets& tripletsInGPU, struct SDL::trackCandidates& trackCandidatesInGPU, unsigned int innerInnerInnerLowerModuleArrayIndex, unsigned int nInnerTracklets, unsigned int
+        nInnerTriplets);
 
 
 #endif

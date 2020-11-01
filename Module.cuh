@@ -52,6 +52,7 @@ namespace SDL
         unsigned int *nModules; //single number
         unsigned int *nLowerModules;
         unsigned int *lowerModuleIndices;
+        int *reverseLookupLowerModuleIndices; //module index to lower module index reverse lookup
         
         short* layers;
         short* rings;
@@ -78,6 +79,7 @@ namespace SDL
         int* segmentRanges;
         int* trackletRanges;
         int* tripletRanges;
+        int* trackCandidateRanges;
         //others will be added later
 
     };
@@ -88,7 +90,7 @@ namespace SDL
     //functions
     void loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules);
 
-    void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules);
+    void createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules, unsigned int nModules);
     void createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int nModules);
     void fillConnectedModuleArray(struct modules& modulesInGPU, unsigned int nModules);
     void setDerivedQuantities(unsigned int detId, unsigned short& layer, unsigned short& ring, unsigned short& rod, unsigned short& module, unsigned short& subdet, unsigned short& side);
