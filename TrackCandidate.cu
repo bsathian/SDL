@@ -31,6 +31,24 @@ __device__ bool SDL::runTrackCandidateDefaultAlgoTwoTracklets(struct tracklets& 
     return pass;
 }
 
+SDL::trackCandidates::trackCandidates()
+{
+    trackCandidateType = nullptr;
+    objectIndices = nullptr;
+    nTrackCandidates = nullptr;
+}
+
+SDL::trackCandidates::~trackCandidates()
+{
+}
+
+void SDL::trackCandidates::freeMemory()
+{
+    cudaFree(trackCandidateType);
+    cudaFree(objectIndices);
+    cudaFree(nTrackCandidates);
+}
+
 __device__ bool SDL::runTrackCandidateDefaultAlgoTrackletToTriplet(struct tracklets& trackletsInGPU, struct triplets& tripletsInGPU, unsigned int innerTrackletIndex, unsigned int outerTripletIndex, short& trackCandidateType)
 {
     bool pass = true;
@@ -79,3 +97,5 @@ __device__ bool SDL::hasCommonSegment(struct tracklets& trackletsInGPU, struct t
 
     return (innerObjectOuterSegmentIndex == outerObjectInnerSegmentIndex);
 }
+
+
