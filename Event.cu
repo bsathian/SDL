@@ -48,6 +48,8 @@ SDL::Event::~Event()
     cudaFree(segmentsInGPU);
     trackletsInGPU->freeMemory();
     cudaFree(trackletsInGPU);
+    tripletsInGPU->freeMemory();
+    cudaFree(tripletsInGPU);
 }
 
 void SDL::initModules()
