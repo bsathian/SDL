@@ -5,9 +5,9 @@ const unsigned int N_MAX_HITS_PER_MODULE = 100;
 const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
-const unsigned int N_MAX_TRACKLETS_PER_MODULE = 5000;//temporary
+const unsigned int N_MAX_TRACKLETS_PER_MODULE = 8000;//temporary
 const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
-const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 1000;
+const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 5000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -346,6 +346,7 @@ void SDL::Event::addTrackletsToEvent()
         {
             modulesInGPU->trackletRanges[idx * 2] = idx * N_MAX_TRACKLETS_PER_MODULE;
             modulesInGPU->trackletRanges[idx * 2 + 1] = idx * N_MAX_TRACKLETS_PER_MODULE + trackletsInGPU->nTracklets[i] - 1;
+	     //std::cout<<"detId = "<<modulesInGPU->detIds[idx]<<" tracklet multiplicity = "<<trackletsInGPU->nTracklets[i]<<std::endl;
  
             if(modulesInGPU->subdets[idx] == Barrel)
             {
@@ -402,6 +403,7 @@ void SDL::Event::addTrackCandidatesToEvent()
         }
         else
         {
+            //std::cout<<"detId = "<<modulesInGPU->detIds[idx]<<" multiplicity = "<<trackCandidatesInGPU->nTrackCandidates[i]<<std::endl;
             modulesInGPU->trackCandidateRanges[idx * 2] = idx * N_MAX_TRACK_CANDIDATES_PER_MODULE;
             modulesInGPU->trackCandidateRanges[idx * 2 + 1] = idx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidatesInGPU->nTrackCandidates[i] - 1;
  
@@ -854,8 +856,10 @@ __global__ void createTrackCandidatesInGPU(struct SDL::modules& modulesInGPU, st
     //inner tracklet/triplet inner segment inner MD lower module
     int innerInnerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     if(innerInnerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+
     unsigned int nTracklets = trackletsInGPU.nTracklets[innerInnerInnerLowerModuleArrayIndex];
     unsigned int nTriplets = tripletsInGPU.nTriplets[innerInnerInnerLowerModuleArrayIndex];
+
     unsigned int temp = max(nTracklets,nTriplets);
     unsigned int MAX_OBJECTS = max(N_MAX_TRACKLETS_PER_MODULE, N_MAX_TRIPLETS_PER_MODULE);
 
@@ -864,6 +868,7 @@ __global__ void createTrackCandidatesInGPU(struct SDL::modules& modulesInGPU, st
     //triplets and tracklets are stored directly using lower module array index
     dim3 nThreads(16,16,1);
     dim3 nBlocks(temp % nThreads.x == 0 ? temp / nThreads.x : temp / nThreads.x + 1, MAX_OBJECTS % nThreads.y == 0 ? MAX_OBJECTS / nThreads.y : MAX_OBJECTS / nThreads.y + 1, 1);
+
     createTrackCandidatesFromInnerInnerInnerLowerModule<<<nBlocks, nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, trackletsInGPU, tripletsInGPU, trackCandidatesInGPU,innerInnerInnerLowerModuleArrayIndex,nTracklets,nTriplets);
 }
 
@@ -880,29 +885,31 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
     if(innerObjectArrayIndex < nInnerTracklets)
     {
         innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
+        //printf("lower module index = %d, inner object index = %d, reverse lookup index = %d\n",innerInnerInnerLowerModuleArrayIndex,innerObjectArrayIndex, trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]); 
         unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];/*same as innerOuterInnerLowerModuleIndex*/
+	
         if(outerObjectArrayIndex < trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex])
         {
-            outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRACKLETS_PER_MODULE + outerObjectArrayIndex;
+	   // printf("reverse lookup result = %d, tracklet multiplicity = %d\n",outerInnerInnerLowerModuleIndex,trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex]);
 
+            outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRACKLETS_PER_MODULE + outerObjectArrayIndex;
+            
             success = runTrackCandidateDefaultAlgoTwoTracklets(trackletsInGPU, tripletsInGPU, innerObjectIndex, outerObjectIndex,trackCandidateType);
 
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
-                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+                unsigned int trackCandidateIdx = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
 
         }
     }
-    
     //step 2 tracklet-triplet
     if(innerObjectArrayIndex < nInnerTracklets)
     {
         innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
-        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];/*same as innerOuterInnerLowerModuleIndex*/
-
+        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];//same as innerOuterInnerLowerModuleIndex
         if(outerObjectArrayIndex < tripletsInGPU.nTriplets[outerInnerInnerLowerModuleIndex])
         {
             outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRIPLETS_PER_MODULE + outerObjectArrayIndex;
@@ -910,7 +917,8 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
-                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+                unsigned int trackCandidateIdx = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
 
@@ -920,8 +928,8 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
     //step 3 triplet-tracklet
     if(innerObjectArrayIndex < nInnerTriplets)
     {
-        innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
-        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[3 * innerObjectIndex + 1]];/*same as innerOuterInnerLowerModuleIndex*/
+        innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRIPLETS_PER_MODULE + innerObjectArrayIndex;
+        unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[tripletsInGPU.lowerModuleIndices[3 * innerObjectIndex + 1]];//same as innerOuterInnerLowerModuleIndex
 
         if(outerObjectArrayIndex < trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex])
         {
@@ -930,14 +938,14 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
-                unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
+unsigned int trackCandidateIdx = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
 
  
         }
 
-    }
+   } 
 }
 
 
