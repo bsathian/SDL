@@ -5,11 +5,17 @@ void SDL::createTrackCandidatesInUnifiedMemory(struct trackCandidates& trackCand
     cudaMallocManaged(&trackCandidatesInGPU.trackCandidateType, maxTrackCandidates * nLowerModules * sizeof(short));
     cudaMallocManaged(&trackCandidatesInGPU.objectIndices, 2 * maxTrackCandidates * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&trackCandidatesInGPU.nTrackCandidates, nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackCandidatesInGPU.nTrackCandidatesT4T4, nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackCandidatesInGPU.nTrackCandidatesT4T3, nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackCandidatesInGPU.nTrackCandidatesT3T4, nLowerModules * sizeof(unsigned int));
 
 #pragma omp parallel for
     for(size_t i = 0; i<nLowerModules;i++)
     {
         trackCandidatesInGPU.nTrackCandidates[i] = 0;
+        trackCandidatesInGPU.nTrackCandidatesT4T4[i] = 0;
+        trackCandidatesInGPU.nTrackCandidatesT4T3[i] = 0;
+        trackCandidatesInGPU.nTrackCandidatesT3T4[i] = 0;
     }
 }
 

@@ -883,6 +883,7 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                atomicAdd(&trackCandidatesInGPU.nTrackCandidatesT4T4[innerInnerInnerLowerModuleArrayIndex],1);
                 unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
@@ -903,6 +904,7 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                atomicAdd(&trackCandidatesInGPU.nTrackCandidatesT4T3[innerInnerInnerLowerModuleArrayIndex],1);
                 unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
@@ -923,6 +925,7 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
             if(success)
             {
                 unsigned int trackCandidateModuleIdx = atomicAdd(&trackCandidatesInGPU.nTrackCandidates[innerInnerInnerLowerModuleArrayIndex],1);
+                atomicAdd(&trackCandidatesInGPU.nTrackCandidatesT3T4[innerInnerInnerLowerModuleArrayIndex],1);
                 unsigned int trackCandidateIdx = trackCandidateModuleIdx * N_MAX_TRACK_CANDIDATES_PER_MODULE + trackCandidateModuleIdx;
                 addTrackCandidateToMemory(trackCandidatesInGPU, trackCandidateType, innerObjectIndex, outerObjectIndex, trackCandidateIdx);
             }
