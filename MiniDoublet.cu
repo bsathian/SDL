@@ -21,14 +21,15 @@ CUDA_CONST_VAR float SDL::deltaZLum = 15.0;
 CUDA_CONST_VAR float SDL::pixelPSZpitch = 0.15;
 CUDA_CONST_VAR float SDL::strip2SZpitch = 5.0;
 
-void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules)
+void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int maxMDsPerModule, unsigned int nModules, unsigned int maxPixelMDs)
 {
-    cudaMallocManaged(&mdsInGPU.hitIndices, maxMDsPerModule * nModules * 2 * sizeof(unsigned int));
-    cudaMallocManaged(&mdsInGPU.moduleIndices, maxMDsPerModule * nModules * sizeof(unsigned int));
-    cudaMallocManaged(&mdsInGPU.pixelModuleFlag, maxMDsPerModule * nModules * sizeof(short));
-    cudaMallocManaged(&mdsInGPU.dphichanges, maxMDsPerModule * nModules * sizeof(float));
+    unsigned int nMemoryLocations = maxMDsPerModule * (nModules - 1) + maxPixelMDs;
+    cudaMallocManaged(&mdsInGPU.hitIndices, nMemoryLocations * 2 * sizeof(unsigned int));
+    cudaMallocManaged(&mdsInGPU.moduleIndices, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&mdsInGPU.pixelModuleFlag, nMemoryLocations * sizeof(short));
+    cudaMallocManaged(&mdsInGPU.dphichanges, nMemoryLocations * sizeof(float));
 
-    cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(unsigned int));
+    cudaMallocManaged(&mdsInGPU.nMDs, nModules * sizeof(unsigned int)); //will also include the number of pixel MDs in the slot corresponding to the pixel module
 
 #pragma omp parallel for default(shared)
     for(size_t i = 0; i< nModules; i++)
@@ -36,17 +37,18 @@ void SDL::createMDsInUnifiedMemory(struct miniDoublets& mdsInGPU, unsigned int m
         mdsInGPU.nMDs[i] = 0;
     }
 
-    cudaMallocManaged(&mdsInGPU.dzs, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.dphis, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedXs, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedYs, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.shiftedZs, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDzs, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDphis, maxMDsPerModule * nModules * sizeof(float));
-    cudaMallocManaged(&mdsInGPU.noShiftedDphiChanges, maxMDsPerModule * nModules * sizeof(float));
+    //FIXME:Next level of optimization for memory : Might want to drop these dudes for the pixel MDs
+    cudaMallocManaged(&mdsInGPU.dzs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.dphis, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedXs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedYs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.shiftedZs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDzs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDphis, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&mdsInGPU.noShiftedDphiChanges, nMemoryLocations * sizeof(float));
 }
 
-__device__ void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
+__host__ __device__ void SDL::addMDToMemory(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int lowerHitIdx, unsigned int upperHitIdx, unsigned int lowerModuleIdx, float dz, float dPhi, float dPhiChange, float shiftedX, float shiftedY, float shiftedZ, float noShiftedDz, float noShiftedDphi, float noShiftedDPhiChange, unsigned int idx)
 {
     //the index into which this MD needs to be written will be computed in the kernel
     //nMDs variable will be incremented in the kernel, no need to worry about that here

@@ -1,13 +1,16 @@
 # include "Event.cuh"
 
+unsigned int N_MAX_HITS_PER_MODULE = 100;
 
-const unsigned int N_MAX_HITS_PER_MODULE = 100;
 const unsigned int N_MAX_MD_PER_MODULES = 100;
 const unsigned int N_MAX_SEGMENTS_PER_MODULE = 600; //WHY!
 const unsigned int MAX_CONNECTED_MODULES = 40;
 const unsigned int N_MAX_TRACKLETS_PER_MODULE = 8000;//temporary
 const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
 const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 5000;
+const unsigned int N_MAX_PIXEL_MD_PER_MODULES = 500;
+const unsigned int N_MAX_PIXEL_SEGMENTS_PER_MODULE = 500;
+
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -101,6 +104,25 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
 
 }
 
+void SDL::Event::addPixelSegmentToEvent(std::vector<unsigned int> hitIndices, float dPhiChange, float ptIn, float ptErr, float px, float py, float pz, float etaErr)
+{
+    assert(hitIndices.size() == 4);
+    unsigned int pixelModuleIndex = (*detIdToIndex)[1];
+
+    //step 1 : Add pixel MDs
+    unsigned int innerMDIndex = pixelModuleIndex * N_MAX_MD_PER_MODULES + mdsInGPU->nMDs[pixelModuleIndex];
+    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[0], hitIndices[1], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,innerMDIndex);
+    mdsInGPU->nMDs[pixelModuleIndex]++;
+    unsigned int outerMDIndex = pixelModuleIndex * N_MAX_MD_PER_MODULES + mdsInGPU->nMDs[pixelModuleIndex];
+    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[2], hitIndices[3], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,outerMDIndex);
+    mdsInGPU->nMDs[pixelModuleIndex]++;
+
+    //step 2 : Add pixel segment
+    unsigned int pixelSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[pixelModuleIndex];
+    addPixelSegmentToMemory(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, innerMDIndex, outerMDIndex, pixelModuleIndex, hitIndices[0], hitIndices[2], ptIn, ptErr, px, py, pz, etaErr, pixelSegmentIndex);
+    segmentsInGPU->nSegments[pixelModuleIndex]++;
+}
+
 void SDL::Event::addMiniDoubletsToEvent()
 {
     unsigned int idx;
@@ -167,7 +189,7 @@ void SDL::Event::createMiniDoublets()
     if(mdsInGPU == nullptr)
     {
         cudaMallocManaged(&mdsInGPU, sizeof(SDL::miniDoublets));
-    	createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules);
+    	createMDsInUnifiedMemory(*mdsInGPU, N_MAX_MD_PER_MODULES, nModules, N_MAX_PIXEL_MD_PER_MODULES);
     }
     cudaDeviceSynchronize();
     auto memStop = std::chrono::high_resolution_clock::now();
@@ -207,7 +229,7 @@ void SDL::Event::createSegmentsWithModuleMap()
     if(segmentsInGPU == nullptr)
     {
         cudaMallocManaged(&segmentsInGPU, sizeof(SDL::segments));
-        createSegmentsInUnifiedMemory(*segmentsInGPU, N_MAX_SEGMENTS_PER_MODULE, nModules);
+        createSegmentsInUnifiedMemory(*segmentsInGPU, N_MAX_SEGMENTS_PER_MODULE, nModules, N_MAX_PIXEL_SEGMENTS_PER_MODULE);
     }
     unsigned int nLowerModules = *modulesInGPU->nLowerModules;
 
@@ -635,7 +657,7 @@ __global__ void createTrackletsFromInnerInnerLowerModule(struct SDL::modules& mo
     
    float zOut,rtOut,deltaPhiPos,deltaPhi,betaIn,betaOut;
 
-   bool success = runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, innerOuterLowerModuleIndex, outerInnerLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut); //might want to send the other two module indices and the anchor hits also to save memory accesses
+   bool success = runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, innerOuterLowerModuleIndex, outerInnerLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, N_MAX_SEGMENTS_PER_MODULE); //might want to send the other two module indices and the anchor hits also to save memory accesses
    if(success)
    {
         unsigned int trackletModuleIndex = atomicAdd(&trackletsInGPU.nTracklets[innerInnerLowerModuleArrayIndex],1);

@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <cassert>
 #include <stdlib.h>
 #include <stdexcept>
 #include <iostream>
@@ -18,6 +19,7 @@
 #include "Tracklet.cuh"
 #include "Triplet.cuh"
 #include "TrackCandidate.cuh"
+#include "Constants.h"
 
 #include "cuda_profiler_api.h"
 
@@ -53,6 +55,8 @@ namespace SDL
         ~Event();
 
         void addHitToEvent(float x, float y, float z, unsigned int detId); //call the appropriate hit function, then increment the counter here
+        void addPixelSegmentToEvent(std::vector<unsigned int> hitIndices, float dPhiChange, float ptIn, float ptErr, float px, float py, float pz, float etaErr);
+
         /*functions that map the objects to the appropriate modules*/
         void addMiniDoubletsToEvent();
         void addSegmentsToEvent();
@@ -69,7 +73,6 @@ namespace SDL
         void createTrackletsWithModuleMap();
         void createTrackletsWithAGapWithModuleMap();
         void createTrackCandidates();
-
         unsigned int getNumberOfHits();
         unsigned int getNumberOfHitsByLayer(unsigned int layer);
         unsigned int getNumberOfHitsByLayerBarrel(unsigned int layer);

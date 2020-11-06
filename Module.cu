@@ -61,6 +61,8 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
 {
     detIdToIndex = new std::map<unsigned int, unsigned int>;
 
+   
+
     /*modules structure object will be created in Event.cu*/
     /* Load the whole text file into the unordered_map first*/
 
@@ -88,9 +90,12 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
             counter++;
         }
     }
+    //MANUAL INSERTION OF PIXEL MODULE!
+    (*detIdToIndex)[1] = counter;
+    counter++;
     nModules = counter;
-    std::cout<<"Number of modules = "<<nModules<<std::endl;
-
+    std::cout<<"Number of modules (including fake pixel module)= "<<nModules<<std::endl;
+    
     createModulesInUnifiedMemory(modulesInGPU,nModules);
 
     for(auto it = (*detIdToIndex).begin(); it != (*detIdToIndex).end(); it++)
@@ -98,28 +103,47 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
         unsigned int detId = it->first;
         unsigned int index = it->second; 
         modulesInGPU.detIds[index] = detId;
-        unsigned short layer,ring,rod,module,subdet,side;
-        setDerivedQuantities(detId,layer,ring,rod,module,subdet,side); 
-        modulesInGPU.layers[index] = layer;
-        modulesInGPU.rings[index] = ring;
-        modulesInGPU.rods[index] = rod;
-        modulesInGPU.modules[index] = module;
-        modulesInGPU.subdets[index] = subdet;
-        modulesInGPU.sides[index] = side;
+        if(detId == 1)
+        {
+            modulesInGPU.layers[index] = 0;
+            modulesInGPU.rings[index] = 0;
+            modulesInGPU.rods[index] = 0;
+            modulesInGPU.modules[index] = 0;
+            modulesInGPU.subdets[index] = SDL::InnerPixel;
+            modulesInGPU.sides[index] = 0;
+            modulesInGPU.isInverted[index] = 0;
+            modulesInGPU.isLower[index] = true;
+            modulesInGPU.moduleType[index] = PixelModule;
+            modulesInGPU.moduleLayerType[index] = SDL::InnerPixelLayer;
+            modulesInGPU.slopes[index] = 0;
+            modulesInGPU.drdzs[index] = 0;
+        }
+        else
+        {
+            unsigned short layer,ring,rod,module,subdet,side;
+            setDerivedQuantities(detId,layer,ring,rod,module,subdet,side); 
+            modulesInGPU.layers[index] = layer;
+            modulesInGPU.rings[index] = ring;
+            modulesInGPU.rods[index] = rod;
+            modulesInGPU.modules[index] = module;
+            modulesInGPU.subdets[index] = subdet;
+            modulesInGPU.sides[index] = side;
 
-        modulesInGPU.isInverted[index] = modulesInGPU.parseIsInverted(index);
-        modulesInGPU.isLower[index] = modulesInGPU.parseIsLower(index);
+            modulesInGPU.isInverted[index] = modulesInGPU.parseIsInverted(index);
+            modulesInGPU.isLower[index] = modulesInGPU.parseIsLower(index);
 
-        modulesInGPU.moduleType[index] = modulesInGPU.parseModuleType(index);
-        modulesInGPU.moduleLayerType[index] = modulesInGPU.parseModuleLayerType(index);
+            modulesInGPU.moduleType[index] = modulesInGPU.parseModuleType(index);
+            modulesInGPU.moduleLayerType[index] = modulesInGPU.parseModuleLayerType(index);
 
-        modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
-        modulesInGPU.drdzs[index] = (subdet == Barrel) ? tiltedGeometry.getDrDz(detId) : 0;
+            modulesInGPU.slopes[index] = (subdet == Endcap) ? endcapGeometry.getSlopeLower(detId) : tiltedGeometry.getSlope(detId);
+            modulesInGPU.drdzs[index] = (subdet == Barrel) ? tiltedGeometry.getDrDz(detId) : 0;
+        }
+
         if(modulesInGPU.isLower[index]) lowerModuleCounter++;
     }
 
     *modulesInGPU.nLowerModules = lowerModuleCounter;
-    std::cout<<"number of lower modules = "<<*modulesInGPU.nLowerModules<<std::endl;
+    std::cout<<"number of lower modules (including pixel module)= "<<*modulesInGPU.nLowerModules<<std::endl;
     createLowerModuleIndexMap(modulesInGPU,lowerModuleCounter,nModules);
     fillConnectedModuleArray(modulesInGPU,nModules);
     resetObjectRanges(modulesInGPU,nModules);

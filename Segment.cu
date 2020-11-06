@@ -1,33 +1,44 @@
 # include "Segment.cuh"
 
-void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned int maxSegments, unsigned int nModules)
+void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned int maxSegments, unsigned int nModules, unsigned int maxPixelSegments)
 {
-    cudaMallocManaged(&segmentsInGPU.mdIndices, maxSegments * nModules * 2 * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.innerLowerModuleIndices, maxSegments * nModules * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.outerLowerModuleIndices, maxSegments * nModules * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.innerMiniDoubletAnchorHitIndices, maxSegments * nModules *sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.outerMiniDoubletAnchorHitIndices, maxSegments * nModules * sizeof(unsigned int));
-    cudaMallocManaged(&segmentsInGPU.nSegments, nModules * sizeof(unsigned int));
+    unsigned int nMemoryLocations = maxSegments * (nModules - 1) + maxPixelSegments;
+    cudaMallocManaged(&segmentsInGPU.mdIndices, nMemoryLocations * 2 * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.innerLowerModuleIndices, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.outerLowerModuleIndices,  nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.innerMiniDoubletAnchorHitIndices, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.outerMiniDoubletAnchorHitIndices, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&segmentsInGPU.nSegments, nModules * sizeof(unsigned int)); //will also include the number of pixel segments in the slot corresponding to the pixel module
 #pragma omp parallel for default(shared)
     for(size_t i = 0; i < nModules; i++)
     {
         segmentsInGPU.nSegments[i] = 0;
     }
 
-    cudaMallocManaged(&segmentsInGPU.dPhis, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiMins, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiMaxs, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChanges, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChangeMins, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dPhiChangeMaxs, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhis, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiMins, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiMaxs, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChanges, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChangeMins, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dPhiChangeMaxs, nMemoryLocations * sizeof(float));
 
-    cudaMallocManaged(&segmentsInGPU.zIns, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.zOuts, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.rtIns, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.rtOuts, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDSegments, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegments, maxSegments * nModules * sizeof(float));
-    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDOuterMDs, maxSegments * nModules * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.zIns, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.zOuts, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtIns, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtOuts, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDSegments, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegments, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDOuterMDs, nMemoryLocations * sizeof(float));
+
+    //pixel segments alone
+
+    cudaMallocManaged(&segmentsInGPU.ptIn, maxPixelSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.ptErr, maxPixelSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.px, maxPixelSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.py, maxPixelSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.pz, maxPixelSegments * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.etaErr, maxPixelSegments * sizeof(float));
+
 }
 
 SDL::segments::segments()
@@ -108,6 +119,23 @@ __device__ void SDL::addSegmentToMemory(struct segments& segmentsInGPU, unsigned
     segmentsInGPU.dAlphaInnerMDSegments[idx] = dAlphaInnerMDSegment;
     segmentsInGPU.dAlphaOuterMDSegments[idx] = dAlphaOuterMDSegment;
     segmentsInGPU.dAlphaInnerMDOuterMDs[idx] = dAlphaInnerMDOuterMD;
+}
+
+void SDL::addPixelSegmentToMemory(struct segments& segmentsInGPU, struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int innerMDIndex, unsigned int outerMDIndex, unsigned int pixelModuleIndex, unsigned int innerAnchorHitIndex, unsigned int outerAnchorHitIndex, float ptIn, float ptErr, float px, float py, float pz, float etaErr, unsigned int idx)
+{
+    segmentsInGPU.mdIndices[idx * 2] = innerMDIndex;
+    segmentsInGPU.mdIndices[idx * 2 + 1] = outerMDIndex;
+    segmentsInGPU.innerLowerModuleIndices[idx] = pixelModuleIndex;
+    segmentsInGPU.outerLowerModuleIndices[idx] = pixelModuleIndex;
+    segmentsInGPU.innerMiniDoubletAnchorHitIndices[idx] = innerAnchorHitIndex;
+    segmentsInGPU.outerMiniDoubletAnchorHitIndices[idx] = outerAnchorHitIndex;
+    unsigned int pixelSegmentArrayIndex = segmentsInGPU.nSegments[pixelModuleIndex]; //since the increment happens only after adding the segment to memory
+    segmentsInGPU.ptIn[pixelSegmentArrayIndex] = ptIn;
+    segmentsInGPU.ptErr[pixelSegmentArrayIndex] = ptErr;
+    segmentsInGPU.px[pixelSegmentArrayIndex] = px;
+    segmentsInGPU.py[pixelSegmentArrayIndex] = py;
+    segmentsInGPU.pz[pixelSegmentArrayIndex] = pz;
+    segmentsInGPU.etaErr[pixelSegmentArrayIndex] = etaErr;
 }
 
 __device__ void SDL::dAlphaThreshold(float* dAlphaThresholdValues, struct hits& hitsInGPU, struct modules& modulesInGPU, struct miniDoublets& mdsInGPU, unsigned int& innerMiniDoubletAnchorHitIndex, unsigned int& outerMiniDoubletAnchorHitIndex, unsigned int& innerLowerModuleIndex, unsigned int& outerLowerModuleIndex, unsigned int& innerMDIndex, unsigned int& outerMDIndex)
