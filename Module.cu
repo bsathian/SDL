@@ -36,7 +36,7 @@ void SDL::createModulesInUnifiedMemory(struct modules& modulesInGPU,unsigned int
 
 void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int nLowerModules, unsigned int nModules)
 {
-    cudaMallocManaged(&modulesInGPU.lowerModuleIndices,nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&modulesInGPU.lowerModuleIndices,(nLowerModules + 1) * sizeof(unsigned int));
     cudaMallocManaged(&modulesInGPU.reverseLookupLowerModuleIndices,nModules * sizeof(int));
 
     unsigned int lowerModuleCounter = 0;
@@ -55,6 +55,10 @@ void SDL::createLowerModuleIndexMap(struct modules& modulesInGPU, unsigned int n
             modulesInGPU.reverseLookupLowerModuleIndices[index] = -1;
         }
     }
+
+    //hacky stuff "beyond the index" for the pixel module. nLowerModules will *NOT* cover the pixel module!
+    modulesInGPU.lowerModuleIndices[nLowerModules] = (*detIdToIndex)[1];
+    modulesInGPU.reverseLookupLowerModuleIndices[(*detIdToIndex)[1]] = nLowerModules;
 }
 
 void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModules)
@@ -112,7 +116,7 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
             modulesInGPU.subdets[index] = SDL::InnerPixel;
             modulesInGPU.sides[index] = 0;
             modulesInGPU.isInverted[index] = 0;
-            modulesInGPU.isLower[index] = true;
+            modulesInGPU.isLower[index] = false;
             modulesInGPU.moduleType[index] = PixelModule;
             modulesInGPU.moduleLayerType[index] = SDL::InnerPixelLayer;
             modulesInGPU.slopes[index] = 0;
@@ -143,7 +147,7 @@ void SDL::loadModulesFromFile(struct modules& modulesInGPU, unsigned int& nModul
     }
 
     *modulesInGPU.nLowerModules = lowerModuleCounter;
-    std::cout<<"number of lower modules (including pixel module)= "<<*modulesInGPU.nLowerModules<<std::endl;
+    std::cout<<"number of lower modules (wihout fake pixel module)= "<<*modulesInGPU.nLowerModules<<std::endl;
     createLowerModuleIndexMap(modulesInGPU,lowerModuleCounter,nModules);
     fillConnectedModuleArray(modulesInGPU,nModules);
     resetObjectRanges(modulesInGPU,nModules);

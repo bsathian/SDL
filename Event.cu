@@ -302,6 +302,30 @@ void SDL::Event::createTrackletsWithModuleMap()
 }
 
 
+void SDL::Event::createPixelTracklets()
+{
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+    if(trackletsInGPU == nullptr)
+    {
+        cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+    }
+    unsigned int nThreads = 1;
+    unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
+
+    createPixelTrackletsInGPU<<<nBlocks,nThreads>>>(*modulesInGPU, *hitsInGPU, *mdsInGPU, *segmentsInGPU, *trackletsInGPU);
+
+    cudaError_t cudaerr = cudaDeviceSynchronize();
+    if(cudaerr != cudaSuccess)
+    {
+        std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
+
+    }
+    std::cout<<"Number of pixel tracklets = "<<trackletsInGPU->nTracklets[nLowerModules]<<std::endl;
+    //addPixelTrackletsToEvent();
+
+}
+
 void SDL::Event::createTrackletsWithAGapWithModuleMap()
 {
     //use the same trackletsInGPU as before if it exists
@@ -351,6 +375,11 @@ void SDL::Event::createTrackCandidates()
     addTrackCandidatesToEvent();
 
 }
+
+/*void SDL::addPixelTrackletsToEvent()
+{
+
+}*/
 
 void SDL::Event::addTrackletsToEvent()
 {
@@ -730,6 +759,51 @@ __global__ void createTrackletsWithAGapFromInnerInnerLowerModule(struct SDL::mod
 
         addTrackletToMemory(trackletsInGPU,innerSegmentIndex,outerSegmentIndex,innerInnerLowerModuleIndex,innerOuterLowerModuleIndex,outerInnerLowerModuleIndex,outerOuterLowerModuleIndex,zOut,rtOut,deltaPhiPos,deltaPhi,betaIn,betaOut,trackletIndex);
    }
+}
+
+
+//one thread for each outer inner lower module
+__global__ void createPixelTrackletsInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU)
+{
+    int outerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    if(outerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+
+    unsigned int outerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[outerInnerLowerModuleArrayIndex];
+    unsigned int pixelModuleIndex = *modulesInGPU.nModules - 1; //last dude
+    unsigned int pixelLowerModuleArrayIndex = modulesInGPU.reverseLookupLowerModuleIndices[pixelModuleIndex]; //should be the same as nLowerModules
+
+    unsigned int nInnerSegments = segmentsInGPU.nSegments[pixelModuleIndex];
+    unsigned int nOuterSegments = segmentsInGPU.nSegments[outerInnerLowerModuleIndex];
+    if(nOuterSegments == 0) return;
+    if(nInnerSegments == 0) return;
+
+    dim3 nThreads(16,16,1);
+    dim3 nBlocks(nInnerSegments % nThreads.x == 0 ? nInnerSegments / nThreads.x : nInnerSegments / nThreads.x + 1, nOuterSegments % nThreads.y == 0 ? nOuterSegments / nThreads.y : nOuterSegments / nThreads.y + 1, 1);
+
+    createPixelTrackletsFromOuterInnerLowerModule<<<nBlocks,nThreads>>>(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, trackletsInGPU, outerInnerLowerModuleIndex, nInnerSegments, nOuterSegments, pixelModuleIndex, pixelLowerModuleArrayIndex);
+
+}
+
+
+__global__ void createPixelTrackletsFromOuterInnerLowerModule(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU, unsigned int outerInnerLowerModuleIndex, unsigned int nInnerSegments, unsigned int nOuterSegments, unsigned int pixelModuleIndex, unsigned int pixelLowerModuleArrayIndex)
+{
+    int innerSegmentArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    int outerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
+
+    unsigned int innerSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
+    unsigned int outerSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
+    unsigned int outerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[outerSegmentIndex];
+
+    float zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut;
+    bool success = runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, pixelModuleIndex, pixelModuleIndex, outerInnerLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, N_MAX_SEGMENTS_PER_MODULE);
+
+    if(success)
+    {
+        unsigned int trackletModuleIndex = atomicAdd(&trackletsInGPU.nTracklets[pixelLowerModuleArrayIndex], 1);
+        unsigned int trackletIndex = pixelLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + trackletModuleIndex;
+
+        addTrackletToMemory(trackletsInGPU, innerSegmentIndex, outerSegmentIndex, pixelModuleIndex, pixelModuleIndex, outerInnerLowerModuleIndex, outerOuterLowerModuleIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, trackletIndex);
+    }
 }
 
 __global__ void createTrackletsWithAGapInGPU(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, struct SDL::tracklets& trackletsInGPU)

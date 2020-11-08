@@ -8,6 +8,7 @@ CUDA_CONST_VAR float SDL::pt_betaMax = 7.0;
 
 void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsigned int maxTracklets, unsigned int nLowerModules)
 {
+    nLowerModules += 1; //accommodating the pixel lower module!
     cudaMallocManaged(&trackletsInGPU.segmentIndices, 2 * maxTracklets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&trackletsInGPU.lowerModuleIndices, 4 * maxTracklets * nLowerModules * sizeof(unsigned int));
 
