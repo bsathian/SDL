@@ -8,9 +8,9 @@ const unsigned int MAX_CONNECTED_MODULES = 40;
 const unsigned int N_MAX_TRACKLETS_PER_MODULE = 8000;//temporary
 const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
 const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 5000;
-const unsigned int N_MAX_PIXEL_MD_PER_MODULES = 500;
-const unsigned int N_MAX_PIXEL_SEGMENTS_PER_MODULE = 500;
-
+const unsigned int N_MAX_PIXEL_MD_PER_MODULES = 100000;
+const unsigned int N_MAX_PIXEL_SEGMENTS_PER_MODULE = 50000;
+//const unsigned int N_MAX_PIXEL_TRACKLETS_PER_MODULE = 100000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -97,7 +97,7 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
     {
         n_hits_by_layer_barrel_[moduleLayer-1]++;
     }
-    else
+    else if(subdet == Endcap)
     {
         n_hits_by_layer_endcap_[moduleLayer-1]++;
     } 
@@ -119,7 +119,7 @@ void SDL::Event::addPixelSegmentToEvent(std::vector<unsigned int> hitIndices, fl
 
     //step 2 : Add pixel segment
     unsigned int pixelSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + segmentsInGPU->nSegments[pixelModuleIndex];
-    addPixelSegmentToMemory(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, innerMDIndex, outerMDIndex, pixelModuleIndex, hitIndices[0], hitIndices[2], ptIn, ptErr, px, py, pz, etaErr, pixelSegmentIndex);
+    addPixelSegmentToMemory(*segmentsInGPU, *mdsInGPU, *hitsInGPU, *modulesInGPU, innerMDIndex, outerMDIndex, pixelModuleIndex, hitIndices[0], hitIndices[2], dPhiChange, ptIn, ptErr, px, py, pz, etaErr, pixelSegmentIndex);
     segmentsInGPU->nSegments[pixelModuleIndex]++;
 }
 
@@ -771,7 +771,6 @@ __global__ void createPixelTrackletsInGPU(struct SDL::modules& modulesInGPU, str
     unsigned int outerInnerLowerModuleIndex = modulesInGPU.lowerModuleIndices[outerInnerLowerModuleArrayIndex];
     unsigned int pixelModuleIndex = *modulesInGPU.nModules - 1; //last dude
     unsigned int pixelLowerModuleArrayIndex = modulesInGPU.reverseLookupLowerModuleIndices[pixelModuleIndex]; //should be the same as nLowerModules
-
     unsigned int nInnerSegments = segmentsInGPU.nSegments[pixelModuleIndex];
     unsigned int nOuterSegments = segmentsInGPU.nSegments[outerInnerLowerModuleIndex];
     if(nOuterSegments == 0) return;
@@ -789,14 +788,14 @@ __global__ void createPixelTrackletsFromOuterInnerLowerModule(struct SDL::module
 {
     int innerSegmentArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
     int outerSegmentArrayIndex = blockIdx.y * blockDim.y + threadIdx.y;
-
+    if(innerSegmentArrayIndex >= nInnerSegments) return;
+    if(outerSegmentArrayIndex >= nOuterSegments) return;
     unsigned int innerSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + innerSegmentArrayIndex;
-    unsigned int outerSegmentIndex = pixelModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
+    unsigned int outerSegmentIndex = outerInnerLowerModuleIndex * N_MAX_SEGMENTS_PER_MODULE + outerSegmentArrayIndex;
     unsigned int outerOuterLowerModuleIndex = segmentsInGPU.outerLowerModuleIndices[outerSegmentIndex];
 
     float zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut;
     bool success = runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, pixelModuleIndex, pixelModuleIndex, outerInnerLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, N_MAX_SEGMENTS_PER_MODULE);
-
     if(success)
     {
         unsigned int trackletModuleIndex = atomicAdd(&trackletsInGPU.nTracklets[pixelLowerModuleArrayIndex], 1);
@@ -981,12 +980,10 @@ __global__ void createTrackCandidatesFromInnerInnerInnerLowerModule(struct SDL::
     if(innerObjectArrayIndex < nInnerTracklets)
     {
         innerObjectIndex = innerInnerInnerLowerModuleArrayIndex * N_MAX_TRACKLETS_PER_MODULE + innerObjectArrayIndex;
-        //printf("lower module index = %d, inner object index = %d, reverse lookup index = %d\n",innerInnerInnerLowerModuleArrayIndex,innerObjectArrayIndex, trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]); 
         unsigned int outerInnerInnerLowerModuleIndex = modulesInGPU.reverseLookupLowerModuleIndices[trackletsInGPU.lowerModuleIndices[4 * innerObjectIndex + 2]];/*same as innerOuterInnerLowerModuleIndex*/
 	
         if(outerObjectArrayIndex < trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex])
         {
-	   // printf("reverse lookup result = %d, tracklet multiplicity = %d\n",outerInnerInnerLowerModuleIndex,trackletsInGPU.nTracklets[outerInnerInnerLowerModuleIndex]);
 
             outerObjectIndex = outerInnerInnerLowerModuleIndex * N_MAX_TRACKLETS_PER_MODULE + outerObjectArrayIndex;
             
