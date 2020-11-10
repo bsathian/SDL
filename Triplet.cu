@@ -5,6 +5,7 @@
 
 void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned int maxTriplets, unsigned int nLowerModules)
 {
+    nLowerModules += 1;
     cudaMallocManaged(&tripletsInGPU.segmentIndices, 2 * maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.lowerModuleIndices, 3 * maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.nTriplets, nLowerModules * sizeof(unsigned int));
@@ -204,7 +205,6 @@ __device__ bool SDL::passPointingConstraintBBB(struct SDL::modules& modulesInGPU
 __device__ bool SDL::passPointingConstraintBBE(struct SDL::modules& modulesInGPU, struct SDL::hits& hitsInGPU, struct SDL::miniDoublets& mdsInGPU, struct SDL::segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut)
 {
     bool pass = true;
-    unsigned int outerInnerLowerModuleIndex = middleLowerModuleIndex;
 
     bool isPS_InLo = (modulesInGPU.moduleType[innerInnerLowerModuleIndex] == SDL::PS);
     bool isPS_OutUp = (modulesInGPU.moduleType[outerOuterLowerModuleIndex] == SDL::PS);
@@ -352,7 +352,6 @@ __device__ bool SDL::passPointingConstraintEEE(struct SDL::modules& modulesInGPU
         pass = false;
     }
     
-    unsigned int innerOuterLowerModuleIndex = middleLowerModuleIndex;
     bool isInSgOuterMDPS = modulesInGPU.moduleType[outerOuterLowerModuleIndex] == SDL::PS;
 
     float drOutIn = rtOut - rt_InLo;

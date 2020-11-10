@@ -2,6 +2,7 @@
 
 void SDL::createTrackCandidatesInUnifiedMemory(struct trackCandidates& trackCandidatesInGPU, unsigned int maxTrackCandidates, unsigned int nLowerModules)
 {
+    nLowerModules += 1;
     cudaMallocManaged(&trackCandidatesInGPU.trackCandidateType, maxTrackCandidates * nLowerModules * sizeof(short));
     cudaMallocManaged(&trackCandidatesInGPU.objectIndices, 2 * maxTrackCandidates * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&trackCandidatesInGPU.nTrackCandidates, nLowerModules * sizeof(unsigned int));

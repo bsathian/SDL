@@ -354,7 +354,7 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
 
 void SDL::Event::createTrackCandidates()
 {
-    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules + 1; //including the pixel module
 
     if(trackCandidatesInGPU == nullptr)
     {
@@ -950,10 +950,11 @@ __global__ void createTrackCandidatesInGPU(struct SDL::modules& modulesInGPU, st
 {
     //inner tracklet/triplet inner segment inner MD lower module
     int innerInnerInnerLowerModuleArrayIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    if(innerInnerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules) return;
+    //hack to include pixel detector
+    if(innerInnerInnerLowerModuleArrayIndex >= *modulesInGPU.nLowerModules + 1) return; 
 
     unsigned int nTracklets = trackletsInGPU.nTracklets[innerInnerInnerLowerModuleArrayIndex];
-    unsigned int nTriplets = tripletsInGPU.nTriplets[innerInnerInnerLowerModuleArrayIndex];
+    unsigned int nTriplets = tripletsInGPU.nTriplets[innerInnerInnerLowerModuleArrayIndex]; // should be zero for the pixels
 
     unsigned int temp = max(nTracklets,nTriplets);
     unsigned int MAX_OBJECTS = max(N_MAX_TRACKLETS_PER_MODULE, N_MAX_TRIPLETS_PER_MODULE);
