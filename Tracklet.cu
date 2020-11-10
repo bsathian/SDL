@@ -1108,7 +1108,6 @@ __device__ bool SDL::runTrackletDefaultAlgoPPBB(struct modules& modulesInGPU, st
         pass = false;
     }
 
-    float pt_betaIn = ptIn;
     const float pt_betaOut = drt_tl_axis * k2Rinv1GeVf / sin(betaOut);
     const float dBetaRes = 0.02f / fminf(sdOut_d, drt_InSeg);
     const float dBetaCut2 = (dBetaRes*dBetaRes * 2.0f + dBetaMuls * dBetaMuls + dBetaLum2 + dBetaRIn2 + dBetaROut2
