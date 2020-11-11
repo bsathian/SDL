@@ -76,7 +76,7 @@ void SDL::Event::resetObjectsInModule()
     resetObjectRanges(*modulesInGPU,nModules);
 }
 
-void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
+void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId, unsigned int idx)
 {
     const int HIT_MAX = 1000000;
     const int HIT_2S_MAX = 100000;
@@ -88,7 +88,7 @@ void SDL::Event::addHitToEvent(float x, float y, float z, unsigned int detId)
     }
 
     //calls the addHitToMemory function
-    addHitToMemory(*hitsInGPU, *modulesInGPU, x, y, z, detId);
+    addHitToMemory(*hitsInGPU, *modulesInGPU, x, y, z, detId, idx);
 
     unsigned int moduleLayer = modulesInGPU->layers[(*detIdToIndex)[detId]];
     unsigned int subdet = modulesInGPU->subdets[(*detIdToIndex)[detId]];
@@ -1229,6 +1229,8 @@ unsigned int SDL::Event::getNumberOfTrackCandidates()
     }
     trackCandidates += trackCandidatesInGPU->nTrackCandidates[*(modulesInGPU->nLowerModules)];
 
+    //hack - add pixel track candidate multiplicity
+    trackCandidates += trackCandidatesInGPU->nTrackCandidates[*(modulesInGPU->nLowerModules)];
     return trackCandidates;
    
 }
