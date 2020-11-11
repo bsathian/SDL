@@ -23,6 +23,10 @@ void SDL::createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits
     cudaMallocManaged(&hitsInGPU.xs, nMaxHits * sizeof(float));
     cudaMallocManaged(&hitsInGPU.ys, nMaxHits * sizeof(float));
     cudaMallocManaged(&hitsInGPU.zs, nMaxHits * sizeof(float));
+    //TODO:This dude (idxs) is not used in the GPU at all. It is only used for simhit matching to make efficiency plots
+    //We can even skip this one later
+    cudaMallocManaged(&hitsInGPU.idxs, nMaxHits * sizeof(unsigned int));
+
     cudaMallocManaged(&hitsInGPU.moduleIndices, nMaxHits * sizeof(unsigned int));
 
     cudaMallocManaged(&hitsInGPU.rts, nMaxHits * sizeof(float));
@@ -41,7 +45,7 @@ void SDL::createHitsInUnifiedMemory(struct hits& hitsInGPU,unsigned int nMaxHits
     *hitsInGPU.n2SHits = 0;
 }
 
-void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float x, float y, float z, unsigned int detId)
+void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, float x, float y, float z, unsigned int detId, unsigned int idxInNtuple)
 {
     unsigned int idx = *(hitsInGPU.nHits);
     unsigned int idxEdge2S = *(hitsInGPU.n2SHits);
@@ -49,6 +53,7 @@ void SDL::addHitToMemory(struct hits& hitsInGPU, struct modules& modulesInGPU, f
     hitsInGPU.xs[idx] = x;
     hitsInGPU.ys[idx] = y;
     hitsInGPU.zs[idx] = z;
+    hitsInGPU.idxs[idx] = idxInNtuple;
     hitsInGPU.rts[idx] = sqrt(x*x + y*y);
     hitsInGPU.phis[idx] = phi(x,y,z);
     unsigned int moduleIndex = (*detIdToIndex)[detId];
