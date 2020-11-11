@@ -1227,10 +1227,10 @@ unsigned int SDL::Event::getNumberOfTrackCandidates()
     {
         trackCandidates += it;
     }
-    trackCandidates += trackCandidatesInGPU->nTrackCandidates[*(modulesInGPU->nLowerModules)];
 
     //hack - add pixel track candidate multiplicity
     trackCandidates += trackCandidatesInGPU->nTrackCandidates[*(modulesInGPU->nLowerModules)];
+
     return trackCandidates;
    
 }
