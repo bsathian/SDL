@@ -10,7 +10,7 @@ const unsigned int N_MAX_TRIPLETS_PER_MODULE = 5000;
 const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 5000;
 const unsigned int N_MAX_PIXEL_MD_PER_MODULES = 100000;
 const unsigned int N_MAX_PIXEL_SEGMENTS_PER_MODULE = 50000;
-//const unsigned int N_MAX_PIXEL_TRACKLETS_PER_MODULE = 100000;
+const unsigned int N_MAX_PIXEL_TRACKLETS_PER_MODULE = 1000000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -282,7 +282,7 @@ void SDL::Event::createTrackletsWithModuleMap()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , N_MAX_PIXEL_TRACKLETS_PER_MODULE, nLowerModules);
     }
 
     unsigned int nThreads = 1;
@@ -308,7 +308,7 @@ void SDL::Event::createPixelTracklets()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , N_MAX_PIXEL_TRACKLETS_PER_MODULE, nLowerModules);
     }
     unsigned int nThreads = 1;
     unsigned int nBlocks = nLowerModules % nThreads == 0 ? nLowerModules/nThreads : nLowerModules/nThreads + 1;
@@ -335,7 +335,7 @@ void SDL::Event::createTrackletsWithAGapWithModuleMap()
     if(trackletsInGPU == nullptr)
     {
         cudaMallocManaged(&trackletsInGPU, sizeof(SDL::tracklets));
-        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , nLowerModules);
+        createTrackletsInUnifiedMemory(*trackletsInGPU, N_MAX_TRACKLETS_PER_MODULE , N_MAX_PIXEL_TRACKLETS_PER_MODULE, nLowerModules);
     }
 
     unsigned int nThreads = 1;

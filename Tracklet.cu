@@ -6,27 +6,28 @@
 CUDA_CONST_VAR float SDL::pt_betaMax = 7.0;
 
 
-void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsigned int maxTracklets, unsigned int nLowerModules)
+void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsigned int maxTracklets, unsigned int maxPixelTracklets, unsigned int nLowerModules)
 {
+    unsigned int nMemoryLocations = maxTracklets * nLowerModules + maxPixelTracklets;
     nLowerModules += 1; //accommodating the pixel lower module!
-    cudaMallocManaged(&trackletsInGPU.segmentIndices, 2 * maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&trackletsInGPU.lowerModuleIndices, 4 * maxTracklets * nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.segmentIndices, 2 * nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.lowerModuleIndices, 4 * nMemoryLocations * sizeof(unsigned int));
 
-    cudaMallocManaged(&trackletsInGPU.nTracklets,nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.nTracklets, nLowerModules * sizeof(unsigned int));
 #pragma omp parallel for
     for(size_t i = 0; i<nLowerModules;i++)
     {
         trackletsInGPU.nTracklets[i] = 0;
     }
 
-    cudaMallocManaged(&trackletsInGPU.zOut, maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&trackletsInGPU.rtOut, maxTracklets * nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.zOut, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.rtOut, nMemoryLocations * sizeof(unsigned int));
 
-    cudaMallocManaged(&trackletsInGPU.deltaPhiPos, maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&trackletsInGPU.deltaPhi, maxTracklets * nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.deltaPhiPos, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.deltaPhi, nMemoryLocations * sizeof(unsigned int));
 
-    cudaMallocManaged(&trackletsInGPU.betaIn, maxTracklets * nLowerModules * sizeof(unsigned int));
-    cudaMallocManaged(&trackletsInGPU.betaOut, maxTracklets * nLowerModules * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.betaIn, nMemoryLocations * sizeof(unsigned int));
+    cudaMallocManaged(&trackletsInGPU.betaOut, nMemoryLocations * sizeof(unsigned int));
 
 
 }
