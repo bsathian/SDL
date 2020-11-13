@@ -11,7 +11,7 @@ const unsigned int N_MAX_TRACK_CANDIDATES_PER_MODULE = 5000;
 const unsigned int N_MAX_PIXEL_MD_PER_MODULES = 100000;
 const unsigned int N_MAX_PIXEL_SEGMENTS_PER_MODULE = 50000;
 const unsigned int N_MAX_PIXEL_TRACKLETS_PER_MODULE = 2000000;
-const unsigned itn N_MAX_PIXEL_TRACK_CANDIDATES_PER_MODULE = 200000;
+const unsigned int N_MAX_PIXEL_TRACK_CANDIDATES_PER_MODULE = 200000;
 struct SDL::modules* SDL::modulesInGPU = nullptr;
 unsigned int SDL::nModules;
 
@@ -360,7 +360,7 @@ void SDL::Event::createTrackCandidates()
     if(trackCandidatesInGPU == nullptr)
     {
         cudaMallocManaged(&trackCandidatesInGPU, sizeof(SDL::trackCandidates));
-        createTrackCandidatesInUnifiedMemory(*trackCandidatesInGPU, N_MAX_TRACK_CANDIDATES_PER_MODULE, nLowerModules);
+        createTrackCandidatesInUnifiedMemory(*trackCandidatesInGPU, N_MAX_TRACK_CANDIDATES_PER_MODULE, N_MAX_PIXEL_TRACK_CANDIDATES_PER_MODULE, nLowerModules);
     }
 
     unsigned int nThreads = 1;
