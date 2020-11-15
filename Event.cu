@@ -112,10 +112,10 @@ void SDL::Event::addPixelSegmentToEvent(std::vector<unsigned int> hitIndices, fl
 
     //step 1 : Add pixel MDs
     unsigned int innerMDIndex = pixelModuleIndex * N_MAX_MD_PER_MODULES + mdsInGPU->nMDs[pixelModuleIndex];
-    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[0], hitIndices[1], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,innerMDIndex);
+    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[0], hitIndices[1], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,0,0,0,0,innerMDIndex);
     mdsInGPU->nMDs[pixelModuleIndex]++;
     unsigned int outerMDIndex = pixelModuleIndex * N_MAX_MD_PER_MODULES + mdsInGPU->nMDs[pixelModuleIndex];
-    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[2], hitIndices[3], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,outerMDIndex);
+    addMDToMemory(*mdsInGPU, *hitsInGPU, *modulesInGPU, hitIndices[2], hitIndices[3], pixelModuleIndex, 0,0,0,0,0,0,0,0,0,0,0,0,0,outerMDIndex);
     mdsInGPU->nMDs[pixelModuleIndex]++;
 
     //step 2 : Add pixel segment
@@ -493,15 +493,15 @@ __global__ void createMiniDoubletsInGPU(struct SDL::modules& modulesInGPU, struc
     unsigned int lowerHitArrayIndex = modulesInGPU.hitRanges[lowerModuleIndex * 2] + lowerHitIndex;
     unsigned int upperHitArrayIndex = modulesInGPU.hitRanges[upperModuleIndex * 2] + upperHitIndex;
 
-    float dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange;
-    bool success = runMiniDoubletDefaultAlgo(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitArrayIndex, upperHitArrayIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange);
+    float dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, drt, dzCut, drtCut, miniCut;
+    bool success = runMiniDoubletDefaultAlgo(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitArrayIndex, upperHitArrayIndex, dz, drt, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, dzCut, drtCut, miniCut);
     
     if(success)
     {
         unsigned int mdModuleIndex = atomicAdd(&mdsInGPU.nMDs[lowerModuleIndex],1);
         unsigned int mdIndex = lowerModuleIndex * N_MAX_MD_PER_MODULES + mdModuleIndex;
 
-        addMDToMemory(mdsInGPU,hitsInGPU, modulesInGPU, lowerHitArrayIndex, upperHitArrayIndex, lowerModuleIndex, dz, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, mdIndex);
+        addMDToMemory(mdsInGPU,hitsInGPU, modulesInGPU, lowerHitArrayIndex, upperHitArrayIndex, lowerModuleIndex, dz, drt, dphi, dphichange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, dzCut, drtCut, miniCut, mdIndex);
     }
 }
 
