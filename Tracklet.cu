@@ -43,7 +43,8 @@ void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsig
 
 }
 
-__device__ void SDL::addTrackletToMemory(struct tracklets& trackletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int trackletIndex)
+__device__ void SDL::addTrackletToMemory(struct tracklets& trackletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float& zLo, float& zHi, float& rtLo, float& rtHi, float& zLoPointed, float&
+        zHiPointed, float& sdlCut, float& betaInCut, float& betaOutCut, float& deltaBetaCut, float& kZ, unsigned int trackletIndex)
 {
     trackletsInGPU.segmentIndices[trackletIndex * 2] = innerSegmentIndex;
     trackletsInGPU.segmentIndices[trackletIndex * 2 + 1] = outerSegmentIndex;
@@ -59,6 +60,18 @@ __device__ void SDL::addTrackletToMemory(struct tracklets& trackletsInGPU, unsig
 
     trackletsInGPU.betaIn[trackletIndex] = betaIn;
     trackletsInGPU.betaOut[trackletIndex] = betaOut;
+
+    trackletsInGPU.zLo[trackletIndex] = zLo;
+    trackletsInGPU.zHi[trackletIndex] = zHi;
+    trackletsInGPU.rtLo[trackletIndex] = rtLo;
+    trackletsInGPU.rtHi[trackletIndex] = rtHi;
+    trackletsInGPU.zLoPointed[trackletIndex] = zLoPointed;
+    trackletsInGPU.zHiPointed[trackletIndex] = zHiPointed;
+    trackletsInGPU.sdlCut[trackletIndex] = sdlCut;
+    trackletsInGPU.betaInCut[trackletIndex] = betaInCut;
+    trackletsInGPU.betaOutCut[trackletIndex] = betaOutCut;
+    trackletsInGPU.deltaBetaCut[trackletIndex] = deltaBetaCut;
+    trackletsInGPU.kZ[trackletIndex] = kZ;
 }
 
 

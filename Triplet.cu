@@ -18,6 +18,17 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
     cudaMallocManaged(&tripletsInGPU.betaIn, maxTriplets * nLowerModules * sizeof(unsigned int));
     cudaMallocManaged(&tripletsInGPU.betaOut, maxTriplets * nLowerModules * sizeof(unsigned int));
 
+    cudaMallocManaged(&tripletsInGPU.zLo, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.zHi, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.zLoPointed, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.zHiPointed, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.sdlCut, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.betaInCut, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.betaOutCut, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.rtLo, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.rtHi, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.kZ, maxTriplets * nLowerModules * sizeof(float));
+
 #pragma omp parallel for
     for(size_t i = 0; i<nLowerModules;i++)
     {
@@ -25,21 +36,35 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
     }
 }
 
-__device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, unsigned int tripletIndex)
+__device__ void SDL::addTripletToMemory(struct triplets& tripletsInGPU, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float& zLo, float& zHi, float& rtLo, float& rtHi, float& zLoPointed, float&
+        zHiPointed, float& sdlCut, float& betaInCut, float& betaOutCut, float& deltaBetaCut, float& kZ, unsigned int tripletIndex)
 {
-   tripletsInGPU.segmentIndices[tripletIndex * 2] = innerSegmentIndex;
-   tripletsInGPU.segmentIndices[tripletIndex * 2 + 1] = outerSegmentIndex;
-   tripletsInGPU.lowerModuleIndices[tripletIndex * 3] = innerInnerLowerModuleIndex;
-   tripletsInGPU.lowerModuleIndices[tripletIndex * 3 + 1] = middleLowerModuleIndex;
-   tripletsInGPU.lowerModuleIndices[tripletIndex * 3 + 2] = outerOuterLowerModuleIndex;
+    tripletsInGPU.segmentIndices[tripletIndex * 2] = innerSegmentIndex;
+    tripletsInGPU.segmentIndices[tripletIndex * 2 + 1] = outerSegmentIndex;
+    tripletsInGPU.lowerModuleIndices[tripletIndex * 3] = innerInnerLowerModuleIndex;
+    tripletsInGPU.lowerModuleIndices[tripletIndex * 3 + 1] = middleLowerModuleIndex;
+    tripletsInGPU.lowerModuleIndices[tripletIndex * 3 + 2] = outerOuterLowerModuleIndex;
 
-   tripletsInGPU.zOut[tripletIndex] = zOut;
-   tripletsInGPU.rtOut[tripletIndex] = rtOut;
-   tripletsInGPU.deltaPhiPos[tripletIndex] = deltaPhiPos;
-   tripletsInGPU.deltaPhi[tripletIndex] = deltaPhi;
+    tripletsInGPU.zOut[tripletIndex] = zOut;
+    tripletsInGPU.rtOut[tripletIndex] = rtOut;
+    tripletsInGPU.deltaPhiPos[tripletIndex] = deltaPhiPos;
+    tripletsInGPU.deltaPhi[tripletIndex] = deltaPhi;
 
-   tripletsInGPU.betaIn[tripletIndex] = betaIn;
-   tripletsInGPU.betaOut[tripletIndex] = betaOut;
+    tripletsInGPU.betaIn[tripletIndex] = betaIn;
+    tripletsInGPU.betaOut[tripletIndex] = betaOut;
+
+    tripletsInGPU.zLo[tripletIndex] = zLo;
+    tripletsInGPU.zHi[tripletIndex] = zHi;
+    tripletsInGPU.rtLo[tripletIndex] = rtLo;
+    tripletsInGPU.rtHi[tripletIndex] = rtHi;
+    tripletsInGPU.zLoPointed[tripletIndex] = zLoPointed;
+    tripletsInGPU.zHiPointed[tripletIndex] = zHiPointed;
+    tripletsInGPU.sdlCut[tripletIndex] = sdlCut;
+    tripletsInGPU.betaInCut[tripletIndex] = betaInCut;
+    tripletsInGPU.betaOutCut[tripletIndex] = betaOutCut;
+    tripletsInGPU.deltaBetaCut[tripletIndex] = deltaBetaCut;
+    tripletsInGPU.kZ[tripletIndex] = kZ;
+
 }
 
 SDL::triplets::triplets()
@@ -73,7 +98,8 @@ void SDL::triplets::freeMemory()
     cudaFree(betaOut);
 }
 
-__device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut)
+__device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float &zLo, float& zHi, float& rtLo, float& rtHi,
+        float& zLoPointed, float& zHiPointed, float& sdlCut, float& betaInCut, float& betaOutCut, float& deltaBetaCut, float& kZ)
 {
     bool pass = true;
     //check
@@ -87,7 +113,7 @@ __device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct 
     }
     //now check tracklet algo
     
-    if(not(runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, middleLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut)))
+    if(not(runTrackletDefaultAlgo(modulesInGPU, hitsInGPU, mdsInGPU, segmentsInGPU, innerInnerLowerModuleIndex, middleLowerModuleIndex, middleLowerModuleIndex, outerOuterLowerModuleIndex, innerSegmentIndex, outerSegmentIndex, zOut, rtOut, deltaPhiPos, deltaPhi, betaIn, betaOut, zLo, zHi, rtLo, rtHi, zLoPointed, zHiPointed, sdlCut, betaInCut, betaOutCut, deltaBetaCut, kZ)))
     {
         pass = false;
     }
