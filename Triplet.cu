@@ -25,6 +25,7 @@ void SDL::createTripletsInUnifiedMemory(struct triplets& tripletsInGPU, unsigned
     cudaMallocManaged(&tripletsInGPU.sdlCut, maxTriplets * nLowerModules * sizeof(float));
     cudaMallocManaged(&tripletsInGPU.betaInCut, maxTriplets * nLowerModules * sizeof(float));
     cudaMallocManaged(&tripletsInGPU.betaOutCut, maxTriplets * nLowerModules * sizeof(float));
+    cudaMallocManaged(&tripletsInGPU.deltaBetaCut, maxTriplets * nLowerModules * sizeof(float));
     cudaMallocManaged(&tripletsInGPU.rtLo, maxTriplets * nLowerModules * sizeof(float));
     cudaMallocManaged(&tripletsInGPU.rtHi, maxTriplets * nLowerModules * sizeof(float));
     cudaMallocManaged(&tripletsInGPU.kZ, maxTriplets * nLowerModules * sizeof(float));
@@ -78,6 +79,17 @@ SDL::triplets::triplets()
     deltaPhi = nullptr;
     betaIn = nullptr;
     betaOut = nullptr;
+
+    zLo = nullptr;
+    zHi = nullptr;
+    rtLo = nullptr;
+    rtHi = nullptr;
+    zLoPointed = nullptr;
+    zHiPointed = nullptr;
+    kZ = nullptr;
+    betaInCut = nullptr;
+    betaOutCut = nullptr;
+    deltaBetaCut = nullptr;
 }
 
 SDL::triplets::~triplets()
@@ -96,6 +108,17 @@ void SDL::triplets::freeMemory()
     cudaFree(deltaPhi);
     cudaFree(betaIn);
     cudaFree(betaOut);
+
+    cudaFree(zLo);
+    cudaFree(zHi);
+    cudaFree(rtLo);
+    cudaFree(rtHi);
+    cudaFree(zLoPointed);
+    cudaFree(zHiPointed);
+    cudaFree(kZ);
+    cudaFree(betaInCut);
+    cudaFree(betaOutCut);
+    cudaFree(deltaBetaCut);
 }
 
 __device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float &zLo, float& zHi, float& rtLo, float& rtHi,

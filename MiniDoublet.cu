@@ -355,17 +355,20 @@ __device__ bool SDL::runMiniDoubletDefaultAlgoEndcap(struct modules& modulesInGP
 
 __device__ bool SDL::runMiniDoubletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, unsigned int lowerModuleIndex, unsigned int lowerHitIndex, unsigned int upperHitIndex, float& dz, float& drt, float& dPhi, float& dPhiChange, float& shiftedX, float& shiftedY, float& shiftedZ, float& noShiftedDz, float& noShiftedDphi, float& noShiftedDphiChange, float& dzCut, float& drtCut, float& miniCut)
 {
-   bool pass;
-   if(modulesInGPU.subdets[lowerModuleIndex] == Barrel)
-   {
+    bool pass;
+    dzCut = -999;
+    drtCut = -999;
+   
+    if(modulesInGPU.subdets[lowerModuleIndex] == Barrel)
+    {
         pass = runMiniDoubletDefaultAlgoBarrel(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, drt, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, dzCut, drtCut, miniCut);
-   } 
-   else
-   {
-       pass = runMiniDoubletDefaultAlgoEndcap(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, drt, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, dzCut, drtCut, miniCut);
+    } 
+    else
+    {
+        pass = runMiniDoubletDefaultAlgoEndcap(modulesInGPU, hitsInGPU, lowerModuleIndex, lowerHitIndex, upperHitIndex, dz, drt, dPhi, dPhiChange, shiftedX, shiftedY, shiftedZ, noShiftedDz, noShiftedDphi, noShiftedDphiChange, dzCut, drtCut, miniCut);
 
-   }
-   return pass;
+    }
+    return pass;
 }
 
 __device__ float SDL::dPhiThreshold(struct hits& hitsInGPU, struct modules& modulesInGPU, unsigned int hitIndex, unsigned int moduleIndex, float dPhi, float dz)
@@ -727,6 +730,10 @@ SDL::miniDoublets::miniDoublets()
     noShiftedDphis = nullptr;
     noShiftedDphiChanges = nullptr;
 
+    dzCuts = nullptr;
+    drtCuts = nullptr;
+    miniCuts = nullptr;
+
 }
 
 void SDL::miniDoublets::freeMemory()
@@ -746,6 +753,10 @@ void SDL::miniDoublets::freeMemory()
     cudaFree(noShiftedDzs);
     cudaFree(noShiftedDphis);
     cudaFree(noShiftedDphiChanges);
+
+    cudaFree(dzCuts);
+    cudaFree(drtCuts);
+    cudaFree(miniCuts);
 }
 
 void SDL::printMD(struct miniDoublets& mdsInGPU, struct hits& hitsInGPU, SDL::modules& modulesInGPU, unsigned int mdIndex)

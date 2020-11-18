@@ -36,6 +36,7 @@ void SDL::createTrackletsInUnifiedMemory(struct tracklets& trackletsInGPU, unsig
     cudaMallocManaged(&trackletsInGPU.sdlCut, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&trackletsInGPU.betaInCut, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&trackletsInGPU.betaOutCut, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&trackletsInGPU.deltaBetaCut, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&trackletsInGPU.rtLo, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&trackletsInGPU.rtHi, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&trackletsInGPU.kZ, nMemoryLocations * sizeof(float));
@@ -86,6 +87,18 @@ SDL::tracklets::tracklets()
     deltaPhi = nullptr;
     betaIn = nullptr;
     betaOut = nullptr;
+
+    zLo = nullptr;
+    zHi = nullptr;
+    rtLo = nullptr;
+    rtHi = nullptr;
+    zLoPointed = nullptr;
+    zHiPointed = nullptr;
+    sdlCut = nullptr;
+    betaInCut = nullptr;
+    betaOutCut = nullptr;
+    deltaBetaCut = nullptr;
+    kZ = nullptr;
 }
 
 SDL::tracklets::~tracklets()
@@ -104,6 +117,18 @@ void SDL::tracklets::freeMemory()
     cudaFree(deltaPhi);
     cudaFree(betaIn);
     cudaFree(betaOut);
+
+    cudaFree(zLo);
+    cudaFree(zHi);
+    cudaFree(rtLo);
+    cudaFree(rtHi);
+    cudaFree(zLoPointed);
+    cudaFree(zHiPointed);
+    cudaFree(sdlCut);
+    cudaFree(betaInCut);
+    cudaFree(betaOutCut);
+    cudaFree(deltaBetaCut);
+    cudaFree(kZ);
 }
 
 __device__ bool SDL::runTrackletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int innerOuterLowerModuleIndex, unsigned int outerInnerLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float&
