@@ -33,6 +33,8 @@ void SDL::createSegmentsInUnifiedMemory(struct segments& segmentsInGPU, unsigned
 
     cudaMallocManaged(&segmentsInGPU.zLo, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&segmentsInGPU.zHi, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtLo, nMemoryLocations * sizeof(float));
+    cudaMallocManaged(&segmentsInGPU.rtHi, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&segmentsInGPU.sdCut, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&segmentsInGPU.dAlphaInnerMDSegmentThreshold, nMemoryLocations * sizeof(float));
     cudaMallocManaged(&segmentsInGPU.dAlphaOuterMDSegmentThreshold, nMemoryLocations * sizeof(float));
@@ -64,6 +66,13 @@ SDL::segments::segments()
     dPhiChanges = nullptr;
     dPhiChangeMins = nullptr;
     dPhiChangeMaxs = nullptr;
+    
+    ptIn = nullptr;
+    ptErr = nullptr;
+    px = nullptr;
+    py = nullptr;
+    pz = nullptr;
+    etaErr = nullptr;
 
     zIns = nullptr;
     zOuts = nullptr;
@@ -72,6 +81,15 @@ SDL::segments::segments()
     dAlphaInnerMDSegments = nullptr;
     dAlphaOuterMDSegments = nullptr;
     dAlphaInnerMDOuterMDs = nullptr;
+    
+    zLo = nullptr;
+    zHi = nullptr;
+    rtLo = nullptr;
+    rtHi = nullptr;
+    sdCut = nullptr;
+    dAlphaInnerMDSegmentThreshold = nullptr;
+    dAlphaOuterMDSegmentThreshold = nullptr;
+    dAlphaInnerMDOuterMDThreshold = nullptr;
 }
 
 void SDL::segments::freeMemory()
@@ -90,6 +108,13 @@ void SDL::segments::freeMemory()
     cudaFree(dPhiChangeMins);
     cudaFree(dPhiChangeMaxs);
 
+    cudaFree(ptIn);
+    cudaFree(ptErr);
+    cudaFree(px);
+    cudaFree(py);
+    cudaFree(pz);
+    cudaFree(etaErr);
+
     cudaFree(zIns);
     cudaFree(zOuts);
     cudaFree(rtIns);
@@ -97,6 +122,15 @@ void SDL::segments::freeMemory()
     cudaFree(dAlphaInnerMDSegments);
     cudaFree(dAlphaOuterMDSegments);
     cudaFree(dAlphaInnerMDOuterMDs);
+
+    cudaFree(zLo);
+    cudaFree(zHi);
+    cudaFree(rtLo);
+    cudaFree(rtHi);
+    cudaFree(sdCut);
+    cudaFree(dAlphaInnerMDSegmentThreshold);
+    cudaFree(dAlphaOuterMDSegmentThreshold);
+    cudaFree(dAlphaInnerMDOuterMDThreshold);
 
 }
 
