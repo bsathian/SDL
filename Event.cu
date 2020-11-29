@@ -322,9 +322,7 @@ void SDL::Event::createPixelTracklets()
         std::cout<<"sync failed with error : "<<cudaGetErrorString(cudaerr)<<std::endl;    
 
     }
-    std::cout<<"Number of pixel tracklets = "<<trackletsInGPU->nTracklets[nLowerModules]<<std::endl;
     //addPixelTrackletsToEvent();
-
 }
 
 void SDL::Event::createTrackletsWithAGapWithModuleMap()
@@ -1163,6 +1161,18 @@ unsigned int SDL::Event::getNumberOfSegmentsByLayerEndcap(unsigned int layer)
     return n_segments_by_layer_endcap_[layer];
 }
 
+unsigned int SDL::Event::getNumberOfPixelSegments()
+{
+    unsigned int pixelModuleIndex = (*detIdToIndex)[1];
+    return segmentsInGPU->nSegments[pixelModuleIndex];
+}
+
+unsigned int SDL::Event::getNumberOfPixelTracklets()
+{
+    unsigned int nLowerModules = *modulesInGPU->nLowerModules;
+    return trackletsInGPU->nTracklets[nLowerModules];
+}
+
 unsigned int SDL::Event::getNumberOfTracklets()
 {
     unsigned int tracklets = 0;
@@ -1212,7 +1222,6 @@ unsigned int SDL::Event::getNumberOfTriplets()
     return triplets;
    
 }
-
 
 unsigned int SDL::Event::getNumberOfTripletsByLayer(unsigned int layer)
 {

@@ -96,6 +96,9 @@ namespace SDL
         unsigned int getNumberOfTrackletsByLayerBarrel(unsigned int layer);
         unsigned int getNumberOfTrackletsByLayerEndcap(unsigned int layer);
 
+        unsigned int getNumberOfPixelSegments();
+        unsigned int getNumberOfPixelTracklets();
+
         unsigned int getNumberOfTriplets();
         unsigned int getNumberOfTripletsByLayer(unsigned int layer);
         unsigned int getNumberOfTripletsByLayerBarrel(unsigned int layer);
