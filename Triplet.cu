@@ -119,6 +119,7 @@ void SDL::triplets::freeMemory()
     cudaFree(betaInCut);
     cudaFree(betaOutCut);
     cudaFree(deltaBetaCut);
+    cudaFree(sdlCut);
 }
 
 __device__ bool SDL::runTripletDefaultAlgo(struct modules& modulesInGPU, struct hits& hitsInGPU, struct miniDoublets& mdsInGPU, struct segments& segmentsInGPU, unsigned int innerInnerLowerModuleIndex, unsigned int middleLowerModuleIndex, unsigned int outerOuterLowerModuleIndex, unsigned int innerSegmentIndex, unsigned int outerSegmentIndex, float& zOut, float& rtOut, float& deltaPhiPos, float& deltaPhi, float& betaIn, float& betaOut, float &zLo, float& zHi, float& rtLo, float& rtHi,

@@ -108,6 +108,13 @@ void SDL::segments::freeMemory()
     cudaFree(dPhiChangeMins);
     cudaFree(dPhiChangeMaxs);
 
+    cudaFree(ptIn);
+    cudaFree(ptErr);
+    cudaFree(px);
+    cudaFree(py);
+    cudaFree(pz);
+    cudaFree(etaErr);
+
     cudaFree(zIns);
     cudaFree(zOuts);
     cudaFree(rtIns);
